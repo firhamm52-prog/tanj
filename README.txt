@@ -1,1 +1,1 @@
-TANJ website source. Open index.html in a browser, or host the TANJ folder on a static web server. HTML, CSS, and JavaScript are contained in index.html; images and videos are in assets/. CMS demo changes are browser-local and require backend/database integration for production.
+TANJ website and CMS Studio. See README.md for setup, demo login, microservices, and database tables. Serve over HTTP; ES modules require a web server. Run npm start with Node.js 24+ for the backend, or use the GitHub Pages demo.

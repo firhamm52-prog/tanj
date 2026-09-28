@@ -1,0 +1,33 @@
+/* Final responsive layer: touch targets, tablet grids and safe viewport sizing. */
+html{scroll-padding-top:90px}
+img,video{max-width:100%}
+button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible{outline:2px solid #a88b64;outline-offset:4px}
+@media(min-width:761px) and (max-width:1180px){
+ .nav{padding-inline:4%;height:76px}.navlinks,.navright{gap:18px}
+ .navlinks button{font-size:11px!important}
+ #collection .products.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+ .catalog-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px 16px}
+ .catalog-heading{align-items:start;flex-wrap:wrap}
+ .hero.video-hero{min-height:460px;height:70svh;max-height:880px}
+ .product-panel{width:min(94vw,950px);max-height:90dvh;overflow:auto}
+ .foot{gap:32px;flex-wrap:wrap}.foot-links{gap:32px}
+}
+@media(max-width:760px){
+ .hero.video-hero{height:76svh;min-height:400px;max-height:800px}
+ .brand-video{object-fit:cover}
+ .section-heading,.collection-heading{gap:16px;flex-wrap:wrap}
+ .collection-heading h3{font-size:clamp(25px,7vw,36px)}
+ .catalog-heading{display:block}
+ .foot{display:flex;flex-direction:column;gap:28px;padding-inline:6%}
+ .foot-links{display:flex;flex-wrap:wrap;gap:24px 36px}
+ .footer-bottom{flex-wrap:wrap;gap:12px}
+ .navright .icon-button,.menu{min-height:44px;min-width:36px}
+ input,select,textarea{font-size:16px!important}
+ .product-panel,.bag-panel{padding-bottom:env(safe-area-inset-bottom)}
+ .catalog-colors{gap:18px}.color-swatch::before{content:'';position:absolute;inset:-10px}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}.ootd-track,.photo-track{animation:none!important}
+ *,*::before,*::after{transition:none!important}
+}

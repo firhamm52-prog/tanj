@@ -1,0 +1,15 @@
+{
+  "name": "tanj-cms",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "start": "node scripts/start.mjs",
+    "db:init": "node scripts/init-db.mjs",
+    "admin:reset-password": "node scripts/reset-password.mjs",
+    "test": "node --test tests/api.test.mjs",
+    "test:ui": "node tests/browser.mjs"
+  },
+  "devDependencies": { "playwright": "^1.58.0" }
+}
