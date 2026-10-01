@@ -33,7 +33,44 @@ export const seed = {
   })),
   hero:{media:'assets/noireaterial-desert-three-models-v3.mp4'},
   banner:{enabled:false,title:'The everyday edit',subtitle:'Siluet yang menemani setiap langkah.',mediaType:'image',media:'assets/campaign-beige.webp'},
-  slides:[1,2,3,4,5,6].map(n=>({id:`slide-${n}`,caption:`TANJ lookbook ${n}`,mediaType:'image',media:`assets/look-${n}.webp`}))
+  slides:[
+  {
+    "id": "slide-1",
+    "caption": "Hijab Selcuk Brown TANJ",
+    "mediaType": "image",
+    "media": "assets/hijab-selcuk-brown.webp"
+  },
+  {
+    "id": "slide-2",
+    "caption": "Hijab Selcuk Gray TANJ",
+    "mediaType": "image",
+    "media": "assets/hijab-selcuk-gray.webp"
+  },
+  {
+    "id": "slide-3",
+    "caption": "Hijab Georgia White TANJ",
+    "mediaType": "image",
+    "media": "assets/hijab-georgia-white.webp"
+  },
+  {
+    "id": "slide-4",
+    "caption": "Hijab Georgia Nude TANJ",
+    "mediaType": "image",
+    "media": "assets/hijab-georgia-nude.webp"
+  },
+  {
+    "id": "slide-5",
+    "caption": "Hijab Georgia Black TANJ",
+    "mediaType": "image",
+    "media": "assets/hijab-georgia-black.webp"
+  },
+  {
+    "id": "slide-6",
+    "caption": "Hijab Georgia Cream TANJ",
+    "mediaType": "video",
+    "media": "assets/hijab-georgia-cream.mp4"
+  }
+]
 };
 export function freshSeed(){ return structuredClone(seed); }
 export function storefront(state){
