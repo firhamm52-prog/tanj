@@ -1,3 +1,4 @@
+export const DEFAULT_PRODUCT_PRICE = 687000;
 export const DEMO_KEY = 'tanj-studio-draft-v1';
 export const PUBLISHED_KEY = 'tanj-studio-published-v1';
 const collections = [
@@ -25,7 +26,7 @@ export const seed = {
   products: variants.map(([name,colorName,color,model,product], i) => ({
     id: `base-${Math.floor(i/3)}-${i%3}`, collectionId: `base-${Math.floor(i/3)}`,
     name,colorName,color,model:`assets/${model}.webp`,product:`assets/${product}.webp`,
-    price:695000,stock: i === 8 ? 0 : 12 + i*3,inStock:i!==8,status:'published'
+    price:DEFAULT_PRODUCT_PRICE,stock: i === 8 ? 0 : 12 + i*3,inStock:i!==8,status:'published'
   })),
   hijabs: [ ['selcuk','brown',249000],['selcuk','gray',249000],['georgia','white',195000],['georgia','nude',195000],['georgia','black',195000],['georgia','cream',195000] ].map(([collection,color,price],i)=>({
     id:`hijab-${collection}-${color}`,collection,color,name:`${collection[0].toUpperCase()+collection.slice(1)} ${color[0].toUpperCase()+color.slice(1)}`,
