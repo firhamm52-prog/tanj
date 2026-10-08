@@ -1,5 +1,5 @@
 import {freshSeed,DEMO_KEY,PUBLISHED_KEY,storefront} from '../shared/seed.js';
-import {validate} from '../shared/validation.js';
+import {validate} from '../shared/validation.js?v=sold-publish-2';
 export const isApi = window.TANJ_CONFIG?.mode === 'api';
 const apiBase = window.TANJ_CONFIG?.apiBase || '/api';
 function read(key){try{return JSON.parse(localStorage.getItem(key))}catch{return null}}

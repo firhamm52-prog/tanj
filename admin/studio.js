@@ -1,5 +1,5 @@
 import {DEFAULT_PRODUCT_PRICE} from '../shared/seed.js';
-import {isApi,request,loadAdmin,save,remove,publish,resetDemo} from '../web/data.js';
+import {isApi,request,loadAdmin,save,remove,publish,resetDemo} from '../web/data.js?v=sold-publish-2';
 const $=selector=>document.querySelector(selector);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=value=>'Rp'+Number(value).toLocaleString('id-ID');

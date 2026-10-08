@@ -259,8 +259,17 @@ body.collection-menu-open .nav .category-nav-trigger{color:#fff!important}
     tanjHeroVideo.addEventListener('loadedmetadata', slowTanjHero);
   </script>
   <script type="module">
-import { loadStorefront } from './web/data.js';
-import { DEFAULT_PRODUCT_PRICE, freshSeed, storefront } from './shared/seed.js';
+import { isApi, loadStorefront } from './web/data.js?v=sold-publish-2';
+import { DEFAULT_PRODUCT_PRICE, PUBLISHED_KEY, freshSeed, storefront } from './shared/seed.js';
+// Refresh an already open demo tab after publication, including back/forward restore.
+if(!isApi){
+ const publishedSnapshot=localStorage.getItem(PUBLISHED_KEY);
+ const syncPublication=()=>{if(localStorage.getItem(PUBLISHED_KEY)!==publishedSnapshot)location.reload()};
+ window.addEventListener('storage',event=>{if(event.key===PUBLISHED_KEY||event.key===null)syncPublication()});
+ window.addEventListener('focus',syncPublication);
+ window.addEventListener('pageshow',syncPublication);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncPublication()});
+}
 if(location.hash === '#admin') location.replace(new URL('admin/',location.href));
 let studioState;
 try { studioState = await loadStorefront(); }
