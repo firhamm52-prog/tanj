@@ -21,7 +21,7 @@ export function validate(kind,raw){
     if(!/^#[a-f\d]{6}$/i.test(raw.color)) fail('Warna swatch tidak valid.');
     if(!['draft','published'].includes(raw.status)) fail('Status produk tidak valid.');
     const stock=number(raw.stock,'Stok',1000000);
-    return {name:text(raw.name,'Nama produk'),collectionId:text(raw.collectionId,'Koleksi'),colorName:text(raw.colorName,'Nama warna'),color:raw.color,price:number(raw.price,'Harga',1000000000),stock,inStock:stock>0,status:raw.status,model:media(raw.model),product:media(raw.product)};
+    return {name:text(raw.name,'Nama produk'),collectionId:text(raw.collectionId,'Koleksi'),colorName:text(raw.colorName,'Nama warna'),color:raw.color,price:number(raw.price,'Harga',1000000000),stock,sold:number(raw.sold??0,'Jumlah terjual',1000000000),inStock:stock>0,status:raw.status,model:media(raw.model),product:media(raw.product)};
   }
   if(kind==='hijabs'){
     const stock=number(raw.stock,'Stok',1000000);

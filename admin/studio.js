@@ -87,7 +87,7 @@ function openEditor(kind,id){
  editing={kind,id};error('','#editor-error');
  $('#editor-title').textContent=(id||['hero','banner'].includes(kind)?'Edit ':'Tambah ')+({products:'produk',collections:'koleksi',hijabs:'hijab',hero:'video utama',banner:'banner',slides:'media lookbook'}[kind]);
  let fields='';
- if(kind==='products')fields=field('name','Nama produk / varian',item.name)+select('collectionId','Koleksi',item.collectionId||state.collections[0].id,state.collections.map(c=>[c.id,c.name]))+field('colorName','Nama warna',item.colorName)+field('color','Warna swatch',item.color||'#eee6d7','color')+field('price','Harga (Rp)',item.price??DEFAULT_PRODUCT_PRICE,'number',false,'min="0" max="1000000000" step="1"')+field('stock','Stok (unit)',item.stock??0,'number',false,'min="0" max="1000000" step="1"')+select('status','Status',item.status||'draft',[['draft','Draf — sembunyikan'],['published','Aktif — tampil setelah publikasi']])+field('model','Foto model',item.model||'assets/campaign-beige.webp','text',true)+field('product','Foto produk',item.product||'assets/look-2.webp','text',true);
+ if(kind==='products')fields=field('name','Nama produk / varian',item.name)+select('collectionId','Koleksi',item.collectionId||state.collections[0].id,state.collections.map(c=>[c.id,c.name]))+field('colorName','Nama warna',item.colorName)+field('color','Warna swatch',item.color||'#eee6d7','color')+field('price','Harga (Rp)',item.price??DEFAULT_PRODUCT_PRICE,'number',false,'min="0" max="1000000000" step="1"')+field('stock','Stok (unit)',item.stock??0,'number',false,'min="0" max="1000000" step="1"')+field('sold','Jumlah terjual',item.sold??0,'number',false,'min="0" max="1000000000" step="1"')+select('status','Status',item.status||'draft',[['draft','Draf — sembunyikan'],['published','Aktif — tampil setelah publikasi']])+field('model','Foto model',item.model||'assets/campaign-beige.webp','text',true)+field('product','Foto produk',item.product||'assets/look-2.webp','text',true);
  if(kind==='hijabs')fields=field('name','Nama hijab',item.name)+field('price','Harga (Rp)',item.price,'number',false,'min="0" max="1000000000" step="1"')+field('stock','Stok (unit)',item.stock,'number',false,'min="0" max="1000000" step="1"')+field('image','Foto hijab',item.image,'text',true);
  if(kind==='collections')fields=field('name','Nama koleksi',item.name,'text',true)+`<label class="full">Deskripsi<textarea name="description" maxlength="1000">${esc(item.description||'')}</textarea></label>`;
  if(kind==='hero')fields=field('media','URL video utama',item.media,'text',true);
@@ -107,7 +107,7 @@ $('#edit-form').addEventListener('submit',async event=>{
  try{
   const {kind,id}=editing;const data=Object.fromEntries(new FormData(event.currentTarget));
   if(kind==='hijabs')Object.assign(data,{collection:state.hijabs.find(x=>x.id===id).collection,color:state.hijabs.find(x=>x.id===id).color});
-  if(['products','hijabs'].includes(kind)){data.price=Number(data.price);data.stock=Number(data.stock)}
+  if(['products','hijabs'].includes(kind)){data.price=Number(data.price);data.stock=Number(data.stock);if(kind==='products')data.sold=Number(data.sold)}
   if(kind==='banner')data.enabled=!!data.enabled;
   await save(kind,id,data);await refresh();$('#editor').close();editing=null;toast('Draf tersimpan. Publikasikan untuk menampilkan perubahan.');
  }catch(err){error(err.message,'#editor-error')}finally{button.disabled=false}
