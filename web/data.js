@@ -7,7 +7,10 @@ export async function request(path,options={}){
   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),10000);
   try{
     const response=await fetch(apiBase+path,{...options,credentials:'same-origin',headers:{'Content-Type':'application/json',...options.headers},signal:controller.signal});
-    const data=await response.json();
+    if(!response.headers.get('content-type')?.toLowerCase().includes('application/json'))throw new Error('Layanan checkout belum tersedia. Silakan hubungi admin TANJ untuk bantuan.');
+    let data;
+    try{data=await response.json()}catch{throw new Error('Respons layanan tidak valid. Silakan coba kembali atau hubungi admin TANJ.')}
+    if(!data||typeof data!=='object')throw new Error('Respons layanan tidak valid. Silakan coba kembali.');
     if(!response.ok)throw new Error(data.error||'Permintaan gagal.');
     return data;
   }catch(error){if(error.name==='AbortError')throw new Error('Server belum merespons. Coba lagi.');throw error}finally{clearTimeout(timeout)}

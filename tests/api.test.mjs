@@ -96,3 +96,16 @@ test('checkout browser: delivery form opens payment without WhatsApp redirect',a
  await page.locator('#checkout-name').fill('Customer UI');await page.locator('#checkout-phone').fill('081234567891');await page.locator('#checkout-address').fill('Alamat test Karawaci');await page.locator('#shipping-search').fill('Karawaci');await page.locator('#shipping-find').click();await page.waitForFunction(()=>document.getElementById('shipping-destination').options.length>1);await page.locator('#shipping-destination').selectOption('1');await page.locator('#shipping-calculate').click();await page.waitForFunction(()=>document.getElementById('shipping-rate').options.length>1);await page.locator('#shipping-rate').selectOption({index:1});await page.locator('#checkout-consent').check();await page.locator('#checkout-form button[type=submit]').click();await page.locator('#payment-view').waitFor({state:'visible'});assert.match(await page.locator('#payment-view').textContent(),/SIMULASI/);assert.equal(new URL(page.url()).host,'127.0.0.1:4310');assert.deepEqual(errors,[]);
  }finally{await browser.close();}
 });
+test('static hosting: checkout is clearly unavailable and never calls missing APIs',async()=>{
+ const {chromium}=await import('playwright');const browser=await chromium.launch({channel:'chrome',headless:true});
+ try{const page=await browser.newPage({viewport:{width:390,height:844}});const apiRequests=[];const errors=[];
+ await page.route('**/web/config.js',route=>route.fulfill({contentType:'text/javascript',body:'window.TANJ_CONFIG={mode:"demo",apiBase:"/api"};'}));
+ page.on('request',req=>{if(new URL(req.url()).pathname.startsWith('/api/'))apiRequests.push(req.url());});page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(base);await page.evaluate(()=>localStorage.setItem('noireaterial-cart-v1',JSON.stringify([{id:'base-0-0',qty:1}])));await page.reload();await page.locator('#bag-open').click();await page.locator('#bag-next').click();
+ assert.match(await page.locator('#checkout-availability').textContent(),/Checkout dan cek ongkir online belum tersedia/);
+ assert.equal(await page.locator('#shipping-find').isDisabled(),true);assert.equal(await page.locator('#shipping-calculate').isDisabled(),true);assert.equal(await page.locator('#checkout-form button[type=submit]').isDisabled(),true);
+ assert.equal(await page.locator('.checkout-fallback').isVisible(),true);assert.equal(await page.locator('#checkout-error').textContent(),'');assert.deepEqual(apiRequests,[]);assert.deepEqual(errors,[]);
+ await page.route('**/api/shipping/quotes',route=>route.fulfill({status:404,contentType:'text/html',body:'<html><head>Not found</head></html>'}));
+ const message=await page.evaluate(async()=>{const {request}=await import('/web/data.js?v=sold-publish-2');try{await request('/shipping/quotes',{method:'POST',body:'{}'})}catch(e){return e.message}});assert.match(message,/Layanan checkout belum tersedia/);assert.ok(!message.includes('Unexpected token'));
+ }finally{await browser.close();}
+});

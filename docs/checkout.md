@@ -15,3 +15,5 @@ WhatsApp ditujukan ke nomor customer yang menyetujui notifikasi. Setelah approve
 Validasi lokal: `npm.cmd test`. Tes meliputi auth, total server, quote sekali pakai, akses privat bukti, reject/upload ulang/approve, dan larangan approve berulang. Kredensial provider dan QRIS nyata diperlukan untuk pengujian integrasi live.
 
 Referensi: https://rajaongkir.com/docs/shipping-cost/endpoint-rajaongkir-for-search-base/calculate-domestic-cost dan https://www.rajaongkir.com/docs/shipping-cost/getting_started/about
+
+Pada hosting statis, checkout menampilkan status belum tersedia dan menonaktifkan pencarian tujuan, cek ongkir, serta pembayaran. Tidak ada request ke API yang tidak tersedia dan tidak ada tarif perkiraan yang diperlakukan sebagai tarif live. Tautan bantuan admin tetap tersedia. Untuk mengaktifkan transaksi online, frontend dan backend perlu disajikan lewat gateway Node.js dengan konfigurasi provider pada server.
