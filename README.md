@@ -20,7 +20,7 @@ GitHub Pages menjalankan **simulasi statis**. Draf dan publikasi demo tersimpan 
 5. Coba edit koleksi, hijab, banner, video utama, atau lookbook.
 6. **Pengaturan → Reset data dummy** mengembalikan demo. Ekspor JSON tersedia; impor belum disediakan.
 
-Data awal: 12 produk pakaian, 6 hijab, 4 koleksi, 6 slide, 1 banner, dan 1 video utama. Stok merupakan dummy. Checkout tetap melalui WhatsApp; belum ada pembayaran atau pengurangan stok otomatis.
+Data awal: 12 produk pakaian, 6 hijab, 4 koleksi, 6 slide, 1 banner, dan 1 video utama. Stok merupakan dummy. Checkout backend memakai ongkir J&T/JNE, QRIS, kode unik, upload bukti, dan verifikasi admin. Konfigurasi provider diperlukan untuk transaksi asli; lihat [panduan checkout](docs/checkout.md). GitHub Pages hanya menayangkan frontend, sehingga checkout transaksi membutuhkan hosting backend Node.js.
 
 Media memakai file `assets/` atau URL HTTPS. Contoh: `assets/campaign-beige.webp`. Upload file ke server/object storage belum termasuk.
 
