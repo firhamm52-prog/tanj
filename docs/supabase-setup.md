@@ -2,8 +2,8 @@
 
 Status: kode integrasi akun, alamat, admin dan pesanan sudah disiapkan.
 Project URL dan publishable key publik dikonfigurasi di `web/supabase-config.js`.
-Owner melaporkan tiga migrasi berhasil, tetapi API belum menemukan tabel pesanan.
-Verifikasi schema cache diperlukan sebelum deployment; website publik belum diubah.
+Tiga migrasi sudah dijalankan. Verifikasi API live berhasil: katalog dan pengaturan
+pembayaran terbaca (200), sedangkan akses pesanan tanpa login ditolak (401).
 
 ## Aktivasi sebelum deployment
 
