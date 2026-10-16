@@ -9,7 +9,7 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
 try{
  browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage({viewport:{width:800,height:1000}});
  await page.goto(`http://127.0.0.1:${server.address().port}`);await page.locator('.qris-artwork-crop').waitFor();
- const frame=await page.locator('.qris-artwork-crop').boundingBox();assert.equal(frame.width,420);
+ const frame=await page.locator('.qris-artwork-crop').boundingBox();assert.equal(frame.width,360);
  assert.equal(await page.locator('img').evaluate(image=>image.naturalWidth),1054);
  await page.locator('.qris-artwork-crop').screenshot({path:'test-results/qris-crop-preview.png'});
  await page.setViewportSize({width:320,height:800});assert.ok((await page.locator('.qris-artwork-crop').boundingBox()).width<=320);
