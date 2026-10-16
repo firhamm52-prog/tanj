@@ -20,7 +20,7 @@ GitHub Pages menjalankan **simulasi statis**. Draf dan publikasi demo tersimpan 
 5. Coba edit koleksi, hijab, banner, video utama, atau lookbook.
 6. **Pengaturan → Reset data dummy** mengembalikan demo. Ekspor JSON tersedia; impor belum disediakan.
 
-Data awal: 12 produk pakaian, 6 hijab, 4 koleksi, 6 slide, 1 banner, dan 1 video utama. Stok merupakan dummy. Checkout tetap melalui WhatsApp; belum ada pembayaran atau pengurangan stok otomatis.
+Data awal: 12 produk pakaian, 6 hijab, 4 koleksi, 6 slide, 1 banner, dan 1 video utama. Stok merupakan dummy. Checkout pembayaran manual tersedia sebagai simulasi GitHub Pages: konfirmasi dan upload bukti opsional, lalu pemeriksaan admin. Belum menerima pembayaran asli. Lihat [panduan trial pembayaran](docs/manual-payment-trial.md).
 
 Media memakai file `assets/` atau URL HTTPS. Contoh: `assets/campaign-beige.webp`. Upload file ke server/object storage belum termasuk.
 
@@ -65,6 +65,8 @@ npm install
 npm test
 # Jalankan npm start di terminal lain; Google Chrome harus tersedia.
 npm run test:ui
+# Checkout manual tanpa backend (Google Chrome terpasang)
+npm run test:payments
 ```
 
 Tes API: login/logout, akses tanpa otorisasi, validasi, CSRF, draf/publikasi, relasi produk-koleksi, stok, persistensi, dan file privat. Tes browser: CRUD demo/API, subpath `/tanj/`, dan viewport 360, 390, 768, 820, 1024, 1440 px. Screenshot di `test-results/` tidak di-commit. Emulasi viewport bukan tes iPad/Safari fisik.

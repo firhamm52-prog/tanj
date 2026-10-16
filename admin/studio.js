@@ -1,3 +1,4 @@
+import {mountManualAdmin} from './manual-payments.js?v=manual-1';
 import {DEFAULT_PRODUCT_PRICE} from '../shared/seed.js';
 import {isApi,request,loadAdmin,save,remove,publish,resetDemo} from '../web/data.js?v=sold-publish-2';
 const $=selector=>document.querySelector(selector);
@@ -5,8 +6,9 @@ const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;
 const money=value=>'Rp'+Number(value).toLocaleString('id-ID');
 const asset=value=>/^assets\/[\w.-]+$/.test(value)?'../'+value:/^https:\/\//.test(value)?value:'';
 const image=value=>`<img src="${esc(asset(value))}" alt="" loading="lazy">`;
-let state,tab='overview',query='',filter='all',editing=null;
-const tabs={overview:['Ringkasan','Ruang untuk mengelola setiap detail koleksimu.'],products:['Produk','Atur varian, harga, stok, dan foto koleksi TANJ.'],hijabs:['Hijab','Kelola harga dan ketersediaan Selcuk & Georgia.'],collections:['Koleksi','Berikan tempat untuk setiap cerita dan siluet.'],content:['Konten website','Susun tampilan beranda melalui video, banner, dan lookbook.'],settings:['Pengaturan','Kelola sesi dan salinan data workspace.']};
+let paymentCleanup=null;
+let state,tab=location.hash==='#payments'?'payments':'overview',query='',filter='all',editing=null;
+const tabs={payments:['Pembayaran manual','Simulasi pemeriksaan transaksi, tanpa wajib upload bukti.'],overview:['Ringkasan','Ruang untuk mengelola setiap detail koleksimu.'],products:['Produk','Atur varian, harga, stok, dan foto koleksi TANJ.'],hijabs:['Hijab','Kelola harga dan ketersediaan Selcuk & Georgia.'],collections:['Koleksi','Berikan tempat untuk setiap cerita dan siluet.'],content:['Konten website','Susun tampilan beranda melalui video, banner, dan lookbook.'],settings:['Pengaturan','Kelola sesi dan salinan data workspace.']};
 function error(message,target='#global-error'){const el=$(target);el.textContent=message;el.hidden=!message;}
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').hidden=true,4500)}
 async function busy(button,action){if(button.disabled)return;button.disabled=true;try{await action()}catch(err){error(err.message)}finally{button.disabled=false}}
@@ -38,10 +40,12 @@ function collectionName(item){return state.collections.find(c=>c.id===item.colle
 function editButton(kind,id,label='Edit'){return `<button class="small-button" data-action="edit" data-kind="${kind}" data-id="${esc(id)}">${label}</button>`}
 function actions(kind,item){return `<div class="row-actions">${editButton(kind,item.id)}${kind==='hijabs'?'':`<button class="small-button" data-action="delete" data-kind="${kind}" data-id="${esc(item.id)}" aria-label="Hapus ${esc(item.name||item.caption)}">Hapus</button>`}</div>`}
 function render(){
+ if(paymentCleanup){paymentCleanup();paymentCleanup=null;}
  $('#page-title').textContent=tabs[tab][0];$('#breadcrumb').textContent=tabs[tab][0];$('#page-subtitle').textContent=tabs[tab][1];
  document.querySelectorAll('#navigation button').forEach(button=>{if(button.dataset.tab===tab)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')});
  const w=$('#workspace');
- if(tab==='overview'){
+ if(tab==='payments'){paymentCleanup=mountManualAdmin(w);
+ }else if(tab==='overview'){
   const metrics=[['Total produk',state.products.length+state.hijabs.length,'Varian wear & hijab'],['Koleksi',state.collections.length,'Koleksi modest wear'],['Stok tersedia',[...state.products,...state.hijabs].reduce((n,p)=>n+p.stock,0),'Unit dalam katalog'],['Produk draf',state.products.filter(p=>p.status==='draft').length,'Belum tampil di website']];
   w.innerHTML=`<div class="stats">${metrics.map(([name,value,caption])=>`<article class="stat"><small>${name}</small><strong>${value}</strong><p>${caption}</p></article>`).join('')}</div><div class="overview-grid"><section class="panel"><div class="panel-head"><div><h2>Dalam koleksimu</h2><p>Beberapa produk di workspace saat ini</p></div><button class="small-button" data-action="goto" data-tab="products">Lihat semua ↗</button></div><div class="mini-list">${state.products.slice(0,5).map(item=>`<div class="mini-row">${image(item.model)}<div><strong>${esc(item.name)}</strong><small>${esc(collectionName(item))} · ${money(item.price)}</small></div>${badge(item)}</div>`).join('')||'<p>Belum ada produk. Tambahkan produk pertamamu.</p>'}</div></section><section class="panel"><div class="feature">${image('assets/campaign-beige.webp')}<div><p>THE TANJ EXPERIENCE</p><h2>Your story, beautifully told.</h2><a href="../" target="_blank" rel="noopener">Lihat website ↗</a></div></div><div class="tip"><strong>Mulai dari detail kecil.</strong>Tambahkan produk, sesuaikan foto, lalu publikasikan ketika semuanya sudah siap.</div></section></div>`;
  }else if(tab==='products'||tab==='hijabs'){
