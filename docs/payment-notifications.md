@@ -1,6 +1,6 @@
 # Status integrasi email pembayaran
 
-Checkout menyimpan email customer. Kontak email membuka aplikasi email dengan tujuan admin dan CC customer; pengunjung tetap menekan Kirim di aplikasi tersebut.
+Email customer pada pesanan diambil dari akun yang sedang login. Kolom email pada alamat bersifat read-only; perubahan nilai form tidak mengubah penerima notifikasi. Pemilihan alamat lama juga memakai email akun yang aktif. Kontak email manual membuka aplikasi email dengan tujuan admin dan CC customer; pengunjung tetap menekan Kirim di aplikasi tersebut.
 
 Konfigurasi publik EmailJS dari pemilik TANJ sudah dipasang dan diaktifkan pada `web/email-config.js` untuk Service `service_awd6ej5` dan Template `template_9x2zs4s`. Website mencoba mengirim otomatis setelah Order tersimpan, tanpa menunggu payment gateway/backend sendiri. Pengiriman nyata tetap bergantung pada koneksi Gmail, template To/Cc, izin origin, dan kuota di dashboard EmailJS. Tes otomatis memakai provider tiruan dan tidak membuktikan email nyata masuk Inbox.
 

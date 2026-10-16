@@ -1,4 +1,4 @@
-import {mountManualAdmin} from './manual-payments.js?v=email-live-1';
+import {mountManualAdmin} from './manual-payments.js?v=account-email-1';
 import {DEFAULT_PRODUCT_PRICE} from '../shared/seed.js';
 import {isApi,request,loadAdmin,save,remove,publish,resetDemo} from '../web/data.js?v=sold-publish-2';
 const $=selector=>document.querySelector(selector);

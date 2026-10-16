@@ -1,4 +1,4 @@
-import {customerSession,requireCustomer,addresses,saveAddress,deleteAddress} from './customer-account.js?v=checkout-2';
+import {customerSession,requireCustomer,addresses,saveAddress,deleteAddress} from './customer-account.js?v=account-email-1';
 import {getShippingEstimate,validateShippingDestination} from './shipping.js?v=districts-1';
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -12,6 +12,10 @@ export function mountCheckoutExperience({form,locations,getItems,getSubtotal,get
  addressDialog.innerHTML='<button type="button" class="customer-close" aria-label="Tutup alamat">&times;</button><p class="checkout-eyebrow">TANJ / DELIVERY</p><h2 id="address-dialog-title">Alamat pengiriman</h2><div id="address-list"></div><form id="address-editor"><div id="address-fields"></div><p id="address-error" role="alert"></p><div class="checkout-dialog-actions"><button type="submit" class="shop-primary">Simpan alamat</button><button type="button" class="customer-text" id="address-editor-back">Kembali ke daftar alamat</button></div></form><button type="button" class="shop-primary" id="address-create">+ Buat Baru</button>';
  document.body.append(addressDialog);const fields=$('address-fields');
  for(const id of ['checkout-name','checkout-phone','checkout-email']){const el=$(id);fields.append(form.querySelector(`label[for="${id}"]`),el);}
+ $('checkout-email').readOnly=true;
+ $('checkout-email').setAttribute('aria-describedby','checkout-account-email-note');
+ fields.querySelector('label[for="checkout-email"]').textContent='Email akun yang login';
+ const emailNote=document.createElement('p');emailNote.id='checkout-account-email-note';emailNote.textContent='Notifikasi pesanan dikirim ke email akun ini.';$('checkout-email').after(emailNote);
  fields.append(locations);
  const street=$('checkout-address');fields.append(form.querySelector('label[for="checkout-address"]'),street);
  const surface=document.createElement('div');surface.className='checkout-selections';surface.innerHTML='<section class="checkout-section"><div class="checkout-section-heading"><h3>Detail alamat</h3><button type="button" class="customer-text" id="address-change">Ubah</button></div><button type="button" class="checkout-choice" id="address-summary">+ Tambahkan alamat pengiriman <span>→</span></button></section><section class="checkout-section"><h3>Metode pengiriman</h3><button type="button" class="checkout-choice" id="shipping-choice"></button></section><section class="checkout-section"><h3>Metode pembayaran</h3><button type="button" class="checkout-choice" id="payment-choice"></button></section>';
@@ -43,6 +47,7 @@ export function mountCheckoutExperience({form,locations,getItems,getSubtotal,get
  }
  async function applyAddress(a){
   if(!a)throw Error('Pilih alamat yang tersedia.');
+  a={...a,email:customerSession()?.email||''};
   for(const [key,id] of Object.entries({name:'checkout-name',phone:'checkout-phone',email:'checkout-email',address:'checkout-address'}))$(id).value=a[key]||'';
   $('checkout-province').value=a.provinceId;$('checkout-province').onchange();
   $('checkout-city').value=a.cityId;await $('checkout-city').onchange();
@@ -60,7 +65,7 @@ export function mountCheckoutExperience({form,locations,getItems,getSubtotal,get
   e.preventDefault();if(!e.currentTarget.reportValidity())return;const button=e.submitter;button.disabled=true;
   try{
    const delivery=await validateShippingDestination($('checkout-province').value,$('checkout-city').value,$('checkout-district').value,$('checkout-zip').value);
-   const a=saveAddress({id:editing,name:$('checkout-name').value.trim(),phone:$('checkout-phone').value.trim(),email:$('checkout-email').value.trim(),address:$('checkout-address').value.trim(),provinceId:$('checkout-province').value,cityId:$('checkout-city').value,districtId:delivery.districtId,district:delivery.district,city:delivery.shipping.city,province:delivery.shipping.province,zip:delivery.zip});
+   const a=saveAddress({id:editing,name:$('checkout-name').value.trim(),phone:$('checkout-phone').value.trim(),email:customerSession()?.email||'',address:$('checkout-address').value.trim(),provinceId:$('checkout-province').value,cityId:$('checkout-city').value,districtId:delivery.districtId,district:delivery.district,city:delivery.shipping.city,province:delivery.shipping.province,zip:delivery.zip});
    selectedAddress=a;render();addressDialog.close();
   }catch(e){showError(e);}finally{button.disabled=false;}
  };

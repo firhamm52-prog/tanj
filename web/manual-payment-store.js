@@ -1,4 +1,4 @@
-import {customerSession} from './customer-account.js?v=checkout-2';
+import {customerSession} from './customer-account.js?v=account-email-1';
 import {validateShippingDestination} from './shipping.js?v=districts-1';
 export const PAYMENT_KEY='tanj-manual-payments-demo-v1';
 export const paymentLabels={WAITING_PAYMENT:'Menunggu pembayaran',CHECKING:'Menunggu verifikasi',NEEDS_HELP:'Perlu bantuan admin',REVIEW_DUE:'Menunggu pembayaran',PAID:'Payment berhasil',REJECTED:'Pembayaran ditolak',CANCELLED:'Dibatalkan'};
@@ -14,7 +14,8 @@ function required(value,max,label){if(typeof value!=='string'||!value.trim()||va
 export async function createPayment(customer,lines,catalog){
  const owner=customerSession();if(!owner)throw Error('Login customer terlebih dahulu.');
  if(customer.paymentMethod&&customer.paymentMethod!=='qris-manual')throw Error('Metode gateway belum aktif. Gunakan QRIS manual.');
- if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(customer.email||'')))throw Error('Email customer belum valid.');
+ customer={...customer,email:owner.email};
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(owner.email||'')))throw Error('Email akun belum valid. Login kembali.');
  const delivery=await validateShippingDestination(customer.provinceId,customer.cityId,customer.districtId,customer.zip);
  return mutate(state=>{
   const name=required(customer.name,80,'Nama'),phone=required(customer.phone,20,'Nomor WhatsApp'),address=required(customer.address,500,'Alamat'),zip=required(customer.zip,5,'Kode pos');

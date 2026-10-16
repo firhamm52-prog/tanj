@@ -28,7 +28,7 @@ export async function authenticateCustomer({name,email,password,repeat},register
 export function addresses(){const user=customerSession();if(!user)return [];return read('tanj-addresses-'+user.id,[]);}
 export function saveAddress(address){
  const user=customerSession();if(!user)throw Error('Login terlebih dahulu.');
- const list=addresses(),id=address.id||crypto.randomUUID(),entry={...address,id};const index=list.findIndex(a=>a.id===id);
+ const list=addresses(),id=address.id||crypto.randomUUID(),entry={...address,id,email:user.email};const index=list.findIndex(a=>a.id===id);
  if(index<0){if(list.length>=10)throw Error('Maksimal 10 alamat. Hapus alamat lama untuk membuat yang baru.');list.push(entry);}else list[index]=entry;
  localStorage.setItem('tanj-addresses-'+user.id,JSON.stringify(list));return entry;
 }
