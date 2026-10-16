@@ -1,5 +1,5 @@
 import {siteSettingFields,defaultSiteSettings} from '../shared/site-settings.js';
-import {mountManualAdmin} from './manual-payments.js?v=improve-2';
+import {mountManualAdmin} from './manual-payments.js?v=owner-ui-3';
 import {isAdmin,loginAdmin,logout,usesCloudAdmin} from '../web/admin-session.js?v=improve-2';
 import {DEFAULT_PRODUCT_PRICE} from '../shared/seed.js';
 import {isApi,usesCloudCMS,request,loadAdmin,save,remove,publish,resetDemo} from '../web/data.js?v=cloud-cms-3';

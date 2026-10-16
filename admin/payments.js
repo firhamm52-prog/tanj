@@ -1,7 +1,7 @@
 import {cloudEnabled} from '../web/supabase-payments.js?v=improve-2';
 import {customerWhatsAppLink} from '../shared/customer-whatsapp.js';
 import {emailConfig} from '../web/email-config.js?v=email-live-1';
-import {readPayments,refreshPayments,subscribePayments,orderStatus,paymentLabels,decidePayment,saveTracking,savePaymentQR,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=improve-2';
+import {readPayments,refreshPayments,subscribePayments,orderStatus,paymentLabels,decidePayment,saveTracking,savePaymentQR,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=owner-ui-3';
 import {isAdmin} from '../web/admin-session.js?v=improve-2';
 const $=id=>document.getElementById(id);
 if(!isAdmin())location.replace('../#admin-login');

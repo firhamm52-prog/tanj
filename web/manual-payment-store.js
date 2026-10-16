@@ -1,4 +1,4 @@
-import {customerSession} from './customer-account.js?v=improve-2';
+import {customerSession} from './customer-account.js?v=owner-ui-3';
 import {normalizePaymentReview} from '../shared/payment-review.js';
 import {cloudEnabled,cloudPayments,refreshPayments,paymentRPC,createCloudPayment} from './supabase-payments.js?v=improve-2';
 export {refreshPayments};
