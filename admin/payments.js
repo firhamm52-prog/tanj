@@ -1,5 +1,5 @@
 import {readPayments,subscribePayments,orderStatus,paymentLabels,reviewPayment,savePaymentQR,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=admin-qris-2';
-import {isAdmin} from '../web/admin-session.js?v=password-guard-2';
+import {isAdmin} from '../web/admin-session.js?v=login-form-3';
 const $=id=>document.getElementById(id);
 if(!isAdmin())location.replace('../#admin-login');
 let authenticated=isAdmin(),selected=null,filter='CHECKING',query='',reviewing=false;

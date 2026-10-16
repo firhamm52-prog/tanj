@@ -221,6 +221,8 @@ body.collection-menu-open .nav .category-nav-trigger{color:#fff!important}
 .card-footer{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:12px}.card-footer .price{margin-top:0}.card-sold{font-size:11px;color:var(--muted);white-space:nowrap;font-weight:400}
 
 #admin-view-switch{display:flex;gap:10px;font-size:11px}#admin-view-switch[hidden],#admin-account-signed[hidden],.account-panel #login[hidden]{display:none!important}.account-panel .login h1,.account-panel .login>p:first-child{display:none}.account-panel button.primary{margin-top:20px;padding:14px 22px;background:#292520;color:white;border:0}.account-panel #auth-error{color:#a13d34}.account-panel #forgot{margin-top:20px;background:none;border:0;text-decoration:underline}.account-panel #recovery{font-size:12px;line-height:1.8}@media(max-width:520px){#admin-view-switch{gap:5px;font-size:10px}}
+
+.account-panel [hidden]{display:none!important}
 </style>
 <link rel="stylesheet" href="web/responsive.css">
 <script src="web/config.js"></script>
@@ -439,4 +441,4 @@ const siteHeader=document.querySelector('header.nav');let previousY=window.scrol
 function syncHeader(){const y=window.scrollY;const hero=document.querySelector('.video-hero');siteHeader.classList.toggle('over-hero',!document.body.classList.contains('catalog-open')&&!document.body.classList.contains('admin-open')&&hero&&hero.getBoundingClientRect().bottom>siteHeader.offsetHeight);siteHeader.classList.toggle('is-scrolled',y>70||document.body.classList.contains('catalog-open'));if(y<90||y<previousY-5||!regionPanel.hidden||document.body.classList.contains('mobile-menu-open'))siteHeader.classList.remove('is-hidden');else if(y>180&&y>previousY+5)siteHeader.classList.add('is-hidden');previousY=y}
 window.addEventListener('scroll',syncHeader,{passive:true});syncHeader();applyRegion();
 </script>
-<script type="module" src="web/account.js?v=password-guard-2"></script></body></html>
+<script type="module" src="web/account.js?v=login-form-3"></script></body></html>
