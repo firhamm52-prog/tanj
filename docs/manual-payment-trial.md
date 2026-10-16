@@ -59,3 +59,6 @@ Perubahan provinsi mengosongkan kota, kecamatan, dan kode pos. Perubahan kota me
 Pembentukan pesanan memvalidasi ulang rantai provinsi/kota/kecamatan/kode pos terhadap master. Kecamatan dan kode pos tidak menaikkan atau mengubah ongkir; nominal tetap harga perkiraan bawah pada level kota untuk patokan 1 kg. Nama/kode kecamatan disimpan pada snapshot pesanan, ditampilkan kepada customer dan admin, serta tetap terbaca setelah reload. Pesanan lama yang belum memuat kecamatan tetap dapat dibuka tanpa dipaksa berubah.
 
 Tes data mengecek semua induk kecamatan dan seluruh kode pos, menolak kode pos atau kecamatan dari wilayah lain, dan memastikan ongkir tidak berubah antar kecamatan pada kota yang sama. Tes browser mencakup dropdown bertingkat, reset induk, retry pemuatan data, race pemilihan kota, validasi stok, dan persetujuan pembayaran tanpa bukti wajib.
+
+
+Kontak pesanan: WhatsApp 081363661703 (6281363661703), email tanj.indonesia@gmail.com. Detail pesanan menyediakan tautan WhatsApp dan mailto dengan ringkasan, alamat, rincian produk, ongkir, total, dan status. Pengguna harus menekan Kirim di aplikasi tujuan. Tidak ada pengiriman otomatis atau sinkronisasi pesanan lintas perangkat; hosting statis masih simulasi.
