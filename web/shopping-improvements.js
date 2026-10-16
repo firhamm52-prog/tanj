@@ -1,4 +1,6 @@
+import {mountScreenHistory} from './screen-history.js';
 export function mountShoppingImprovements({getCatalog,getItems,openProduct,productModal}){
+ mountScreenHistory({getCatalog,openProduct});
  const bagPanel=document.querySelector('#bag-modal .bag-panel');
  const expand=document.createElement('button');expand.type='button';expand.className='bag-expand';expand.textContent='Perbesar';expand.setAttribute('aria-expanded','false');
  expand.onclick=()=>{const full=document.getElementById('bag-modal').classList.toggle('bag-expanded');expand.textContent=full?'Perkecil':'Perbesar';expand.setAttribute('aria-expanded',String(full));};

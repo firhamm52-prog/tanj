@@ -24,6 +24,9 @@ try{
   assert.ok(Math.abs(full.width-viewport.width)<=2&&Math.abs(full.height-viewport.height)<=2,JSON.stringify(full));
   await page.locator('.bag-expand').click();
   assert.equal(await page.locator('.bag-expand').textContent(),'Perbesar');
+  await page.goBack();await page.locator('#bag-modal').waitFor({state:'hidden'});
+  await page.goForward();await page.locator('#bag-modal').waitFor({state:'visible'});
+  await page.locator('#bag-modal [data-utility-close]').click();
  }
  assert.deepEqual(errors,[]);console.log('PASS: CS WhatsApp, available product recommendations, switching products, X close, no horizontal overflow, primary Order button fits desktop/mobile including 320x568.');
 }finally{await browser?.close();await new Promise(r=>server.close(r));}

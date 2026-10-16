@@ -46,6 +46,9 @@ try {
  assert.equal(await page.locator('#qris-form [type=submit]').isDisabled(),false);
  await page.goto(url);await page.locator('#bag-open').click();await page.locator('#manual-orders').click();await page.locator('[data-order-id=TANJ-TEST]').click();assert.equal(await page.locator('.manual-qr').count(),0);
  await page.locator('#manual-all').click();await page.locator('[data-order-id=TANJ-SHIPPING]').click();assert.match(await page.locator('.order-tracking').textContent(),/JNE-TEST-123/);assert.match(await page.locator('.order-tracking').textContent(),/JNE/);
+ await page.goBack();await page.locator('#customer-status-filter').waitFor();
+ await page.goForward();await page.locator('.order-tracking').waitFor();
+ assert.match(await page.locator('.order-tracking').textContent(),/JNE-TEST-123/);
  assert.equal(await page.locator('#tracking-link').getAttribute('href'),'https://jne.co.id/tracking-package');assert.equal(await page.locator('#tracking-link').getAttribute('target'),'_blank');assert.match(await page.locator('#tracking-link').getAttribute('rel'),/noopener/);
  for(const [courier,href] of [['J&T Express','https://www.jet.co.id/track'],['Lion Parcel','https://lionparcel.com/track'],['Unknown courier',null]]){await page.evaluate(courier=>{const key='tanj-manual-payments-demo-v1',state=JSON.parse(localStorage.getItem(key));state.orders.find(o=>o.id==='TANJ-SHIPPING').tracking.courier=courier;localStorage.setItem(key,JSON.stringify(state));window.dispatchEvent(new Event('tanj-payments-change'));},courier);if(href)assert.equal(await page.locator('#tracking-link').getAttribute('href'),href);else assert.equal(await page.locator('#tracking-link').count(),0);assert.equal(await page.locator('#tracking-copy').isVisible(),true);}
  await page.goto(url+'admin/payments.html');await page.locator('#dashboard').waitFor({state:'visible'});
