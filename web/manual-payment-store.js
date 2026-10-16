@@ -1,6 +1,6 @@
 import {validateShippingDestination} from './shipping.js?v=districts-1';
 export const PAYMENT_KEY='tanj-manual-payments-demo-v1';
-export const paymentLabels={WAITING_PAYMENT:'Menunggu pembayaran',CHECKING:'Menunggu pengecekan admin',NEEDS_HELP:'Perlu bantuan admin',REVIEW_DUE:'Batas waktu lewat · perlu diperiksa',PAID:'Pembayaran diterima',CANCELLED:'Pesanan dibatalkan'};
+export const paymentLabels={WAITING_PAYMENT:'Menunggu pembayaran',CHECKING:'Menunggu verifikasi',NEEDS_HELP:'Perlu bantuan admin',REVIEW_DUE:'Menunggu pembayaran',PAID:'Payment berhasil',REJECTED:'Pembayaran ditolak',CANCELLED:'Dibatalkan'};
 export const money=value=>'Rp'+Number(value).toLocaleString('id-ID');
 export const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const empty=()=>({version:1,orders:[],settings:{hours:24,admin:'Admin TANJ'}});
@@ -35,9 +35,15 @@ export async function reviewPayment(id,version,action,input){
  return mutate(state=>{const order=state.orders.find(o=>o.id===id);if(!order||order.version!==version||order.status==='PAID')throw Error('Status pesanan sudah berubah. Periksa ulang data terbaru.');const admin=state.settings.admin;
   if(action==='approve'){
    if(input.checked!==true)throw Error('Cocokkan dana masuk sebelum menyetujui.');if(Number(input.amount)!==order.total)throw Error('Nominal transaksi tidak sama dengan tagihan. Pilih Perlu bantuan; jangan minta pembeli membayar ulang.');const reference=required(input.reference,100,'Referensi transaksi');if(state.orders.some(o=>o.id!==id&&o.review?.reference.toLowerCase()===reference.toLowerCase()))throw Error('Referensi transaksi ini sudah dipakai pada pesanan lain.');const paidAt=new Date(input.paidAt).getTime();if(!Number.isFinite(paidAt)||paidAt>Date.now()+60000)throw Error('Waktu transaksi belum valid.');order.review={amount:order.total,reference,paidAt,admin};log(order,'PAID',admin,'Dana simulasi dicocokkan: '+reference+'. '+required(input.note,300,'Catatan pemeriksaan'));}
+  else if(action==='reject'){log(order,'REJECTED',admin,required(input.note,300,'Alasan penolakan'));}
   else if(action==='help'){log(order,'NEEDS_HELP',admin,required(input.note,300,'Catatan bantuan'));}
   else throw Error('Aksi tidak tersedia.');return order;
  });
 }
-export async function savePaymentSettings(input){return mutate(state=>{const hours=Number(input.hours);if(!Number.isInteger(hours)||hours<1||hours>72)throw Error('Batas bayar harus 1–72 jam.');state.settings={hours,admin:required(input.admin,80,'Nama admin')};});}
+export async function savePaymentSettings(input){return mutate(state=>{const hours=Number(input.hours);if(!Number.isInteger(hours)||hours<1||hours>72)throw Error('Batas bayar harus 1–72 jam.');state.settings={...state.settings,hours,admin:required(input.admin,80,'Nama admin')};});}
 export async function resetPayments(){return mutate(state=>{Object.assign(state,empty());});}
+
+export async function savePaymentQR(image){
+ if(image!==null&&(!image||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image.data)||image.data.length>1450000))throw Error('Gambar QRIS harus JPG, PNG, atau WebP maksimal 1 MB.');
+ return mutate(state=>{state.settings.qris=image?{data:image.data,name:String(image.name||'QRIS').slice(0,120)}:null;});
+}

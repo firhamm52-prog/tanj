@@ -64,3 +64,16 @@ Tes data mengecek semua induk kecamatan dan seluruh kode pos, menolak kode pos a
 Kontak pesanan: WhatsApp 081363661703 (6281363661703), email tanj.indonesia@gmail.com. Detail pesanan menyediakan tautan WhatsApp dan mailto dengan ringkasan, alamat, rincian produk, ongkir, total, dan status. Pengguna harus menekan Kirim di aplikasi tujuan. Tidak ada pengiriman otomatis atau sinkronisasi pesanan lintas perangkat; hosting statis masih simulasi.
 
 Demo berulang: pesanan sebelumnya di browser tidak mengurangi stok katalog. Setiap checkout tetap memvalidasi jumlah terhadap stok katalog terbaru; tidak perlu reset riwayat untuk presentasi ulang.
+
+
+## Dedicated admin payment prototype
+
+Open `admin/payments.html` from the storefront Admin link. First use creates a browser-local ID/password with PBKDF2-SHA256 (210000 iterations, random salt). Every fresh navigation/reload requires login. This gate is only a prototype, not server authorization: browser data and code can be changed locally, and another browser can create another local account. Do not reuse a real account password.
+
+The screen supports six counted filters, search, proof viewing, approval with amount/reference checks, and rejection with a required customer-visible reason. Customer order history has the same six filters. Confirmation/proof updates refresh the same-browser admin screen; a bank transfer itself produces no automatic event.
+
+Forgot-password links compose an email/WhatsApp request to the owner; they do not send OTPs or reset credentials. Production remains dependent on shared backend order storage, server-enforced admin provisioning/authentication, a verified recovery channel with expiring single-use tokens and delivery credentials. Never expose an unauthenticated public first-admin registration endpoint.
+
+Validation: `node tests/payment-admin.mjs` covers first setup, wrong/correct password, fresh-page login gate, rejection persistence and mobile overflow.
+
+Admin QRIS trial: expand Pengaturan QRIS in admin/payments.html, upload a decoded JPG/PNG/WebP up to 1 MB and save. The image persists in browser settings and appears on checkout in that browser; deleting restores the placeholder. Trial labels remain visible. No transfer, upload to hosting, or automatic payment detection occurs.

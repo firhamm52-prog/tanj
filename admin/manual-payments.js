@@ -1,4 +1,4 @@
-import {readPayments,subscribePayments,orderStatus,paymentLabels,reviewPayment,savePaymentSettings,resetPayments,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=stock-demo-2';
+import {readPayments,subscribePayments,orderStatus,paymentLabels,reviewPayment,savePaymentSettings,resetPayments,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=admin-qris-2';
 import {demoNotice,confirmManual} from '../web/manual-payment.js?v=districts-1';
 let selected=null,filter='open',query='';
 export function mountManualAdmin(root){
