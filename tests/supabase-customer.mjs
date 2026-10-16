@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {resolve,extname,sep} from 'node:path';
 import assert from 'node:assert/strict';
 import {isolateEmail} from './helpers/email-isolation.mjs';
+import {freshSeed,storefront} from '../shared/seed.js';
 const root=process.cwd(),user={id:'11111111-1111-4111-8111-111111111111',email:'cloud@example.com',user_metadata:{full_name:'Cloud buyer'},aud:'authenticated',role:'authenticated'};
 const jwt=[{alg:'HS256',typ:'JWT'},{sub:user.id,exp:Math.floor(Date.now()/1000)+3600,role:'authenticated'},'fake'].map(x=>typeof x==='string'?x:Buffer.from(JSON.stringify(x)).toString('base64url')).join('.');
 const session={access_token:jwt,refresh_token:'test-refresh-token',expires_in:3600,token_type:'bearer',user};let rows=[],orders=[],loginRequests=0,resetRequests=0,passwordUpdates=0,adminRole=false;
@@ -23,6 +24,8 @@ try{
  else if(u.pathname==='/auth/v1/recover'){resetRequests++;assert.equal(req.postDataJSON().email,user.email);body={};}
  else if(u.pathname==='/auth/v1/logout'){status=204;}
  else if(u.pathname==='/rest/v1/rpc/tanj_is_admin')body=adminRole;
+ else if(u.pathname==='/rest/v1/rpc/tanj_cms_storefront')body=storefront(freshSeed());
+ else if(u.pathname==='/rest/v1/rpc/tanj_cms_admin'){if(adminRole)body={...freshSeed(),revision:1};else{status=403;body={message:'Akses admin diperlukan.'};}}
  else if(u.pathname==='/rest/v1/rpc/tanj_signup_email_exists')body=req.postDataJSON().candidate_email==='existing@example.com';
  else if(u.pathname==='/rest/v1/tb_m_payment_settings')body={data:{hours:24,admin:'TANJ'}};
  else if(u.pathname==='/rest/v1/tb_t_order')body=orders.map(data=>({data}));

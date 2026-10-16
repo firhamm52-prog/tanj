@@ -1,3 +1,4 @@
+import {defaultSiteSettings} from './site-settings.js';
 export const DEFAULT_PRODUCT_PRICE = 687000;
 export const DEMO_KEY = 'tanj-studio-draft-v1';
 export const PUBLISHED_KEY = 'tanj-studio-published-v1';
@@ -22,6 +23,7 @@ const variants = [
   ['Ash','Abu-abu','#837c7d','flow-belted-ash-model','flow-belted-ash-product']
 ];
 export const seed = {
+  settings:{...defaultSiteSettings},
   collections,
   products: variants.map(([name,colorName,color,model,product], i) => ({
     id: `base-${Math.floor(i/3)}-${i%3}`, collectionId: `base-${Math.floor(i/3)}`,

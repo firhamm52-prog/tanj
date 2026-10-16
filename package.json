@@ -17,7 +17,8 @@
     "test:commerce": "node scripts/test-commerce.mjs",
     "build:supabase": "node scripts/build-supabase.mjs",
     "test:supabase": "node tests/supabase-database.mjs && node tests/supabase-customer.mjs",
-    "test:shopping": "node tests/shopping-improvements.mjs"
+    "test:shopping": "node tests/shopping-improvements.mjs",
+    "test:cms": "node tests/cloud-cms-database.mjs && node tests/cloud-cms-browser.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10",

@@ -1,4 +1,5 @@
 import {mountScreenHistory} from './screen-history.js';
+import {sitePreferences} from './site-preferences.js';
 export function mountShoppingImprovements({getCatalog,getItems,openProduct,productModal}){
  mountScreenHistory({getCatalog,openProduct});
  const bagPanel=document.querySelector('#bag-modal .bag-panel');
@@ -16,10 +17,12 @@ export function mountShoppingImprovements({getCatalog,getItems,openProduct,produ
  empty.prepend(illustration,caption,heading);
  const suggestions=gallery(document.getElementById('bag-cart-view'),'cart-recommendations');
  suggestions.querySelector('.checkout-eyebrow').textContent='THE TANJ EDIT';suggestions.querySelector('h3').textContent='Mungkin kamu suka';
- const updateCart=()=>{draw(suggestions,new Set(getItems().map(p=>p.id)));[...suggestions.querySelector('.recommended-products').children].slice(2).forEach(node=>node.remove());};
+ const updateCart=()=>{const limit=sitePreferences().recommendations;draw(suggestions,new Set(getItems().map(p=>p.id)));[...suggestions.querySelector('.recommended-products').children].slice(limit).forEach(node=>node.remove());suggestions.hidden=!limit||!suggestions.querySelector('[data-recommended-id]');};
  document.getElementById('bag-open').addEventListener('click',updateCart);
  new MutationObserver(updateCart).observe(document.getElementById('bag-items'),{childList:true});
  updateCart();
+ contact.href='https://wa.me/'+sitePreferences().whatsapp;
+ window.addEventListener('tanj-site-preferences',updateCart);
  function draw(section,excluded){
   const products=getCatalog().filter(p=>p.status!=='draft'&&p.inStock!==false&&p.stock>0&&!excluded.has(p.id)).slice(0,4);
   section.hidden=!products.length;const grid=section.querySelector('.recommended-products');grid.replaceChildren();

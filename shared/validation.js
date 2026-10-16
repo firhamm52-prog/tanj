@@ -1,3 +1,4 @@
+import {validateSiteSettings} from './site-settings.js';
 export class ValidationError extends Error {}
 const fail = message => { throw new ValidationError(message); };
 function text(value,label,max=160){
@@ -15,6 +16,7 @@ export function media(value){
   fail('Gunakan aset lokal assets/nama.webp atau URL HTTPS yang valid.');
 }
 export function validate(kind,raw){
+  if(kind==='settings')return validateSiteSettings(raw);
   if(!raw||typeof raw!=='object'||Array.isArray(raw)) fail('Data tidak valid.');
   if(kind==='collections')return {name:text(raw.name,'Nama koleksi'),description:typeof raw.description==='string'?raw.description.slice(0,1000):''};
   if(kind==='products'){

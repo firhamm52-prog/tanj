@@ -1,6 +1,8 @@
+import {sitePreferences} from './site-preferences.js';
 export const orderContacts = Object.freeze({whatsapp:'6281363661703', email:'tanj.indonesia@gmail.com'});
 
 export function orderContactLinks(order, status) {
+ const orderContacts=sitePreferences();
  const c=order.customer;
  const body=[
   'PESANAN TANJ',

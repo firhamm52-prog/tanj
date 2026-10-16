@@ -1,7 +1,8 @@
+import {siteSettingFields,defaultSiteSettings} from '../shared/site-settings.js';
 import {mountManualAdmin} from './manual-payments.js?v=improve-2';
 import {isAdmin,loginAdmin,logout,usesCloudAdmin} from '../web/admin-session.js?v=improve-2';
 import {DEFAULT_PRODUCT_PRICE} from '../shared/seed.js';
-import {isApi,request,loadAdmin,save,remove,publish,resetDemo} from '../web/data.js?v=sold-publish-2';
+import {isApi,usesCloudCMS,request,loadAdmin,save,remove,publish,resetDemo} from '../web/data.js?v=cloud-cms-3';
 const $=selector=>document.querySelector(selector);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=value=>'Rp'+Number(value).toLocaleString('id-ID');
@@ -12,7 +13,7 @@ let apiSigned=false;
 const canAccess=()=>isApi&&!usesCloudAdmin?apiSigned:isAdmin();
 function requireAdmin(){if(!canAccess())throw Error('Akses admin TANJ diperlukan. Login dengan akun admin yang sama.');}
 let state,tab=location.hash==='#payments'?'payments':'overview',query='',filter='all',editing=null;
-const tabs={payments:['Pembayaran manual','Simulasi pemeriksaan transaksi, tanpa wajib upload bukti.'],overview:['Ringkasan','Ruang untuk mengelola setiap detail koleksimu.'],products:['Produk','Atur varian, harga, stok, dan foto koleksi TANJ.'],hijabs:['Hijab','Kelola harga dan ketersediaan Selcuk & Georgia.'],collections:['Koleksi','Berikan tempat untuk setiap cerita dan siluet.'],content:['Konten website','Susun tampilan beranda melalui video, banner, dan lookbook.'],settings:['Pengaturan','Kelola sesi dan salinan data workspace.']};
+const tabs={site:['Tampilan & fitur','Atur konten, kontak, dan batas pembelian website TANJ.'],payments:['Pembayaran & QRIS','Kelola verifikasi pembayaran, QRIS, dan nomor resi.'],overview:['Ringkasan','Ruang untuk mengelola setiap detail koleksimu.'],products:['Produk','Atur varian, harga, stok, dan foto koleksi TANJ.'],hijabs:['Hijab','Kelola harga dan ketersediaan Selcuk & Georgia.'],collections:['Koleksi','Berikan tempat untuk setiap cerita dan siluet.'],content:['Konten website','Susun tampilan beranda melalui video, banner, dan lookbook.'],settings:['Pengaturan','Kelola sesi dan salinan data workspace.']};
 function error(message,target='#global-error'){const el=$(target);el.textContent=message;el.hidden=!message;}
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').hidden=true,4500)}
 async function busy(button,action){if(button.disabled)return;button.disabled=true;try{requireAdmin();await action()}catch(err){error(err.message)}finally{button.disabled=false}}
@@ -20,8 +21,8 @@ async function refresh(){requireAdmin();state=await loadAdmin();requireAdmin();r
 async function openApp(){requireAdmin();await refresh();$('#login-screen').hidden=true;$('#app').hidden=false;}
 $('#demo-credentials').hidden=true;
 $('#login-form').elements.password.value='';
-$('#mode-label').textContent=isApi?'Backend terhubung':'Simulasi aktif';
-$('#mode-banner').textContent=isApi?'Perubahan disimpan ke database sebagai draf. Klik Publikasikan untuk memperbarui website.':'MODE DEMO · Data dummy tersimpan di browser ini. Publikasi demo hanya mengubah website di browser yang sama.';
+$('#mode-label').textContent=usesCloudCMS?'CMS online':isApi?'Backend terhubung':'Simulasi aktif';
+$('#mode-banner').textContent=usesCloudCMS?'CMS ONLINE · Draf konten tersimpan di Supabase. Publikasikan untuk memperbarui semua perangkat. Stok produk berubah langsung saat disimpan.':isApi?'Perubahan disimpan ke database sebagai draf. Klik Publikasikan untuk memperbarui website.':'MODE DEMO · Data dummy tersimpan di browser ini. Publikasi demo hanya mengubah website di browser yang sama.';
 $('#login-form').addEventListener('submit',async event=>{
  event.preventDefault();error('','#login-error');const button=event.submitter;button.disabled=true;
  try{const data=Object.fromEntries(new FormData(event.currentTarget));
@@ -36,8 +37,8 @@ $('#logout').addEventListener('click',event=>busy(event.currentTarget,async()=>{
 }));
 $('#navigation').addEventListener('click',event=>{const button=event.target.closest('[data-tab]');if(button){tab=button.dataset.tab;query='';filter='all';error('');render()}});
 $('#publish').addEventListener('click',event=>busy(event.currentTarget,async()=>{
- if(!confirm(isApi?'Publikasikan seluruh perubahan draf ke website?':'Terapkan draf ke landing page demo di browser ini?'))return;
- await publish();toast(isApi?'Website berhasil diperbarui.':'Demo dipublikasikan. Buka atau muat ulang website untuk melihat perubahan.');
+ if(!confirm(usesCloudCMS||isApi?'Publikasikan seluruh perubahan draf ke website?':'Terapkan draf ke landing page demo di browser ini?'))return;
+ await publish();await refresh();toast(usesCloudCMS||isApi?'Website berhasil diperbarui.':'Demo dipublikasikan. Buka atau muat ulang website untuk melihat perubahan.');
 }));
 function badge(item){return `<span class="badge ${item.status==='draft'?'draft':item.stock===0?'empty':''}">${item.status==='draft'?'Draf':item.stock===0?'Stok habis':'Aktif'}</span>`}
 function collectionName(item){return state.collections.find(c=>c.id===item.collectionId)?.name||item.collection||''}
@@ -49,8 +50,8 @@ function render(){
  $('#page-title').textContent=tabs[tab][0];$('#breadcrumb').textContent=tabs[tab][0];$('#page-subtitle').textContent=tabs[tab][1];
  document.querySelectorAll('#navigation button').forEach(button=>{if(button.dataset.tab===tab)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')});
  const w=$('#workspace');
- if(tab==='payments'){paymentCleanup=mountManualAdmin(w);
- }else if(tab==='overview'){
+ if(tab==='payments'){if(usesCloudCMS)w.innerHTML='<iframe title="Pembayaran dan QRIS TANJ" src="./payments.html" style="width:100%;height:80vh;border:1px solid #e0d8cc;border-radius:12px"></iframe>';else paymentCleanup=mountManualAdmin(w);
+ }else if(tab==='site'){const settings={...defaultSiteSettings,...state.settings};w.innerHTML=`<section class="panel settings"><p class="eyebrow">WEBSITE TANJ</p><h2>Tampilan & fitur</h2><p>Kelola teks editorial, kontak CS, sosial media, stok yang ditampilkan, batas qty, rekomendasi, lebar QRIS, dan batas pembayaran.</p><p>Batas qty: <strong>${settings.maxQty}</strong> per produk · QRIS: <strong>${settings.qrisWidth}px</strong> · Batas bayar: <strong>${settings.paymentHours} jam</strong></p>${editButton('settings','','Edit tampilan & fitur')}</section>`;}else if(tab==='overview'){
   const metrics=[['Total produk',state.products.length+state.hijabs.length,'Varian wear & hijab'],['Koleksi',state.collections.length,'Koleksi modest wear'],['Stok tersedia',[...state.products,...state.hijabs].reduce((n,p)=>n+p.stock,0),'Unit dalam katalog'],['Produk draf',state.products.filter(p=>p.status==='draft').length,'Belum tampil di website']];
   w.innerHTML=`<div class="stats">${metrics.map(([name,value,caption])=>`<article class="stat"><small>${name}</small><strong>${value}</strong><p>${caption}</p></article>`).join('')}</div><div class="overview-grid"><section class="panel"><div class="panel-head"><div><h2>Dalam koleksimu</h2><p>Beberapa produk di workspace saat ini</p></div><button class="small-button" data-action="goto" data-tab="products">Lihat semua ↗</button></div><div class="mini-list">${state.products.slice(0,5).map(item=>`<div class="mini-row">${image(item.model)}<div><strong>${esc(item.name)}</strong><small>${esc(collectionName(item))} · ${money(item.price)}</small></div>${badge(item)}</div>`).join('')||'<p>Belum ada produk. Tambahkan produk pertamamu.</p>'}</div></section><section class="panel"><div class="feature">${image('assets/campaign-beige.webp')}<div><p>THE TANJ EXPERIENCE</p><h2>Your story, beautifully told.</h2><a href="../" target="_blank" rel="noopener">Lihat website ↗</a></div></div><div class="tip"><strong>Mulai dari detail kecil.</strong>Tambahkan produk, sesuaikan foto, lalu publikasikan ketika semuanya sudah siap.</div></section></div>`;
  }else if(tab==='products'||tab==='hijabs'){
@@ -61,7 +62,7 @@ function render(){
  }else if(tab==='content'){
   w.innerHTML=`<div class="content-cards"><article class="content-card"><video src="${esc(asset(state.hero.media))}" poster="../assets/noireaterial-desert-poster.webp" muted playsinline controls preload="metadata"></video><div><p class="eyebrow">FIRST IMPRESSION</p><h2>Video utama</h2><p>Video pembuka landing page TANJ.</p>${editButton('hero','', 'Edit video')}</div></article><article class="content-card">${state.banner.mediaType==='video'?`<video src="${esc(asset(state.banner.media))}" controls muted playsinline preload="metadata"></video>`:image(state.banner.media)}<div><span class="badge ${state.banner.enabled?'':'draft'}">${state.banner.enabled?'Ditampilkan':'Disembunyikan'}</span><h2>${esc(state.banner.title)}</h2><p>${esc(state.banner.subtitle)}</p>${editButton('banner','','Edit banner')}</div></article></div><div class="toolbar"><h2>Lookbook</h2><button class="primary" data-action="new" data-kind="slides">+ Tambah media</button></div><div class="collection-cards">${state.slides.map(s=>`<article class="collection-card">${s.mediaType==='image'?`<div class="product-cell">${image(s.media)}<strong>${esc(s.caption)}</strong></div>`:`<strong>${esc(s.caption)} · Video</strong>`}${actions('slides',s)}</article>`).join('')}</div>${state.slides.length?'':'<p class="empty-state">Belum ada media lookbook.</p>'}`;
  }else{
-  w.innerHTML=`<section class="panel settings"><p class="eyebrow">YOUR WORKSPACE</p><h2>${isApi?'CMS dengan database':'Simulasi TANJ Studio'}</h2><p>${isApi?'Produk, koleksi, dan konten tersimpan di database layanan masing-masing. Publikasi membuat satu versi website yang utuh.':'Data awal berisi 12 produk wear, 6 hijab, 4 koleksi, dan 6 media lookbook. Tidak ada transaksi atau pelanggan sungguhan dalam simulasi ini.'}</p><p>${isApi?'Sesi admin berakhir setelah 8 jam.':'Draf dan hasil publikasi hanya tersimpan di browser ini. Pengunjung lain tetap melihat data awal.'}</p><div class="row-actions"><button class="secondary" data-action="export">Unduh salinan JSON</button>${isApi?'':'<button class="secondary" data-action="reset">Reset data dummy</button>'}</div></section>`;
+  w.innerHTML=`<section class="panel settings"><p class="eyebrow">YOUR WORKSPACE</p><h2>${usesCloudCMS?'CMS online TANJ':isApi?'CMS dengan database':'Simulasi TANJ Studio'}</h2><p>${usesCloudCMS?'Produk, stok, dan konten tersimpan online di Supabase.':isApi?'Produk, koleksi, dan konten tersimpan di database layanan masing-masing. Publikasi membuat satu versi website yang utuh.':'Data awal berisi 12 produk wear, 6 hijab, 4 koleksi, dan 6 media lookbook. Tidak ada transaksi atau pelanggan sungguhan dalam simulasi ini.'}</p><p>${usesCloudCMS?'Logout otomatis setelah 30 menit tidak aktif. Stok disimpan langsung; konten melalui Publikasikan.':isApi?'Sesi admin berakhir setelah 8 jam.':'Draf dan hasil publikasi hanya tersimpan di browser ini. Pengunjung lain tetap melihat data awal.'}</p><div class="row-actions"><button class="secondary" data-action="export">Unduh salinan JSON</button>${isApi||usesCloudCMS?'':'<button class="secondary" data-action="reset">Reset data dummy</button>'}</div></section>`;
  }
 }
 function renderList(){
@@ -92,10 +93,11 @@ function field(name,label,value='',type='text',full=false,extra=''){
 function select(name,label,value,options){return `<label>${label}<select name="${name}" required>${options.map(([id,title])=>`<option value="${esc(id)}" ${value===id?'selected':''}>${esc(title)}</option>`).join('')}</select></label>`}
 function openEditor(kind,id){
  if(kind==='products'&&!state.collections.length)throw new Error('Tambahkan koleksi sebelum membuat produk.');
- const item=['hero','banner'].includes(kind)?state[kind]:state[kind].find(x=>x.id===id)||{};
+ const item=['hero','banner','settings'].includes(kind)?state[kind]:state[kind].find(x=>x.id===id)||{};
  editing={kind,id};error('','#editor-error');
- $('#editor-title').textContent=(id||['hero','banner'].includes(kind)?'Edit ':'Tambah ')+({products:'produk',collections:'koleksi',hijabs:'hijab',hero:'video utama',banner:'banner',slides:'media lookbook'}[kind]);
+ $('#editor-title').textContent=(id||['hero','banner','settings'].includes(kind)?'Edit ':'Tambah ')+({products:'produk',collections:'koleksi',hijabs:'hijab',hero:'video utama',banner:'banner',slides:'media lookbook',settings:'tampilan & fitur'}[kind]);
  let fields='';
+ if(kind==='settings'){const values={...defaultSiteSettings,...item};fields=siteSettingFields.map(([key,label,type,min,max])=>type==='checkbox'?`<label class="checkbox-label full"><input name="${key}" type="checkbox" ${values[key]?'checked':''}>${label}</label>`:type==='textarea'?`<label class="full">${label}<textarea name="${key}" maxlength="1000">${esc(values[key])}</textarea></label>`:type==='theme'?select(key,label,values[key],[['ivory','Warm ivory / cocoa'],['cocoa','Cocoa gelap']]):type==='font'?select(key,label,values[key],[['times','Times New Roman'],['sans','Manrope']]):field(key,label,values[key],type,true,type==='number'?`min="${min}" max="${max}" step="1"`:'' )).join('');}
  if(kind==='products')fields=field('name','Nama produk / varian',item.name)+select('collectionId','Koleksi',item.collectionId||state.collections[0].id,state.collections.map(c=>[c.id,c.name]))+field('colorName','Nama warna',item.colorName)+field('color','Warna swatch',item.color||'#eee6d7','color')+field('price','Harga (Rp)',item.price??DEFAULT_PRODUCT_PRICE,'number',false,'min="0" max="1000000000" step="1"')+field('stock','Stok (unit)',item.stock??0,'number',false,'min="0" max="1000000" step="1"')+field('sold','Jumlah terjual',item.sold??0,'number',false,'min="0" max="1000000000" step="1"')+select('status','Status',item.status||'draft',[['draft','Draf — sembunyikan'],['published','Aktif — tampil setelah publikasi']])+field('model','Foto model',item.model||'assets/campaign-beige.webp','text',true)+field('product','Foto produk',item.product||'assets/look-2.webp','text',true);
  if(kind==='hijabs')fields=field('name','Nama hijab',item.name)+field('price','Harga (Rp)',item.price,'number',false,'min="0" max="1000000000" step="1"')+field('stock','Stok (unit)',item.stock,'number',false,'min="0" max="1000000" step="1"')+field('image','Foto hijab',item.image,'text',true);
  if(kind==='collections')fields=field('name','Nama koleksi',item.name,'text',true)+`<label class="full">Deskripsi<textarea name="description" maxlength="1000">${esc(item.description||'')}</textarea></label>`;
@@ -119,7 +121,8 @@ $('#edit-form').addEventListener('submit',async event=>{
   if(kind==='hijabs')Object.assign(data,{collection:state.hijabs.find(x=>x.id===id).collection,color:state.hijabs.find(x=>x.id===id).color});
   if(['products','hijabs'].includes(kind)){data.price=Number(data.price);data.stock=Number(data.stock);if(kind==='products')data.sold=Number(data.sold)}
   if(kind==='banner')data.enabled=!!data.enabled;
-  await save(kind,id,data);await refresh();$('#editor').close();editing=null;toast('Draf tersimpan. Publikasikan untuk menampilkan perubahan.');
+  if(kind==='settings')for(const [key,,type] of siteSettingFields){if(type==='checkbox')data[key]=!!data[key];if(type==='number')data[key]=Number(data[key]);}
+  await save(kind,id,data);await refresh();$('#editor').close();editing=null;toast(usesCloudCMS&&kind==='products'?'Draf tersimpan. Stok online sudah diperbarui; publikasikan untuk konten/harga.':'Draf tersimpan. Publikasikan untuk menampilkan perubahan.');
  }catch(err){error(err.message,'#editor-error')}finally{button.disabled=false}
 });
 function guardSession(){if(canAccess())return;if(paymentCleanup){paymentCleanup();paymentCleanup=null;}$('#app').hidden=true;$('#login-screen').hidden=false;$('#editor').close();$('#workspace').replaceChildren();state=null;}

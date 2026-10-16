@@ -1,5 +1,8 @@
 import {freshSeed,DEMO_KEY,PUBLISHED_KEY,storefront} from '../shared/seed.js';
 import {validate} from '../shared/validation.js?v=sold-publish-2';
+import {supabaseConfig} from './supabase-config.js?v=improve-2';
+export const usesCloudCMS=!!supabaseConfig.enabled;
+const cloudCMS=()=>import('./cloud-cms.js');
 export const isApi = window.TANJ_CONFIG?.mode === 'api';
 const apiBase = window.TANJ_CONFIG?.apiBase || '/api';
 function read(key){try{return JSON.parse(localStorage.getItem(key))}catch{return null}}
@@ -13,19 +16,22 @@ export async function request(path,options={}){
   }catch(error){if(error.name==='AbortError')throw new Error('Server belum merespons. Coba lagi.');throw error}finally{clearTimeout(timeout)}
 }
 export async function loadStorefront(){
+  if(usesCloudCMS)return (await cloudCMS()).loadCloudStorefront();
   if(isApi)return request('/storefront');
   return read(PUBLISHED_KEY)||storefront(freshSeed());
 }
 export async function loadAdmin(){
+  if(usesCloudCMS)return (await cloudCMS()).loadCloudAdmin();
   if(isApi)return request('/admin/state');
   return read(DEMO_KEY)||freshSeed();
 }
 export async function save(kind,id,raw){
   const item=validate(kind,raw);
+  if(usesCloudCMS)return (await cloudCMS()).saveCloudContent(kind,id,item);
   if(isApi)return request(`/admin/${kind}${id?'/'+encodeURIComponent(id):''}`,{method:['hero','banner'].includes(kind)?'PUT':id?'PUT':'POST',body:JSON.stringify(item)});
   const state=await loadAdmin();
   if(kind==='products'&&!state.collections.some(c=>c.id===item.collectionId))throw new Error('Koleksi tidak ditemukan.');
-  if(['hero','banner'].includes(kind))state[kind]=item;
+  if(['hero','banner','settings'].includes(kind))state[kind]=item;
   else{
     const saved={...item,id:id||crypto.randomUUID()};
     const index=state[kind].findIndex(x=>x.id===id);
@@ -36,6 +42,7 @@ export async function save(kind,id,raw){
   return state;
 }
 export async function remove(kind,id){
+  if(usesCloudCMS)return (await cloudCMS()).removeCloudContent(kind,id);
   if(isApi)return request(`/admin/${kind}/${encodeURIComponent(id)}`,{method:'DELETE'});
   const state=await loadAdmin();
   if(kind==='collections'&&state.products.some(p=>p.collectionId===id))throw new Error('Pindahkan atau hapus produk dalam koleksi ini terlebih dahulu.');
@@ -43,10 +50,12 @@ export async function remove(kind,id){
   localStorage.setItem(DEMO_KEY,JSON.stringify(state));
 }
 export async function publish(){
+  if(usesCloudCMS)return (await cloudCMS()).publishCloudContent();
   if(isApi)return request('/admin/publish',{method:'POST',body:'{}'});
   localStorage.setItem(PUBLISHED_KEY,JSON.stringify(storefront(await loadAdmin())));
 }
 export async function resetDemo(){
+  if(usesCloudCMS)throw Error('Reset data online dinonaktifkan untuk melindungi pesanan dan stok.');
   if(isApi)throw new Error('Reset hanya tersedia di mode demo.');
   localStorage.setItem(DEMO_KEY,JSON.stringify(freshSeed()));
   localStorage.removeItem(PUBLISHED_KEY);
