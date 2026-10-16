@@ -1,4 +1,5 @@
 import {mountManualAdmin} from './manual-payments.js?v=improve-2';
+import {isAdmin,loginAdmin,logout,usesCloudAdmin} from '../web/admin-session.js?v=improve-2';
 import {DEFAULT_PRODUCT_PRICE} from '../shared/seed.js';
 import {isApi,request,loadAdmin,save,remove,publish,resetDemo} from '../web/data.js?v=sold-publish-2';
 const $=selector=>document.querySelector(selector);
@@ -7,27 +8,30 @@ const money=value=>'Rp'+Number(value).toLocaleString('id-ID');
 const asset=value=>/^assets\/[\w.-]+$/.test(value)?'../'+value:/^https:\/\//.test(value)?value:'';
 const image=value=>`<img src="${esc(asset(value))}" alt="" loading="lazy">`;
 let paymentCleanup=null;
+let apiSigned=false;
+const canAccess=()=>isApi&&!usesCloudAdmin?apiSigned:isAdmin();
+function requireAdmin(){if(!canAccess())throw Error('Akses admin TANJ diperlukan. Login dengan akun admin yang sama.');}
 let state,tab=location.hash==='#payments'?'payments':'overview',query='',filter='all',editing=null;
 const tabs={payments:['Pembayaran manual','Simulasi pemeriksaan transaksi, tanpa wajib upload bukti.'],overview:['Ringkasan','Ruang untuk mengelola setiap detail koleksimu.'],products:['Produk','Atur varian, harga, stok, dan foto koleksi TANJ.'],hijabs:['Hijab','Kelola harga dan ketersediaan Selcuk & Georgia.'],collections:['Koleksi','Berikan tempat untuk setiap cerita dan siluet.'],content:['Konten website','Susun tampilan beranda melalui video, banner, dan lookbook.'],settings:['Pengaturan','Kelola sesi dan salinan data workspace.']};
 function error(message,target='#global-error'){const el=$(target);el.textContent=message;el.hidden=!message;}
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').hidden=true,4500)}
-async function busy(button,action){if(button.disabled)return;button.disabled=true;try{await action()}catch(err){error(err.message)}finally{button.disabled=false}}
-async function refresh(){state=await loadAdmin();render();$('#workspace').setAttribute('aria-busy','false')}
-async function openApp(){await refresh();$('#login-screen').hidden=true;$('#app').hidden=false;}
-$('#demo-credentials').hidden=isApi;
+async function busy(button,action){if(button.disabled)return;button.disabled=true;try{requireAdmin();await action()}catch(err){error(err.message)}finally{button.disabled=false}}
+async function refresh(){requireAdmin();state=await loadAdmin();requireAdmin();render();$('#workspace').setAttribute('aria-busy','false')}
+async function openApp(){requireAdmin();await refresh();$('#login-screen').hidden=true;$('#app').hidden=false;}
+$('#demo-credentials').hidden=true;
 $('#login-form').elements.password.value='';
 $('#mode-label').textContent=isApi?'Backend terhubung':'Simulasi aktif';
 $('#mode-banner').textContent=isApi?'Perubahan disimpan ke database sebagai draf. Klik Publikasikan untuk memperbarui website.':'MODE DEMO · Data dummy tersimpan di browser ini. Publikasi demo hanya mengubah website di browser yang sama.';
 $('#login-form').addEventListener('submit',async event=>{
  event.preventDefault();error('','#login-error');const button=event.submitter;button.disabled=true;
  try{const data=Object.fromEntries(new FormData(event.currentTarget));
-  if(isApi)await request('/auth/login',{method:'POST',body:JSON.stringify(data)});
-  else{if(data.email.trim().toLowerCase()!=='admin@tanj.test'||data.password!=='demo123')throw new Error('Email atau password salah.');sessionStorage.setItem('tanj-studio-session','demo')}
+  if(isApi&&!usesCloudAdmin){await request('/auth/login',{method:'POST',body:JSON.stringify(data)});apiSigned=true;}
+  else await loginAdmin({id:data.email,password:data.password});
   await openApp();
  }catch(err){error(err.message,'#login-error')}finally{button.disabled=false}
 });
 $('#logout').addEventListener('click',event=>busy(event.currentTarget,async()=>{
- if(isApi)await request('/auth/logout',{method:'POST',body:'{}'});else sessionStorage.removeItem('tanj-studio-session');
+ if(isApi&&!usesCloudAdmin){await request('/auth/logout',{method:'POST',body:'{}'});apiSigned=false;}else await logout();
  $('#app').hidden=true;$('#login-screen').hidden=false;$('#login-form').elements.password.value='';
 }));
 $('#navigation').addEventListener('click',event=>{const button=event.target.closest('[data-tab]');if(button){tab=button.dataset.tab;query='';filter='all';error('');render()}});
@@ -40,6 +44,7 @@ function collectionName(item){return state.collections.find(c=>c.id===item.colle
 function editButton(kind,id,label='Edit'){return `<button class="small-button" data-action="edit" data-kind="${kind}" data-id="${esc(id)}">${label}</button>`}
 function actions(kind,item){return `<div class="row-actions">${editButton(kind,item.id)}${kind==='hijabs'?'':`<button class="small-button" data-action="delete" data-kind="${kind}" data-id="${esc(item.id)}" aria-label="Hapus ${esc(item.name||item.caption)}">Hapus</button>`}</div>`}
 function render(){
+ requireAdmin();
  if(paymentCleanup){paymentCleanup();paymentCleanup=null;}
  $('#page-title').textContent=tabs[tab][0];$('#breadcrumb').textContent=tabs[tab][0];$('#page-subtitle').textContent=tabs[tab][1];
  document.querySelectorAll('#navigation button').forEach(button=>{if(button.dataset.tab===tab)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')});
@@ -109,6 +114,7 @@ $('#editor').addEventListener('cancel',event=>{event.preventDefault();closeEdito
 $('#edit-form').addEventListener('submit',async event=>{
  event.preventDefault();const button=event.submitter;button.disabled=true;error('','#editor-error');
  try{
+  requireAdmin();
   const {kind,id}=editing;const data=Object.fromEntries(new FormData(event.currentTarget));
   if(kind==='hijabs')Object.assign(data,{collection:state.hijabs.find(x=>x.id===id).collection,color:state.hijabs.find(x=>x.id===id).color});
   if(['products','hijabs'].includes(kind)){data.price=Number(data.price);data.stock=Number(data.stock);if(kind==='products')data.sold=Number(data.sold)}
@@ -116,4 +122,6 @@ $('#edit-form').addEventListener('submit',async event=>{
   await save(kind,id,data);await refresh();$('#editor').close();editing=null;toast('Draf tersimpan. Publikasikan untuk menampilkan perubahan.');
  }catch(err){error(err.message,'#editor-error')}finally{button.disabled=false}
 });
-try{if(isApi){await request('/auth/session');await openApp()}else if(sessionStorage.getItem('tanj-studio-session'))await openApp()}catch(err){if(!err.message.includes('Sesi berakhir'))error(err.message,'#login-error')}
+function guardSession(){if(canAccess())return;if(paymentCleanup){paymentCleanup();paymentCleanup=null;}$('#app').hidden=true;$('#login-screen').hidden=false;$('#editor').close();$('#workspace').replaceChildren();state=null;}
+window.addEventListener('tanj-customer-change',guardSession);window.addEventListener('focus',guardSession);setInterval(guardSession,15000);
+try{if(isApi&&!usesCloudAdmin){await request('/auth/session');apiSigned=true;await openApp()}else if(isAdmin())await openApp()}catch(err){if(!err.message.includes('Sesi berakhir'))error(err.message,'#login-error')}
