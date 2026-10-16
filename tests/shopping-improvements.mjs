@@ -18,6 +18,10 @@ try{
   assert.equal(await page.locator('#product-modal .product-panel').evaluate(el=>el.scrollTop),0);
   await page.locator('#product-modal-close').click();await page.locator('.tanj-chat').waitFor();
   await page.locator('#bag-open').evaluate(button=>button.click());
+  assert.equal(await page.locator('.bag-empty-art').isVisible(),true);
+  assert.equal(await page.locator('#cart-recommendations [data-recommended-id]').count(),2);
+  assert.equal(await page.locator('#bag-modal .bag-panel').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+  await page.screenshot({path:`test-results/cart-${viewport.width}-${viewport.height}.png`});
   await page.locator('.bag-expand').click();
   assert.equal(await page.locator('.bag-expand').getAttribute('aria-expanded'),'true');
   const full=await page.locator('#bag-modal .bag-panel').boundingBox();

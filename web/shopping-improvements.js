@@ -9,6 +9,17 @@ export function mountShoppingImprovements({getCatalog,getItems,openProduct,produ
  function gallery(parent,id){const section=document.createElement('section');section.className='shopping-recommendations';section.id=id;section.innerHTML='<p class="checkout-eyebrow">COMPLETE YOUR LOOK</p><h3>Rekomendasi untukmu</h3><div class="recommended-products"></div>';parent.append(section);return section;}
  const product=gallery(productModal.querySelector('.product-panel'),'product-recommendations');
  const checkout=gallery(document.getElementById('bag-checkout-view'),'checkout-recommendations');
+ const empty=document.getElementById('bag-empty');
+ const illustration=document.createElement('div');illustration.className='bag-empty-art';illustration.innerHTML='<svg viewBox="0 0 64 72" fill="none" aria-hidden="true"><path d="M13 24h38l4 39H9l4-39Z"/><path d="M23 27V17a9 9 0 0 1 18 0v10"/><path d="m27 44 4 4 8-9"/></svg><span>T</span>';
+ const heading=document.createElement('h3');heading.textContent='Temukan pilihan pertamamu.';
+ const caption=document.createElement('span');caption.className='bag-empty-caption';caption.textContent='CURATED FOR YOUR EVERYDAY';
+ empty.prepend(illustration,caption,heading);
+ const suggestions=gallery(document.getElementById('bag-cart-view'),'cart-recommendations');
+ suggestions.querySelector('.checkout-eyebrow').textContent='THE TANJ EDIT';suggestions.querySelector('h3').textContent='Mungkin kamu suka';
+ const updateCart=()=>{draw(suggestions,new Set(getItems().map(p=>p.id)));[...suggestions.querySelector('.recommended-products').children].slice(2).forEach(node=>node.remove());};
+ document.getElementById('bag-open').addEventListener('click',updateCart);
+ new MutationObserver(updateCart).observe(document.getElementById('bag-items'),{childList:true});
+ updateCart();
  function draw(section,excluded){
   const products=getCatalog().filter(p=>p.status!=='draft'&&p.inStock!==false&&p.stock>0&&!excluded.has(p.id)).slice(0,4);
   section.hidden=!products.length;const grid=section.querySelector('.recommended-products');grid.replaceChildren();
