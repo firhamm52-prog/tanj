@@ -9,3 +9,15 @@
 .card .photo-hint{padding:9px 7px 5px}
 .catalog-photo{border:6px solid #fffdf9;border-radius:14px;outline:1px solid #e0d7ca;box-shadow:0 4px 16px #49362008;overflow:hidden}
 @media(max-width:520px){.moving-lookbook{padding:35px 0 42px}.moving-intro{padding-bottom:26px}.moving-intro h2{font-size:22px}.photo-track figure{margin-inline:5px;padding:5px;border-radius:12px}.card .product-preview{padding:4px;border-radius:11px}.card .product-preview .photo{border-radius:7px}.catalog-photo{border-width:4px;border-radius:11px}}
+.type-story{position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 50% 35%,#faf6ef 0%,#eee5d8 100%);color:#493c30;min-height:570px;padding:78px 24px 65px;border-top:1px solid #e0d4c2;border-bottom:1px solid #dfd0bc}
+.type-story::before{content:"";position:absolute;inset:22px;border:1px solid #c6b39970;pointer-events:none;z-index:-1}
+.type-story::after{content:"T";position:absolute;right:5%;bottom:-65px;font:420px "Times New Roman",Times,serif;color:#a58b6609;pointer-events:none;z-index:-1}
+.type-story .eyebrow{font-size:9px;font-weight:500;letter-spacing:.27em;color:#8a7052;display:flex;align-items:center;gap:16px}
+.type-story .eyebrow::before,.type-story .eyebrow::after{content:"";width:30px;height:1px;background:#b7a18180}
+.type-story h2{font-family:"Times New Roman",Times,serif;font-size:clamp(58px,7vw,94px);font-weight:400;line-height:1;letter-spacing:-.045em;margin:29px 0 24px;color:#493c30}
+.type-story h2 em{font-weight:400;color:#977859}
+.type-story p{max-width:380px;font-size:12px;line-height:1.95;font-weight:400;color:#7c6b58;margin:0}
+.type-story .story-social{gap:12px;margin-top:28px}
+.type-story .story-social a{width:44px;height:44px;border-color:#b7a08180;color:#6f5941;background:#ffffff40}
+.type-story .story-social a:hover{background:#6f5941;color:#fffaf1;border-color:#6f5941}
+@media(max-width:520px){.type-story{min-height:495px;padding:64px 36px 55px}.type-story::before{inset:14px}.type-story::after{font-size:310px;right:-25px;bottom:-40px}.type-story .eyebrow{font-size:8px;letter-spacing:.2em;gap:10px}.type-story .eyebrow::before,.type-story .eyebrow::after{width:18px}.type-story h2{font-size:clamp(50px,12vw,64px);margin:25px 0 20px}.type-story p{font-size:11px;max-width:280px}}
