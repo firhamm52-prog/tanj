@@ -1,4 +1,4 @@
-import {readPayments,subscribePayments,orderStatus,paymentLabels,reviewPayment,savePaymentQR,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=admin-qris-2';
+import {readPayments,subscribePayments,orderStatus,paymentLabels,reviewPayment,savePaymentQR,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=document-revisions-1';
 import {isAdmin} from '../web/admin-session.js?v=login-form-3';
 const $=id=>document.getElementById(id);
 if(!isAdmin())location.replace('../#admin-login');
@@ -10,5 +10,26 @@ function detail(o){if(!o){$('detail').innerHTML='<h2>Detail pesanan</h2><p>Pilih
 function review(o,action){reviewing=true;const approval=action==='approve';const now=new Date();const time=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16);$('review-form').innerHTML=`<form><h3>${approval?'Cocokkan dana masuk':'Alasan penolakan'}</h3>${approval?`<label>Nominal transaksi<input name="amount" type="number" required value="${o.total}"></label><label>Referensi transaksi<input name="reference" required maxlength="100"></label><label>Waktu transaksi<input name="paidAt" type="datetime-local" required value="${time}"></label><label><input name="checked" type="checkbox" required> Nominal dan referensi sudah dicocokkan.</label>`:''}<label>Catatan untuk pembeli<textarea name="note" required maxlength="300"></textarea></label><p id="form-error" role="alert"></p><div class="actions"><button type="submit" class="primary">${approval?'Konfirmasi persetujuan':'Konfirmasi penolakan'}</button><button type="button" id="back">Batal</button></div></form>`;$('back').onclick=()=>{reviewing=false;render();};$('review-form').querySelector('form').onsubmit=async e=>{e.preventDefault();if(!isAdmin())return;const b=e.submitter;b.disabled=true;try{const data=Object.fromEntries(new FormData(e.currentTarget));await reviewPayment(o.id,o.version,action,{...data,checked:data.checked==='on'});reviewing=false;render();}catch(err){$('form-error').textContent=err.message;b.disabled=false;}};}
 $('search').oninput=e=>{query=e.target.value.toLowerCase();render();};subscribePayments(render);window.addEventListener('focus',()=>{if(!isAdmin())location.replace('../#admin-login');});window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});if(authenticated){$('dashboard').hidden=false;render();}
 
-$('qris-form').onsubmit=async e=>{e.preventDefault();if(!isAdmin())return;const button=e.submitter;button.disabled=true;try{const file=$('qris-file').files[0];if(!file||!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>1048576)throw Error('Pilih JPG, PNG, atau WebP maksimal 1 MB.');const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('Gambar gagal dibaca.'));reader.readAsDataURL(file);});const img=new Image();img.src=data;await img.decode();if(!isAdmin())return;await savePaymentQR({data,name:file.name});$('qris-message').textContent='QRIS trial tersimpan. Checkout pada browser ini sudah diperbarui.';$('qris-file').value='';render();}catch(err){$('qris-message').textContent=err.message;}finally{button.disabled=false;}};
+let uploadingQR=false;
+async function uploadQR(){
+ if(!isAdmin()||uploadingQR)return;
+ const button=$('qris-form').querySelector('[type=submit]');
+ uploadingQR=true;button.disabled=true;$('qris-file').disabled=true;$('qris-message').textContent='Mengunggah QRIS...';
+ try{
+  const file=$('qris-file').files[0];
+  if(!file||!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>10*1024*1024)throw Error('Pilih JPG, PNG, atau WebP maksimal 10 MB.');
+  const source=URL.createObjectURL(file);const bitmap=new Image();try{bitmap.src=source;await bitmap.decode();}finally{URL.revokeObjectURL(source);}
+  const canvas=document.createElement('canvas');const scale=Math.min(1,1600/Math.max(bitmap.width,bitmap.height));
+  canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+  const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+  const data=canvas.toDataURL('image/jpeg',.9);
+  if(!isAdmin())throw Error('Sesi berakhir. Login ulang.');
+  await savePaymentQR({data,name:file.name});
+  $('qris-message').textContent='QRIS berhasil tersimpan dan langsung tampil di halaman pembayaran pada browser ini.';
+  $('qris-file').value='';render();
+ }catch(err){$('qris-message').textContent=err.message;}
+ finally{uploadingQR=false;button.disabled=false;$('qris-file').disabled=false;}
+}
+$('qris-form').onsubmit=e=>{e.preventDefault();uploadQR();};
+$('qris-file').onchange=()=>{if($('qris-file').files.length)uploadQR();};
 $('qris-remove').onclick=async()=>{if(!isAdmin())return;try{await savePaymentQR(null);$('qris-message').textContent='Gambar QRIS dihapus.';render();}catch(err){$('qris-message').textContent=err.message;}};

@@ -1,4 +1,4 @@
-import {mountManualAdmin} from './manual-payments.js?v=admin-qris-2';
+import {mountManualAdmin} from './manual-payments.js?v=document-revisions-1';
 import {DEFAULT_PRODUCT_PRICE} from '../shared/seed.js';
 import {isApi,request,loadAdmin,save,remove,publish,resetDemo} from '../web/data.js?v=sold-publish-2';
 const $=selector=>document.querySelector(selector);
