@@ -22,6 +22,7 @@ export function orderContactLinks(order, status) {
   'Pembayaran memerlukan verifikasi admin.'
  ].join('\n');
  return {
+  gmail:'https://mail.google.com/mail/?'+new URLSearchParams({view:'cm',fs:'1',to:orderContacts.email,su:'Bantuan TANJ'}).toString(),
   whatsapp:'https://wa.me/'+orderContacts.whatsapp+'?text='+encodeURIComponent(body),
   email:'mailto:'+orderContacts.email+'?cc='+encodeURIComponent(c.email||'')+'&subject='+encodeURIComponent('Pesanan TANJ '+order.id)+'&body='+encodeURIComponent(body)
  };
