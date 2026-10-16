@@ -1,3 +1,4 @@
+import {startIdleSession} from './idle-session.js';
 import {supabaseConfig} from './supabase-config.js?v=improve-2';
 import {getShippingEstimate} from './shipping.js?v=districts-1';
 export const cloudEnabled=supabaseConfig.enabled;
@@ -36,6 +37,7 @@ export async function cloudAuthenticate({name,email,password},register){
  if(register&&(error?.code==='user_already_exists'||error?.code==='email_exists'||/already (registered|exists)/i.test(error?.message||'')||(!error&&Array.isArray(data?.user?.identities)&&data.user.identities.length===0)))throw Error('Akun sudah terdaftar, silahkan buat email yang belum terdaftar');
  if(error){if(error.code==='invalid_credentials'||error.message==='Invalid login credentials')throw Error('Email atau password salah. Gunakan Lupa password untuk mengatur password baru lewat email.');if(error.code==='email_not_confirmed'||error.message==='Email not confirmed')throw Error('Verifikasi email terlebih dahulu melalui Inbox/Spam.');check(error);}
  if(!data.session)return {needsConfirmation:true};
+ localStorage.setItem('tanj-last-activity-'+data.session.user.id,String(Date.now()));
  await accept(data.session);await loadRole();await refreshAddresses();return user;
 }
 export async function cloudLogout(){await cloudReady;const {error}=await client.auth.signOut({scope:'local'});check(error);await accept(null);}
@@ -59,3 +61,5 @@ export async function finishPasswordReset(password,repeat){
  if(password!==repeat)throw Error('Ulangi password yang sama.');
  await cloudReady;const {error}=await client.auth.updateUser({password});check(error);recovering=false;await cloudLogout();
 }
+
+if(cloudEnabled)cloudReady.then(()=>startIdleSession({getUser:cloudSession,logout:cloudLogout})).catch(()=>{});
