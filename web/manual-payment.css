@@ -5,3 +5,5 @@
 .manual-qr:has(#checkout-qris-image){padding:0;border:0;background:transparent;min-height:0;gap:0}.manual-qr:has(#checkout-qris-image)>strong,.manual-qr:has(#checkout-qris-image)>small{display:none}
 
 .qris-artwork-crop{position:relative;width:100%;aspect-ratio:694/1040;overflow:hidden}.manual-qr .qris-artwork-crop #checkout-qris-image{position:absolute;width:151.8732%;max-width:none;height:auto;left:-25.9366%;top:-17.3077%;margin:0;object-fit:initial}
+
+.manual-actions.payment-social-links{gap:12px;flex-wrap:nowrap}.payment-social-links>a.shop-outline{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;min-width:46px;padding:0;gap:0;border:1px solid #d7ccbe;border-radius:50%;background:#faf8f3;color:#514538;transition:background .2s,color .2s,transform .2s}.payment-social-links>a.shop-outline:hover{background:#302b26;color:#fff;transform:translateY(-2px)}.payment-social-links svg{width:20px;height:20px;flex:none}

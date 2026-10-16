@@ -47,6 +47,11 @@ try {
  await page.goto(url);await page.locator('#bag-open').click();await page.locator('#manual-orders').click();await page.locator('[data-order-id=TANJ-TEST]').click();assert.equal(await page.locator('.manual-qr').count(),0);
  await page.locator('#manual-all').click();await page.locator('[data-order-id=TANJ-SHIPPING]').click();assert.match(await page.locator('.order-tracking').textContent(),/JNE-TEST-123/);assert.match(await page.locator('.order-tracking').textContent(),/JNE/);
  const gmail=new URL(await page.locator('#order-notify-email').getAttribute('href'));assert.equal(gmail.hostname,'mail.google.com');assert.equal(gmail.searchParams.get('to'),'tanj.indonesia@gmail.com');assert.equal(gmail.searchParams.get('su'),'Bantuan TANJ');assert.equal(gmail.searchParams.has('body'),false);assert.equal(gmail.searchParams.has('cc'),false);assert.equal(await page.locator('#order-notify-email').getAttribute('target'),'_blank');
+ assert.equal(await page.locator('.payment-social-links>a').count(),4);
+ assert.equal((await page.locator('#order-notify-email').textContent()).trim(),'');
+ assert.equal((await page.locator('#order-notify-whatsapp').textContent()).trim(),'');
+ assert.equal(await page.locator('.payment-social-links').getByRole('link',{name:'TikTok TANJ',exact:true}).getAttribute('href'),'https://www.tiktok.com/@tanj.co.id');
+ assert.equal(await page.locator('.payment-social-links').getByRole('link',{name:'Instagram TANJ',exact:true}).getAttribute('href'),'https://www.instagram.com/tanjofficial/');
  await page.context().route('https://mail.google.com/**',route=>route.fulfill({contentType:'text/html',body:'<h1>Draft email test</h1>'}));
  const draftPromise=page.waitForEvent('popup');await page.locator('#order-notify-email').click();const draft=await draftPromise;await draft.waitForLoadState();assert.equal(new URL(draft.url()).searchParams.get('to'),'tanj.indonesia@gmail.com');await draft.close();
  await page.goBack();await page.locator('#customer-status-filter').waitFor();
