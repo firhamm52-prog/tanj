@@ -15,7 +15,7 @@ async function busy(button,action){if(button.disabled)return;button.disabled=tru
 async function refresh(){state=await loadAdmin();render();$('#workspace').setAttribute('aria-busy','false')}
 async function openApp(){await refresh();$('#login-screen').hidden=true;$('#app').hidden=false;}
 $('#demo-credentials').hidden=isApi;
-if(!isApi){$('#login-form').elements.email.value='admin@tanj.test';$('#login-form').elements.password.value='demo123';}
+$('#login-form').elements.password.value='';
 $('#mode-label').textContent=isApi?'Backend terhubung':'Simulasi aktif';
 $('#mode-banner').textContent=isApi?'Perubahan disimpan ke database sebagai draf. Klik Publikasikan untuk memperbarui website.':'MODE DEMO · Data dummy tersimpan di browser ini. Publikasi demo hanya mengubah website di browser yang sama.';
 $('#login-form').addEventListener('submit',async event=>{

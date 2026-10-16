@@ -3,15 +3,21 @@ import {createServer} from 'node:http';
 import {readFile,mkdir} from 'node:fs/promises';
 import {resolve,extname,sep} from 'node:path';
 import assert from 'node:assert/strict';
-const root=process.cwd(),url='http://127.0.0.1:4322/tanj/';
+const root=process.cwd();let url;
 const server=createServer(async(req,res)=>{try{let path=new URL(req.url,'http://localhost').pathname;if(!path.startsWith('/tanj/')){res.writeHead(404);return res.end();}path=path.slice(5);if(path.endsWith('/'))path+='index.html';const file=resolve(root,'.'+path);if(!file.startsWith(root+sep))throw Error();res.writeHead(200,{'Content-Type':{'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp'}[extname(file)]||'application/octet-stream'});res.end(await readFile(file));}catch{res.writeHead(404);res.end();}});
-await new Promise(r=>server.listen(4322,'127.0.0.1',r));
+await new Promise(r=>server.listen(0,'127.0.0.1',r));
+url=`http://127.0.0.1:${server.address().port}/tanj/`;
 let browser;
 try {
  browser=await chromium.launch({channel:'chrome',headless:true});
  const page=await browser.newPage({viewport:{width:390,height:844}});
  await page.goto(url+'admin/payments.html');
  await page.locator('#login-title').filter({hasText:'Buat akun admin'}).waitFor({state:'attached'});
+ await page.locator('[name=id]').fill('owner');
+ await page.locator('#auth-submit').click();assert.equal(await page.locator('#admin-view-switch').isVisible(),false);
+ await page.evaluate(()=>document.getElementById('auth-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+ await page.locator('#auth-error').filter({hasText:'Isi password'}).waitFor();
+ assert.equal(await page.evaluate(()=>localStorage.getItem('tanj-payment-admin-local-v1')),null);
  await page.locator('[name=id]').fill('owner');await page.locator('[name=password]').fill('demo-password-123');await page.locator('[name=repeat]').fill('demo-password-123');await page.locator('#auth-submit').click();await page.locator('#admin-view-switch').waitFor({state:'visible'});await page.locator('#admin-view-switch a').filter({hasText:'Admin'}).click();await page.locator('#dashboard').waitFor({state:'visible'});
  await page.evaluate(()=>{localStorage.setItem('tanj-manual-payments-demo-v1',JSON.stringify({version:1,settings:{admin:'Owner',hours:24},orders:[{id:'TANJ-TEST',customer:{name:'Pembeli',phone:'081200000000',address:'Alamat contoh',district:'Karawaci',city:'Tangerang',zip:'15115'},items:[{name:'Dress',color:'Black',qty:1}],shipping:{fee:10000},subtotal:687000,total:697123,adjustment:123,code:123,status:'CHECKING',createdAt:Date.now(),deadline:Date.now()+86400000,version:1,proofs:[],logs:[]}]}));window.dispatchEvent(new Event('tanj-payments-change'));});
  await page.locator('#reject').click();await page.locator('textarea').fill('Referensi transaksi belum cocok. Hubungi admin.');await page.locator('#review-form [type=submit]').click();await page.locator('[data-filter=REJECTED]').click();await page.locator('.order').waitFor();assert.match(await page.locator('#detail').textContent(),/Pembayaran ditolak/);
@@ -23,6 +29,10 @@ try {
  await page.reload();await page.locator('#dashboard').waitFor({state:'visible'});assert.equal(await page.locator('#filters button').count(),6);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/payments-mobile.png',fullPage:true});await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'test-results/payments-desktop.png',fullPage:true});
  await page.getByRole('link',{name:'Pembeli',exact:true}).click();await page.locator('#admin-view-switch').waitFor({state:'visible'});await page.locator('[data-account-open]').first().click();await page.locator('#admin-signout').click();await page.waitForURL(url);assert.equal(await page.locator('#admin-view-switch').isVisible(),false);
- await page.goto(url+'admin/payments.html');await page.locator('#login').waitFor({state:'visible'});assert.ok(page.url().includes('#admin-login'));await page.locator('[name=id]').fill('owner');await page.locator('[name=password]').fill('wrong-password-123');await page.locator('#auth-submit').click();await page.locator('#auth-error').filter({hasText:'ID atau password salah'}).waitFor();await page.locator('[name=password]').fill('demo-password-123');await page.locator('#auth-submit').click();await page.locator('#admin-view-switch').waitFor({state:'visible'});assert.equal(await page.locator('#account-modal').isVisible(),false);
+ await page.goto(url+'admin/payments.html');await page.locator('#login').waitFor({state:'visible'});assert.ok(page.url().includes('#admin-login'));await page.evaluate(()=>document.getElementById('auth-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));await page.locator('#auth-error').filter({hasText:'Isi ID'}).waitFor();await page.locator('[name=id]').fill('owner');await page.locator('[name=password]').fill('wrong-password-123');await page.locator('#auth-submit').click();await page.locator('#auth-error').filter({hasText:'ID atau password salah'}).waitFor();await page.locator('[name=password]').fill('demo-password-123');await page.locator('#auth-submit').click();await page.locator('#admin-view-switch').waitFor({state:'visible'});assert.equal(await page.locator('#account-modal').isVisible(),false);
+ await page.evaluate(()=>{const key='tanj-admin-session-v2';const session=JSON.parse(sessionStorage.getItem(key));session.expires=Date.now()-1;sessionStorage.setItem(key,JSON.stringify(session));});
+ await page.goto(url+'admin/payments.html');await page.locator('#login').waitFor({state:'visible'});
+ await page.evaluate(()=>{sessionStorage.removeItem('tanj-admin-session-v2');const saved=JSON.parse(localStorage.getItem('tanj-payment-admin-local-v1'));sessionStorage.setItem('tanj-admin-session-v1',JSON.stringify({...saved,expires:Date.now()+60000}));});
+ await page.goto(url+'admin/payments.html');await page.locator('#login').waitFor({state:'visible'});
  console.log('Unified account setup, login, buyer/admin switching, persistent session, logout guard, QRIS, rejection and mobile checks passed.');
 } finally {await browser?.close();await new Promise(r=>server.close(r));}

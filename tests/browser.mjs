@@ -24,7 +24,7 @@ try{
  const context=await browser.newContext({viewport:{width:1440,height:1000}});
  const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
  const base='http://127.0.0.1:4320/tanj';
- await page.goto(base+'/admin/');await page.locator('#login-form button').click();
+ await page.goto(base+'/admin/');await page.locator('[name=email]').fill('admin@tanj.test');await page.locator('[name=password]').fill('demo123');await page.locator('#login-form button').click();
  await page.locator('#app:not([hidden])').waitFor();
  await page.screenshot({path:'test-results/admin-desktop.png',fullPage:true});
  await page.locator('#navigation [data-tab=products]').click();
