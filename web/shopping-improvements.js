@@ -1,4 +1,8 @@
 export function mountShoppingImprovements({getCatalog,getItems,openProduct,productModal}){
+ const bagPanel=document.querySelector('#bag-modal .bag-panel');
+ const expand=document.createElement('button');expand.type='button';expand.className='bag-expand';expand.textContent='Perbesar';expand.setAttribute('aria-expanded','false');
+ expand.onclick=()=>{const full=document.getElementById('bag-modal').classList.toggle('bag-expanded');expand.textContent=full?'Perkecil':'Perbesar';expand.setAttribute('aria-expanded',String(full));};
+ bagPanel.prepend(expand);
  const contact=document.createElement('a');contact.className='tanj-chat';contact.href='https://wa.me/6281363661703';contact.target='_blank';contact.rel='noopener noreferrer';contact.setAttribute('aria-label','Chat CS TANJ lewat WhatsApp');contact.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a9 9 0 0 1-13.2 8L3 21l1.5-4.6A9 9 0 1 1 21 11.5Z"/><path d="M8 7c0 4.5 2.5 7 7 7l1-2-3-1-1 1-2-2 1-1-1-3Z"/></svg><span>Chat CS</span>';document.body.append(contact);
  function gallery(parent,id){const section=document.createElement('section');section.className='shopping-recommendations';section.id=id;section.innerHTML='<p class="checkout-eyebrow">COMPLETE YOUR LOOK</p><h3>Rekomendasi untukmu</h3><div class="recommended-products"></div>';parent.append(section);return section;}
  const product=gallery(productModal.querySelector('.product-panel'),'product-recommendations');

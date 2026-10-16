@@ -17,6 +17,13 @@ try{
   const recommended=page.locator('#product-recommendations [data-recommended-id]').first(),id=await recommended.getAttribute('data-recommended-id');await recommended.click();await page.waitForFunction(id=>document.getElementById('product-modal').dataset.activeProduct===id,id);
   assert.equal(await page.locator('#product-modal .product-panel').evaluate(el=>el.scrollTop),0);
   await page.locator('#product-modal-close').click();await page.locator('.tanj-chat').waitFor();
+  await page.locator('#bag-open').evaluate(button=>button.click());
+  await page.locator('.bag-expand').click();
+  assert.equal(await page.locator('.bag-expand').getAttribute('aria-expanded'),'true');
+  const full=await page.locator('#bag-modal .bag-panel').boundingBox();
+  assert.ok(Math.abs(full.width-viewport.width)<=2&&Math.abs(full.height-viewport.height)<=2,JSON.stringify(full));
+  await page.locator('.bag-expand').click();
+  assert.equal(await page.locator('.bag-expand').textContent(),'Perbesar');
  }
  assert.deepEqual(errors,[]);console.log('PASS: CS WhatsApp, available product recommendations, switching products, X close, no horizontal overflow, primary Order button fits desktop/mobile including 320x568.');
 }finally{await browser?.close();await new Promise(r=>server.close(r));}
