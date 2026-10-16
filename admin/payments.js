@@ -40,7 +40,9 @@ async function uploadQR(){
   const canvas=document.createElement('canvas');const scale=Math.min(1,1600/Math.max(bitmap.width,bitmap.height));
   canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
   const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(bitmap,0,0,canvas.width,canvas.height);
-  const data=canvas.toDataURL('image/jpeg',.9);
+  let data=canvas.toDataURL('image/png');
+  if(data.length>1450000)data=canvas.toDataURL('image/jpeg',.98);
+  if(data.length>1450000)throw Error('Gambar terlalu besar untuk disimpan dengan jelas. Potong area kosong di sekitar QRIS lalu upload kembali.');
   if(!isAdmin())throw Error('Sesi berakhir. Login ulang.');
   await savePaymentQR({data,name:file.name});
   $('qris-message').textContent='QRIS berhasil tersimpan dan langsung tampil di halaman pembayaran untuk semua perangkat.';

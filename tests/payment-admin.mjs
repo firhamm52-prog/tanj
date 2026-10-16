@@ -33,6 +33,8 @@ try {
  assert.equal(await page.locator('#qris-preview').isVisible(),false);
  await page.locator('#qris-form [type=submit]').click();
  await page.locator('#qris-message').filter({hasText:'tersimpan'}).waitFor();assert.equal(await page.locator('#qris-preview').isVisible(),true);
+ assert.match(await page.locator('#qris-preview').getAttribute('src'),/^data:image\/png;base64,/);
+ assert.ok(await page.locator('#qris-preview').evaluate(image=>image.getBoundingClientRect().width)>250);
  assert.equal(await page.locator('#qris-file').inputValue(),'');
  assert.equal(await page.locator('#qris-form [type=submit]').isDisabled(),false);
  assert.equal(await page.locator('#qris-file').getAttribute('required'),null);
