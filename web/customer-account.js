@@ -21,11 +21,11 @@ export async function authenticateCustomer({name,email,password,repeat},register
  if(register){
   if(!String(name||'').trim()||name.length>80)throw Error('Isi nama lengkap, maksimal 80 karakter.');
   if(password!==repeat)throw Error('Ulangi password yang sama.');
-  if(user)throw Error('Email sudah terdaftar. Silakan login.');
+  if(user)throw Error('Akun sudah terdaftar, silahkan buat email yang belum terdaftar');
   const salt=Array.from(crypto.getRandomValues(new Uint8Array(16)));
   user={id:crypto.randomUUID(),name:name.trim(),email,salt,hash:await digest(password,salt)};
   // Re-read after hashing to avoid overwriting registrations from another tab.
-  const latest=read(USERS,[]);if(latest.some(u=>u.email===email))throw Error('Email sudah terdaftar. Silakan login.');
+  const latest=read(USERS,[]);if(latest.some(u=>u.email===email))throw Error('Akun sudah terdaftar, silahkan buat email yang belum terdaftar');
   localStorage.setItem(USERS,JSON.stringify([...latest,user]));
  }else if(!user||user.hash!==await digest(password,user.salt))throw Error('Email atau password salah.');
  sessionStorage.setItem(SESSION,JSON.stringify({id:user.id,hash:user.hash,expires:Date.now()+8*60*60*1000}));

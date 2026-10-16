@@ -33,6 +33,7 @@ export const cloudAddresses=()=>list.slice();
 export async function cloudAuthenticate({name,email,password},register){
  await cloudReady;
  const {data,error}=register?await client.auth.signUp({email,password,options:{data:{full_name:name.trim()},emailRedirectTo:location.origin+location.pathname}}):await client.auth.signInWithPassword({email,password});
+ if(register&&(error?.code==='user_already_exists'||error?.code==='email_exists'||/already (registered|exists)/i.test(error?.message||'')||(!error&&Array.isArray(data?.user?.identities)&&data.user.identities.length===0)))throw Error('Akun sudah terdaftar, silahkan buat email yang belum terdaftar');
  if(error){if(error.code==='invalid_credentials'||error.message==='Invalid login credentials')throw Error('Email atau password salah. Gunakan Lupa password untuk mengatur password baru lewat email.');if(error.code==='email_not_confirmed'||error.message==='Email not confirmed')throw Error('Verifikasi email terlebih dahulu melalui Inbox/Spam.');check(error);}
  if(!data.session)return {needsConfirmation:true};
  await accept(data.session);await loadRole();await refreshAddresses();return user;

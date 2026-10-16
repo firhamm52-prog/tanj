@@ -14,7 +14,11 @@ try{
  async function device(){const context=await browser.newContext({timezoneId:'Asia/Jakarta'});await isolateEmail(context);await context.route('**/web/supabase-config.js?*',r=>r.fulfill({contentType:'text/javascript',body:'export const supabaseConfig={enabled:true,url:"https://cloud.test",publishableKey:"test-key"};'}));
  await context.route('https://cloud.test/**',async route=>{const req=route.request(),u=new URL(req.url());let body={},status=200;
  if(u.pathname==='/auth/v1/token'){loginRequests++;const input=req.postDataJSON();if(input.password!=='cloud-password-123'){status=400;body={code:'invalid_credentials',msg:'Invalid login credentials'};}else body=session;}
- else if(u.pathname==='/auth/v1/signup')body={user,session:null};
+ else if(u.pathname==='/auth/v1/signup'){
+  const email=req.postDataJSON().email;
+  if(email==='duplicate@example.com'){status=422;body={code:'user_already_exists',msg:'User already registered'};}
+  else body={user:email==='hidden@example.com'?{...user,identities:[]}:user,session:null};
+ }
  else if(u.pathname==='/auth/v1/user'){if(req.method()==='PUT')passwordUpdates++;body=user;}
  else if(u.pathname==='/auth/v1/recover'){resetRequests++;assert.equal(req.postDataJSON().email,user.email);body={};}
  else if(u.pathname==='/auth/v1/logout'){status=204;}
@@ -52,6 +56,10 @@ try{
  await phone.page.goto(url+'#pesanan?order='+encodeURIComponent(order.id));await phone.page.locator('.manual-id').filter({hasText:order.id}).waitFor();assert.match(await phone.page.locator('#manual-payment h3').textContent(),/Menunggu pembayaran/);
  await phone.page.reload();assert.equal(await phone.page.evaluate(async()=>{const m=await import('./web/customer-account.js?v=improve-2');await m.customerReady;return m.customerSession()?.id;}),user.id);
  await phone.page.evaluate(async()=>{const m=await import('./web/customer-account.js?v=improve-2');await m.customerLogout();});assert.equal(await phone.page.evaluate(async()=>(await import('./web/customer-account.js?v=improve-2')).customerSession()),null);
+ for(const email of ['duplicate@example.com','hidden@example.com']){
+  const message=await phone.page.evaluate(async email=>{const m=await import('./web/customer-account.js?v=improve-2');try{await m.authenticateCustomer({name:'Duplicate',email,password:'cloud-password-123',repeat:'cloud-password-123'},true);}catch(error){return error.message;}},email);
+  assert.equal(message,'Akun sudah terdaftar, silahkan buat email yang belum terdaftar');
+ }
  const signup=await phone.page.evaluate(async()=>{const m=await import('./web/customer-account.js?v=improve-2');return m.authenticateCustomer({name:'New customer',email:'new@example.com',password:'cloud-password-123',repeat:'cloud-password-123'},true);});assert.equal(signup.needsConfirmation,true);assert.ok(loginRequests>=3);
  // Admin uses the same verified account, but a separate server-authorized role.
  await phone.page.goto(url+'#admin-login');await phone.page.locator('#account-modal:not([hidden])').waitFor();await phone.page.locator('#auth-form [name=id]').fill(user.email);await phone.page.locator('#forgot').click();await phone.page.locator('#auth-error').filter({hasText:'tautan pemulihan'}).waitFor();assert.equal(resetRequests,1);
