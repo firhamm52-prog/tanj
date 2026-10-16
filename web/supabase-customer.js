@@ -1,4 +1,4 @@
-import {supabaseConfig} from './supabase-config.js?v=supabase-3';
+import {supabaseConfig} from './supabase-config.js?v=improve-2';
 import {getShippingEstimate} from './shipping.js?v=districts-1';
 export const cloudEnabled=supabaseConfig.enabled;
 let client,user=null,list=[],revision=0,admin=false,recovering=false;

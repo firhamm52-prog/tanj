@@ -16,7 +16,8 @@
     "test:checkout": "node tests/checkout-experience.mjs",
     "test:commerce": "node scripts/test-commerce.mjs",
     "build:supabase": "node scripts/build-supabase.mjs",
-    "test:supabase": "node tests/supabase-database.mjs && node tests/supabase-customer.mjs"
+    "test:supabase": "node tests/supabase-database.mjs && node tests/supabase-customer.mjs",
+    "test:shopping": "node tests/shopping-improvements.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10",

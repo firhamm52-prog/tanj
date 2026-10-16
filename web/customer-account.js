@@ -1,6 +1,6 @@
-import {sendReset} from './password-recovery.js?v=supabase-3';
-import {digest} from './admin-session.js?v=supabase-3';
-import {cloudEnabled,cloudReady,cloudSession,cloudAuthenticate,cloudLogout,cloudAddresses,refreshAddresses,cloudSaveAddress,cloudDeleteAddress} from './supabase-customer.js?v=supabase-3';
+import {sendReset} from './password-recovery.js?v=improve-2';
+import {digest} from './admin-session.js?v=improve-2';
+import {cloudEnabled,cloudReady,cloudSession,cloudAuthenticate,cloudLogout,cloudAddresses,refreshAddresses,cloudSaveAddress,cloudDeleteAddress} from './supabase-customer.js?v=improve-2';
 export const customerReady=cloudReady;
 // Keep fixed overlays outside gallery sections that use layout/paint containment.
 for(const id of ['bag-modal','product-modal','account-modal','search-modal']){const overlay=document.getElementById(id);if(overlay)document.body.append(overlay);}

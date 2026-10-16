@@ -1,6 +1,6 @@
-import {customerSession} from './customer-account.js?v=supabase-3';
+import {customerSession} from './customer-account.js?v=improve-2';
 import {normalizePaymentReview} from '../shared/payment-review.js';
-import {cloudEnabled,cloudPayments,refreshPayments,paymentRPC,createCloudPayment} from './supabase-payments.js?v=supabase-3';
+import {cloudEnabled,cloudPayments,refreshPayments,paymentRPC,createCloudPayment} from './supabase-payments.js?v=improve-2';
 export {refreshPayments};
 import {validateShippingDestination} from './shipping.js?v=districts-1';
 export const PAYMENT_KEY='tanj-manual-payments-demo-v1';
@@ -59,4 +59,13 @@ export async function savePaymentQR(image){
  if(image!==null&&(!image||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image.data)||image.data.length>1450000))throw Error('Gambar QRIS harus JPG, PNG, atau WebP maksimal 1 MB.');
  if(cloudEnabled)return paymentRPC('tanj_save_qris',{image:image?{data:image.data,name:String(image.name||'QRIS').slice(0,120)}:null});
  return mutate(state=>{state.settings.qris=image?{data:image.data,name:String(image.name||'QRIS').slice(0,120)}:null;});
+}
+export async function decidePayment(id,version,decision,checked=false){
+ if(cloudEnabled)return paymentRPC('tanj_decide_payment',{order_id:id,expected_version:version,decision,checked});
+ return mutate(state=>{const order=state.orders.find(o=>o.id===id);if(!order||order.version!==version||['PAID','CANCELLED'].includes(order.status))throw Error('Status pesanan sudah berubah. Muat ulang.');if(!['approve','reject'].includes(decision))throw Error('Aksi tidak tersedia.');if(decision==='approve'&&!checked)throw Error('Cocokkan dana masuk sebelum menyetujui.');if(decision==='approve')order.review={amount:order.total,admin:state.settings.admin,reviewedAt:Date.now()};log(order,decision==='approve'?'PAID':'REJECTED',state.settings.admin,decision==='approve'?'Pembayaran disetujui setelah pemeriksaan admin.':'Pembayaran ditolak oleh admin. Hubungi CS untuk bantuan.');return order;});
+}
+export async function saveTracking(id,version,courier,number){
+ courier=String(courier||'').trim();number=String(number||'').trim();if(!courier||courier.length>80||!/^[A-Za-z0-9][A-Za-z0-9 ./_-]{0,79}$/.test(number))throw Error('Isi kurir dan nomor resi yang valid.');
+ if(cloudEnabled)return paymentRPC('tanj_save_tracking',{order_id:id,expected_version:version,courier,tracking_number:number});
+ return mutate(state=>{const order=state.orders.find(o=>o.id===id);if(!order||order.status!=='PAID'||order.version!==version)throw Error('Resi hanya dapat disimpan pada pembayaran berhasil. Muat ulang pesanan.');order.tracking={courier,number,updatedAt:Date.now()};log(order,'PAID',state.settings.admin,'Nomor resi diperbarui: '+courier+' / '+number);return order;});
 }

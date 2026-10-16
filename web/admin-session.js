@@ -1,4 +1,4 @@
-import {cloudEnabled,cloudReady,cloudSession,cloudIsAdmin,cloudAuthenticate,cloudLogout} from './supabase-customer.js?v=supabase-3';
+import {cloudEnabled,cloudReady,cloudSession,cloudIsAdmin,cloudAuthenticate,cloudLogout} from './supabase-customer.js?v=improve-2';
 export const usesCloudAdmin=cloudEnabled;
 if(cloudEnabled)await cloudReady.catch(()=>{});
 const key='tanj-payment-admin-local-v1',sessionKey='tanj-admin-session-v2';
