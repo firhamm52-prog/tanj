@@ -1,4 +1,4 @@
-import {emailConfig} from '../web/email-config.js?v=email-1';
+import {emailConfig} from '../web/email-config.js?v=email-live-1';
 import {readPayments,subscribePayments,orderStatus,paymentLabels,reviewPayment,savePaymentQR,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=checkout-2';
 import {isAdmin} from '../web/admin-session.js?v=login-form-3';
 const $=id=>document.getElementById(id);

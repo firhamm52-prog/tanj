@@ -1,3 +1,4 @@
+import {isolateEmail} from './helpers/email-isolation.mjs';
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
 import {readFile,mkdir} from 'node:fs/promises';
@@ -9,7 +10,7 @@ const server=createServer(async(req,res)=>{try{let path=new URL(req.url,'http://
 await new Promise(r=>server.listen(0,'127.0.0.1',r));const url=`http://127.0.0.1:${server.address().port}/tanj/`;
 let browser;
 try{
- browser=await chromium.launch({channel:'chrome',headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ browser=await chromium.launch({channel:'chrome',headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();await isolateEmail(context);const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(url);await page.locator('.product-preview').first().click();await page.locator('#product-buy-now').click();
  await page.locator('#customer-account[open]').waitFor();assert.equal(await page.locator('#bag-checkout-view').isVisible(),false);
  await page.locator('#customer-auth button[type=submit]').click();await page.locator('#customer-auth-error').filter({hasText:'email'}).waitFor();

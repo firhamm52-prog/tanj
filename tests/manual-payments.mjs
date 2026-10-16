@@ -1,3 +1,4 @@
+import {isolateEmail} from './helpers/email-isolation.mjs';
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
 import {readFile,mkdir} from 'node:fs/promises';
@@ -9,7 +10,7 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));url=`http://127.0.0.1:${ser
 async function ensureCustomer(page){await page.evaluate(async()=>{const m=await import('./web/customer-account.js?v=checkout-2');if(m.customerSession())return;const users=JSON.parse(localStorage.getItem('tanj-customers-v1')||'[]');await m.authenticateCustomer({name:'Customer test',email:'customer@example.com',password:'customer-password-123',repeat:'customer-password-123'},!users.some(u=>u.email==='customer@example.com'));});}
 let browser;
 try{
- browser=await chromium.launch({channel:'chrome',headless:true});const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage();const errors=[],apiRequests=[];context.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));page.on('pageerror',e=>errors.push(e.message));context.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))apiRequests.push(r.url());});
+ browser=await chromium.launch({channel:'chrome',headless:true});const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage();await isolateEmail(context);const errors=[],apiRequests=[];context.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));page.on('pageerror',e=>errors.push(e.message));context.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))apiRequests.push(r.url());});
  // Failed lazy region downloads can be retried; stale downloads must not replace a newer city.
  const networkPage=await context.newPage();let failOnce=true;let releaseSlow;const slowGate=new Promise(resolve=>{releaseSlow=resolve;});let announceSlow;const slowStarted=new Promise(resolve=>{announceSlow=resolve;});
  await networkPage.route('**/web/shipping-areas/11.js?*',route=>{if(failOnce){failOnce=false;return route.abort('failed');}return route.continue();});

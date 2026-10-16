@@ -2,7 +2,9 @@
 
 Checkout menyimpan email customer. Kontak email membuka aplikasi email dengan tujuan admin dan CC customer; pengunjung tetap menekan Kirim di aplikasi tersebut.
 
-Pengiriman otomatis **belum aktif** karena akun EmailJS TANJ belum dibuat/dihubungkan. EmailJS kini dapat mengirim dari GitHub Pages tanpa payment gateway atau backend sendiri. Ikuti [panduan EmailJS](emailjs-setup.md) dan gunakan [template siap-pasang](emailjs-order-template.html). `web/email-config.js` berisi konfigurasi publik yang masih kosong dan dinonaktifkan. Tidak ada password Gmail/private key di frontend.
+Konfigurasi publik EmailJS dari pemilik TANJ sudah dipasang dan diaktifkan pada `web/email-config.js` untuk Service `service_awd6ej5` dan Template `template_9x2zs4s`. Website mencoba mengirim otomatis setelah Order tersimpan, tanpa menunggu payment gateway/backend sendiri. Pengiriman nyata tetap bergantung pada koneksi Gmail, template To/Cc, izin origin, dan kuota di dashboard EmailJS. Tes otomatis memakai provider tiruan dan tidak membuktikan email nyata masuk Inbox.
+
+Pastikan template To Email adalah `tanj.indonesia@gmail.com`, Cc `{{customer_email}}`, serta origin `https://firhamm52-prog.github.io` diizinkan. Ikuti [panduan EmailJS](emailjs-setup.md) dan gunakan [template siap-pasang](emailjs-order-template.html). Tidak ada password Gmail/private key di frontend.
 
 Backend yang akan digunakan harus menyediakan endpoint pada domain yang sama, dikonfigurasi melalui `window.TANJ_CONFIG.paymentNotificationEndpoint`. Kontrak: POST JSON `{orderId}`; server mengambil pesanan dari database bersama, memvalidasi pemilik pesanan, mengirim ke `tanj.indonesia@gmail.com` dan email customer yang tersimpan, membatasi pengiriman, dan mencegah duplikasi. Respons `{sent:true}` hanya setelah kedua pengiriman diterima penyedia email. Frontend tidak mengirim nominal atau alamat penerima sebagai sumber kebenaran.
 

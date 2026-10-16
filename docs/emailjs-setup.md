@@ -1,6 +1,6 @@
 # Aktivasi email Order TANJ — tanpa payment gateway
 
-Kode dapat mengirim lewat EmailJS dari GitHub Pages; gateway pembayaran tidak diperlukan. Akun EmailJS dan hubungan ke email pengirim belum tersedia, sehingga konfigurasi sengaja dinonaktifkan. Kode yang siap dipasang bukan berarti email sudah aktif.
+Kode dapat mengirim lewat EmailJS dari GitHub Pages; gateway pembayaran tidak diperlukan. Konfigurasi publik yang diberikan pemilik TANJ sudah dipasang dan `enabled:true`. Panduan berikut tetap menjadi acuan pengaturan template, layanan Gmail, origin, dan pengujian inbox. Tes otomatis dicegat sehingga tidak mengirim email nyata; penerimaan inbox perlu dikonfirmasi lewat uji Order pemilik TANJ.
 
 ## Langkah pemilik akun
 

@@ -1,5 +1,5 @@
-import {emailConfig} from './email-config.js?v=email-1';
-import {createEmailDelivery} from './emailjs-delivery.js?v=email-1';
+import {emailConfig} from './email-config.js?v=email-live-1';
+import {createEmailDelivery} from './emailjs-delivery.js?v=email-live-1';
 const browserDelivery=createEmailDelivery({
  config:emailConfig,storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)},baseUrl:location.origin+location.pathname,
  runExclusive:fn=>navigator.locks?navigator.locks.request('tanj-email-delivery',fn):fn()

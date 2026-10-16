@@ -17,7 +17,7 @@ Referensi: `Deploy dan git.docx` (versi berisi alur customer/checkout). Sumber W
 
 ## Aktivasi layanan yang belum tersedia
 
-**Pembaruan email:** EmailJS kini didukung sebagai alternatif pengiriman langsung dari GitHub Pages, tanpa menunggu backend/gateway. Akun EmailJS TANJ belum tersedia, jadi pengiriman nyata masih nonaktif. Ikuti [panduan aktivasi EmailJS](emailjs-setup.md). Ini tidak mengubah sifat penyimpanan akun/pesanan yang masih lokal dan tidak menjadikan email bukti pembayaran.
+**Pembaruan email:** EmailJS dikonfigurasi dan diaktifkan memakai Service/Template/Public Key yang diberikan pemilik TANJ, tanpa menunggu backend/gateway. Periksa pengaturan dan pengiriman nyata sesuai [panduan aktivasi EmailJS](emailjs-setup.md). Ini tidak mengubah sifat penyimpanan akun/pesanan yang masih lokal dan tidak menjadikan email bukti pembayaran.
 
 GitHub Pages hanya menjalankan frontend statis. Akun customer/admin, alamat, QRIS, dan ledger lokal merupakan prototipe; data browser dapat diubah pengguna. Ini **bukan otorisasi server** dan belum dapat menjadi toko operasional lintas perangkat.
 

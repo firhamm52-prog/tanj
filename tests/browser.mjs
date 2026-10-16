@@ -1,3 +1,4 @@
+import {isolateEmail} from './helpers/email-isolation.mjs';
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
 import {readFile,mkdir} from 'node:fs/promises';
@@ -21,7 +22,7 @@ await new Promise(resolve=>staticServer.listen(4320,'127.0.0.1',resolve));
 const browser=await chromium.launch({channel:'chrome',headless:true});
 const errors=[];
 try{
- const context=await browser.newContext({viewport:{width:1440,height:1000}});
+ const context=await browser.newContext({viewport:{width:1440,height:1000}});await isolateEmail(context);
  const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
  const base='http://127.0.0.1:4320/tanj';
  await page.goto(base+'/admin/');await page.locator('[name=email]').fill('admin@tanj.test');await page.locator('[name=password]').fill('demo123');await page.locator('#login-form button').click();
@@ -63,7 +64,7 @@ try{
  // A fresh browser sees original seed, not another visitor's demo edits.
  const fresh=await browser.newContext();const other=await fresh.newPage();await other.goto(base+'/');await other.locator('#collection .card').first().waitFor();assert.equal(await other.getByText('TANJ Browser test product',{exact:true}).count(),0);await fresh.close();
  // Live backend login and CRUD, then clean up the test record.
- const api=await browser.newContext({viewport:{width:1280,height:900}});const live=await api.newPage();live.on('pageerror',error=>errors.push(error.message));
+ const api=await browser.newContext({viewport:{width:1280,height:900}});await isolateEmail(api);const live=await api.newPage();live.on('pageerror',error=>errors.push(error.message));
  await live.goto('http://127.0.0.1:3000/admin/');await live.locator('[name=email]').fill('admin@tanj.test');await live.locator('[name=password]').fill('demo123');await live.locator('#login-form button').click();await live.locator('#app:not([hidden])').waitFor();
  await live.locator('#navigation [data-tab=collections]').click();await live.locator('[data-action=new]').click();await live.locator('[name=name]').fill('Browser API test');await live.locator('#edit-form button[type=submit]').click();await live.locator('#editor').waitFor({state:'hidden'});
  const collection=live.locator('.collection-card').filter({hasText:'Browser API test'});await collection.waitFor();live.on('dialog',dialog=>dialog.accept());await collection.locator('[data-action=delete]').click();await collection.waitFor({state:'detached'});

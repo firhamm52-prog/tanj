@@ -2,7 +2,7 @@ import {customerSession,requireCustomer} from './customer-account.js?v=checkout-
 import {isAdmin} from './admin-session.js?v=login-form-3';
 import {mountCheckoutExperience} from './checkout-experience.js?v=checkout-2';
 import {buildOrderEmail} from '../shared/order-email.js';
-import {notifyPayment} from './payment-notifications.js?v=email-1';
+import {notifyPayment} from './payment-notifications.js?v=email-live-1';
 import {orderContactLinks} from './order-contact.js';
 import {shippingProvinces,shippingCities,shippingDistricts,getShippingEstimate} from './shipping.js?v=districts-1';
 import {readPayments,createPayment,buyerUpdate,subscribePayments,orderStatus,paymentLabels,money,escapeHTML as esc} from './manual-payment-store.js?v=checkout-2';

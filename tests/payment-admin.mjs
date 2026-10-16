@@ -1,3 +1,4 @@
+import {isolateEmail} from './helpers/email-isolation.mjs';
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
 import {readFile,mkdir} from 'node:fs/promises';
@@ -10,7 +11,7 @@ url=`http://127.0.0.1:${server.address().port}/tanj/`;
 let browser;
 try {
  browser=await chromium.launch({channel:'chrome',headless:true});
- const page=await browser.newPage({viewport:{width:390,height:844}});
+ const page=await browser.newPage({viewport:{width:390,height:844}});await isolateEmail(page.context());
  await page.goto(url+'admin/payments.html');
  await page.locator('#login-title').filter({hasText:'Buat akun admin'}).waitFor({state:'attached'});
  await page.locator('#auth-form [name=id]').fill('owner');
