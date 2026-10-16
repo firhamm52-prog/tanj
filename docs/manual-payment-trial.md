@@ -1,11 +1,11 @@
-﻿# Trial pembayaran manual TANJ
+# Trial pembayaran manual TANJ
 
-Versi ini adalah prototype yang bekerja di GitHub Pages. Tidak ada API bank, QRIS aktif, API ongkir, atau pengiriman WhatsApp otomatis. Semua pengiriman dan transaksi adalah contoh, diberi label SIMULASI. Halaman pembayaran tidak menampilkan QRIS merchant yang bisa dibayar. Jangan gunakan data customer atau bukti transfer asli.
+Versi ini adalah prototype yang bekerja di GitHub Pages. Tidak ada API bank, QRIS aktif, API ongkir, atau pengiriman WhatsApp otomatis. Pembayaran adalah simulasi; ongkir memakai harga perkiraan dari master wilayah yang diberikan, bukan tarif live kurir. Halaman pembayaran tidak menampilkan QRIS merchant yang bisa dibayar. Jangan gunakan data customer atau bukti transfer asli.
 
 ## Coba alur pembeli dan admin
 
 1. Buka website, pilih produk, tambahkan ke tas, lalu lanjut checkout.
-2. Isi data contoh, kota/kecamatan, kode pos 5 angka, dan pilih tarif contoh Reguler Rp15.000 atau Instan Rp25.000. Ini bukan tarif kurir nasional atau jaminan layanan nyata.
+2. Isi data contoh, pilih provinsi lalu kota/kabupaten dari dropdown, isi alamat lengkap sebagai teks dan kode pos 5 angka. Perkiraan ongkir langsung muncul sesuai kota. Master mencakup 514 kota/kabupaten di 38 provinsi. Kolom yang digunakan adalah Perkiraan bawah (Rp), bukan referensi resmi JNE maupun batas atas. Asal Matraman, Jakarta Timur, patokan paket 1 kg; bukan tarif live kurir atau jaminan layanan.
 3. Lanjut pembayaran: total meliputi subtotal, ongkir contoh, dan penyesuaian kode unik 0–999 rupiah. Tiga digit terakhir total benar-benar sama dengan kode 001–999; kode tidak bentrok dengan pesanan yang masih perlu diperiksa.
 4. Customer boleh menekan “Saya sudah bayar”, menambahkan bukti contoh JPG/PNG/WebP maksimal 1 MB, atau tidak melakukan keduanya. Konfirmasi/screenshot tidak mengubah status menjadi lunas.
 5. Klik “Coba pemeriksaan admin” untuk membuka `admin/#payments` di browser yang sama. Kredensial demo: admin@tanj.test / demo123. Menu Pembayaran manual juga tersedia dari sidebar Studio.
@@ -37,3 +37,13 @@ Untuk produksi perlu backend/database bersama, autentikasi dan otorisasi order, 
 - `npm.cmd test`: regresi API CMS.
 
 Tes browser memakai Google Chrome yang sudah terpasang. Screenshot tersimpan di test-results/ dan tidak di-commit.
+
+## Master perkiraan ongkir
+
+Data pada web/shipping-master.js diimpor dari workbook Master-Wilayah-dan-Riset-Ongkir-Jakarta (1).xlsx, sheet Master wilayah, kolom D Perkiraan bawah (Rp). Nilai dihitung pada level kota/kabupaten, bukan provinsi saja. Tanggal master: 16 Oktober 2026. Pemilihan provinsi membatasi kota yang tersedia dan menghapus kota/ongkir sebelumnya agar total tidak memakai tujuan lama. Pembentukan order memvalidasi pasangan kode provinsi dan kota terhadap master, lalu mengambil harga dari master, bukan input nominal pembeli.
+
+Tarif ini dipakai sekali per pesanan berdasarkan patokan 1 kg file tersebut; belum ada pengalian berat/jumlah produk, volumetrik, asuransi, atau tambahan wilayah kecamatan. Informasi tersebut tetap perkiraan. Pesanan lama menyimpan snapshot alamat dan ongkir lama; tidak diubah diam-diam oleh pembaruan master.
+
+Untuk memperbarui data: pasang openpyxl pada lingkungan development lalu jalankan `python scripts/import-shipping.py "path/workbook.xlsx"`. Importer hanya membaca data/cached formula dan memvalidasi 514 kota serta 38 provinsi. Workbook pengguna tidak perlu dipublikasikan. Browser membaca file JavaScript hasil import tanpa library Excel atau API eksternal.
+
+Tes data ongkir: `node --test tests/shipping.test.mjs`. Tes browser pembayaran juga mencakup dropdown provinsi/kota, penghapusan ongkir saat provinsi berubah, dan total dari master. Contoh Kota Tangerang Rp10.000, Kota Bandung Rp10.000, Kota Jayapura Rp90.000 menurut kolom perkiraan bawah file, bukan angka referensi resmi kurir.
