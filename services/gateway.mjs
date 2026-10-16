@@ -1,4 +1,3 @@
-import {checkoutPublic,checkoutAdmin} from './checkout.mjs';
 import {readFile,stat} from 'node:fs/promises';
 import {resolve,extname,sep} from 'node:path';
 import {config,production,root} from './config.mjs';
@@ -10,7 +9,7 @@ const state=async()=>{
  const [catalog,content]=await Promise.all([service(config.catalogPort,'/state'),service(config.contentPort,'/state')]);return {...catalog,...content};
 };
 const cookie=token=>`tanj_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${token?28800:0}${production?'; Secure':''}`;
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.webp':'image/webp','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml','.mp4':'video/mp4','.webm':'video/webm','.ico':'image/x-icon'};
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.webp':'image/webp','.png':'image/png','.svg':'image/svg+xml','.mp4':'video/mp4','.webm':'video/webm','.ico':'image/x-icon'};
 serve(config.port,async(req,res,path)=>{
  if(path.startsWith('/api/')){
   if(!['GET','HEAD'].includes(req.method)){
@@ -22,7 +21,6 @@ serve(config.port,async(req,res,path)=>{
    const services=await Promise.all([config.authPort,config.catalogPort,config.contentPort].map(port=>service(port,'/health')));return json(res,200,{status:'ok',services});
   }
   if(path==='/api/storefront'&&req.method==='GET')return json(res,200,JSON.parse(db.prepare('SELECT document FROM site_releases ORDER BY id DESC LIMIT 1').get().document));
-  if(/^\/api\/(checkout|shipping|orders)(\/|$)/.test(path)){await checkoutPublic(req,res,path);if(res.writableEnded)return;error(404,'Endpoint tidak ditemukan.');}
   const token=String(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith('tanj_session='))?.slice(13)||'';
   if(path==='/api/auth/login'&&req.method==='POST'){
    const result=await service(config.authPort,'/login',{method:'POST',headers:{'x-client-ip':req.socket.remoteAddress||'local'},body:JSON.stringify(await body(req))});
@@ -32,7 +30,6 @@ serve(config.port,async(req,res,path)=>{
    await service(config.authPort,'/logout',{method:'POST',body:JSON.stringify({token})});res.setHeader('Set-Cookie',cookie(''));return json(res,200,{ok:true});
   }
   const {user}=await service(config.authPort,'/session',{method:'POST',body:JSON.stringify({token})});
-  if(path.startsWith('/api/admin/orders')){await checkoutAdmin(req,res,path,user);if(res.writableEnded)return;error(404,'Endpoint tidak ditemukan.');}
   if(path==='/api/auth/session'&&req.method==='GET')return json(res,200,{user});
   if(path==='/api/admin/state'&&req.method==='GET')return json(res,200,await state());
   if(path==='/api/admin/publish'&&req.method==='POST'){

@@ -13,7 +13,7 @@ async function call(path,method='GET',data,auth=true,extra={}){
 }
 before(async()=>{
  folder=await mkdtemp(join(tmpdir(),'tanj-api-'));
- const env={...process.env,NODE_ENV:'test',CHECKOUT_DEMO:'true',HOST:'127.0.0.1',PORT:'4310',AUTH_PORT:'4311',CATALOG_PORT:'4312',CONTENT_PORT:'4313',DATA_DIR:folder,ADMIN_EMAIL:'admin@tanj.test',ADMIN_PASSWORD:'demo123',INTERNAL_SECRET:'tanj-integration-test-secret'};
+ const env={...process.env,NODE_ENV:'test',HOST:'127.0.0.1',PORT:'4310',AUTH_PORT:'4311',CATALOG_PORT:'4312',CONTENT_PORT:'4313',DATA_DIR:folder,ADMIN_EMAIL:'admin@tanj.test',ADMIN_PASSWORD:'demo123',INTERNAL_SECRET:'tanj-integration-test-secret'};
  children=['auth','catalog','content','gateway'].map(name=>{
   const child=spawn(process.execPath,[`services/${name}.mjs`],{cwd:root,env,stdio:['ignore','pipe','pipe']});child.stdout.on('data',s=>log+=s);child.stderr.on('data',s=>log+=s);return child;
  });
@@ -63,49 +63,4 @@ test('microservices: authentication, validation, draft/publish, relationships, p
  // Reopening the initialized database must preserve edits, rather than reseeding.
  const {DatabaseSync}=await import('node:sqlite');const db=new DatabaseSync(join(folder,'content.sqlite'));
  assert.equal(db.prepare('SELECT title FROM banner').get().title,'Integration banner');db.close();
-});
-
-test('checkout: server totals, private proof, review, duplicate decisions and stock reservations',async()=>{
- const login=await call('/api/auth/login','POST',{email:'admin@tanj.test',password:'demo123'},false);cookie=login.response.headers.get('set-cookie').split(';')[0];
- const product=(await call('/api/storefront')).data.products.find(p=>p.stock>0);
- const quotes=await call('/api/shipping/quotes','POST',{destination:1,items:[{id:product.id,qty:1}]},false);assert.equal(quotes.response.status,200);
- const customer={name:'Checkout test',phone:'081234567890',address:'Alamat test Indonesia',consent:true,quote:quotes.data[0].id,total:1};
- const created=await call('/api/orders','POST',customer,false);assert.equal(created.response.status,201);const order=created.data;
- assert.equal(order.total,order.subtotal+order.shipping.cost+order.adjustment);assert.equal(order.total%1000,order.suffix);
- assert.equal((await call('/api/orders','POST',customer,false)).response.status,409,'Quote cannot create duplicate orders');
- assert.equal((await call('/api/orders/'+order.id,'GET',undefined,false)).response.status,404);
- const headers={Authorization:'Bearer '+order.token};
- assert.equal((await call('/api/admin/orders/'+order.id+'/approve','POST',{})).response.status,409);
- assert.equal((await call('/api/orders/'+order.id+'/proof','POST',{proof:'data:image/png;base64,aW52YWxpZA=='},false,headers)).response.status,422);
- const proof='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a8S8AAAAASUVORK5CYII=';
- assert.equal((await call('/api/orders/'+order.id+'/proof','POST',{proof},false,headers)).data.status,'pending_review');
- assert.equal((await call('/api/admin/orders/'+order.id+'/proof','GET',undefined,false)).response.status,401);
- assert.equal((await call('/api/admin/orders/'+order.id+'/reject','POST',{note:'Gambar tidak jelas'})).data.status,'rejected');
- assert.equal((await call('/api/orders/'+order.id+'/proof','POST',{proof},false,headers)).data.status,'pending_review');
- const approved=await call('/api/admin/orders/'+order.id+'/approve','POST',{});assert.equal(approved.data.status,'approved');assert.equal(approved.data.notification,'not_configured');
- assert.equal((await call('/api/admin/orders/'+order.id+'/approve','POST',{})).response.status,409);
- assert.equal((await call('/api/orders/'+order.id+'/proof','POST',{proof},false,headers)).response.status,409);
- assert.ok(!('token' in (await call('/api/admin/orders')).data[0]));
-});
-test('checkout browser: delivery form opens payment without WhatsApp redirect',async()=>{
- const {chromium}=await import('playwright');const browser=await chromium.launch({channel:'chrome',headless:true});
- try{const page=await browser.newPage({viewport:{width:390,height:844}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
- const product=(await call('/api/storefront')).data.products.find(p=>p.stock>1);
- await page.goto(base);await page.evaluate(id=>localStorage.setItem('noireaterial-cart-v1',JSON.stringify([{id,qty:1}])),product.id);await page.reload();
- await page.locator('#bag-open').click();await page.locator('#bag-next').click();
- await page.locator('#checkout-name').fill('Customer UI');await page.locator('#checkout-phone').fill('081234567891');await page.locator('#checkout-address').fill('Alamat test Karawaci');await page.locator('#shipping-search').fill('Karawaci');await page.locator('#shipping-find').click();await page.waitForFunction(()=>document.getElementById('shipping-destination').options.length>1);await page.locator('#shipping-destination').selectOption('1');await page.locator('#shipping-calculate').click();await page.waitForFunction(()=>document.getElementById('shipping-rate').options.length>1);await page.locator('#shipping-rate').selectOption({index:1});await page.locator('#checkout-consent').check();await page.locator('#checkout-form button[type=submit]').click();await page.locator('#payment-view').waitFor({state:'visible'});assert.match(await page.locator('#payment-view').textContent(),/SIMULASI/);assert.equal(new URL(page.url()).host,'127.0.0.1:4310');assert.deepEqual(errors,[]);
- }finally{await browser.close();}
-});
-test('static hosting: checkout is clearly unavailable and never calls missing APIs',async()=>{
- const {chromium}=await import('playwright');const browser=await chromium.launch({channel:'chrome',headless:true});
- try{const page=await browser.newPage({viewport:{width:390,height:844}});const apiRequests=[];const errors=[];
- await page.route('**/web/config.js',route=>route.fulfill({contentType:'text/javascript',body:'window.TANJ_CONFIG={mode:"demo",apiBase:"/api"};'}));
- page.on('request',req=>{if(new URL(req.url()).pathname.startsWith('/api/'))apiRequests.push(req.url());});page.on('pageerror',e=>errors.push(e.message));
- await page.goto(base);await page.evaluate(()=>localStorage.setItem('noireaterial-cart-v1',JSON.stringify([{id:'base-0-0',qty:1}])));await page.reload();await page.locator('#bag-open').click();await page.locator('#bag-next').click();
- assert.match(await page.locator('#checkout-availability').textContent(),/Checkout dan cek ongkir online belum tersedia/);
- assert.equal(await page.locator('#shipping-find').isDisabled(),true);assert.equal(await page.locator('#shipping-calculate').isDisabled(),true);assert.equal(await page.locator('#checkout-form button[type=submit]').isDisabled(),true);
- assert.equal(await page.locator('.checkout-fallback').isVisible(),true);assert.equal(await page.locator('#checkout-error').textContent(),'');assert.deepEqual(apiRequests,[]);assert.deepEqual(errors,[]);
- await page.route('**/api/shipping/quotes',route=>route.fulfill({status:404,contentType:'text/html',body:'<html><head>Not found</head></html>'}));
- const message=await page.evaluate(async()=>{const {request}=await import('/web/data.js?v=sold-publish-2');try{await request('/shipping/quotes',{method:'POST',body:'{}'})}catch(e){return e.message}});assert.match(message,/Layanan checkout belum tersedia/);assert.ok(!message.includes('Unexpected token'));
- }finally{await browser.close();}
 });
