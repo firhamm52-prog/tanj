@@ -68,7 +68,7 @@ Demo berulang: pesanan sebelumnya di browser tidak mengurangi stok katalog. Seti
 
 ## Dedicated admin payment prototype
 
-Open `admin/payments.html` from the storefront Admin link. First use creates a browser-local ID/password with PBKDF2-SHA256 (210000 iterations, random salt). Every fresh navigation/reload requires login. This gate is only a prototype, not server authorization: browser data and code can be changed locally, and another browser can create another local account. Do not reuse a real account password.
+Open `admin/payments.html` from the storefront Admin link. First use creates a browser-local ID/password with PBKDF2-SHA256 (210000 iterations, random salt). The initial account dialog handles login/logout; a tab session lasts up to 8 hours across navigation and reload. This gate is only a prototype, not server authorization: browser data and code can be changed locally, and another browser can create another local account. Do not reuse a real account password.
 
 The screen supports six counted filters, search, proof viewing, approval with amount/reference checks, and rejection with a required customer-visible reason. Customer order history has the same six filters. Confirmation/proof updates refresh the same-browser admin screen; a bank transfer itself produces no automatic event.
 
@@ -77,3 +77,6 @@ Forgot-password links compose an email/WhatsApp request to the owner; they do no
 Validation: `node tests/payment-admin.mjs` covers first setup, wrong/correct password, fresh-page login gate, rejection persistence and mobile overflow.
 
 Admin QRIS trial: expand Pengaturan QRIS in admin/payments.html, upload a decoded JPG/PNG/WebP up to 1 MB and save. The image persists in browser settings and appears on checkout in that browser; deleting restores the placeholder. Trial labels remain visible. No transfer, upload to hosting, or automatic payment detection occurs.
+
+
+Login admin kini melalui ikon account di beranda. Setelah login, pilihan Pembeli/Admin hanya muncul untuk sesi admin. Pindah layar dan reload mempertahankan sesi pada tab yang sama hingga 8 jam. Logout melalui account mengakhiri sesi dan kembali ke beranda. Akses langsung halaman pembayaran tanpa sesi diarahkan ke login beranda. Ini tetap prototipe browser, bukan otorisasi server.
