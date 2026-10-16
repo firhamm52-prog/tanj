@@ -22,7 +22,7 @@ Versi ini adalah prototype yang bekerja di GitHub Pages. Tidak ada API bank, QRI
 - Pesanan yang sedang dibuka admin memakai versi data; keputusan dari data lama ditolak. Browser yang mendukung Web Locks juga mengunci perubahan antar-tab.
 - Lewat deadline menjadi Perlu diperiksa, bukan otomatis batal atau otomatis dianggap belum bayar. Admin dapat menelusuri pembayaran terlambat, termasuk pesanan yang sebelumnya dibatalkan pembeli.
 - Jika konfirmasi atau bukti masuk lagi, riwayat dicatat. Tidak ada batas upload yang otomatis membatalkan order. Kapasitas penyimpanan browser tetap terbatas; kegagalan menyimpan ditampilkan dan tidak diam-diam menghapus keranjang.
-- Stok trial dihitung dari stok katalog dikurangi order demo yang belum dibatalkan, termasuk paid. Nilai katalog tidak diubah. Reset simulasi menghapus reservasi trial tersebut. Ini bukan sistem inventory produksi.
+- Stok diperiksa terhadap katalog terbaru untuk setiap checkout. Pesanan demo sebelumnya tidak mengurangi stok katalog, sehingga presentasi bisa diulang tanpa reset riwayat. Ini bukan sistem inventory produksi.
 
 ## Batasan GitHub Pages
 
@@ -62,3 +62,5 @@ Tes data mengecek semua induk kecamatan dan seluruh kode pos, menolak kode pos a
 
 
 Kontak pesanan: WhatsApp 081363661703 (6281363661703), email tanj.indonesia@gmail.com. Detail pesanan menyediakan tautan WhatsApp dan mailto dengan ringkasan, alamat, rincian produk, ongkir, total, dan status. Pengguna harus menekan Kirim di aplikasi tujuan. Tidak ada pengiriman otomatis atau sinkronisasi pesanan lintas perangkat; hosting statis masih simulasi.
+
+Demo berulang: pesanan sebelumnya di browser tidak mengurangi stok katalog. Setiap checkout tetap memvalidasi jumlah terhadap stok katalog terbaru; tidak perlu reset riwayat untuk presentasi ulang.

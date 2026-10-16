@@ -1,6 +1,6 @@
 import {orderContactLinks} from './order-contact.js';
 import {shippingProvinces,shippingCities,shippingDistricts,getShippingEstimate} from './shipping.js?v=districts-1';
-import {readPayments,createPayment,buyerUpdate,subscribePayments,orderStatus,paymentLabels,money,escapeHTML as esc} from './manual-payment-store.js?v=districts-1';
+import {readPayments,createPayment,buyerUpdate,subscribePayments,orderStatus,paymentLabels,money,escapeHTML as esc} from './manual-payment-store.js?v=stock-demo-2';
 export const demoNotice='<div class="manual-notice"><strong>SIMULASI · Jangan transfer uang.</strong><p>Pembayaran hanya simulasi. Ongkir memakai harga perkiraan master wilayah. Data tersimpan di browser ini; perangkat lain tidak terhubung. Jangan gunakan data pribadi atau bukti pembayaran asli.</p></div>';
 export async function confirmManual(title,message,label='Lanjutkan'){
  const dialog=document.createElement('dialog');dialog.className='manual-dialog';dialog.innerHTML=`<form method="dialog"><h2>${esc(title)}</h2><p>${esc(message)}</p><div class="manual-actions"><button value="cancel">Kembali</button><button value="ok" class="manual-primary">${esc(label)}</button></div></form>`;document.body.append(dialog);dialog.showModal();return new Promise(resolve=>{dialog.addEventListener('close',()=>{const approved=dialog.returnValue==='ok';dialog.remove();resolve(approved);},{once:true});dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close('cancel');});});
