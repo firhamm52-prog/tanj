@@ -1,4 +1,4 @@
-import {cloudEnabled,cloudReady,cloudClient,cloudSession} from './supabase-customer.js?v=supabase-1';
+import {cloudEnabled,cloudReady,cloudClient,cloudSession} from './supabase-customer.js?v=supabase-2';
 export {cloudEnabled};
 let state={version:1,orders:[],settings:{hours:24,admin:'Admin TANJ'}},generation=0;
 export const cloudPayments=()=>state;

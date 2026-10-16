@@ -17,6 +17,16 @@ pembayaran terbaca (200), sedangkan akses pesanan tanpa login ditolak (401).
    Hak admin berasal dari tabel yang tidak bisa diubah customer, bukan browser flag.
 5. Upload ulang QRIS di dashboard admin agar gambar tersedia lintas perangkat.
 
+## Pemulihan password
+
+Lupa password di login admin/customer meminta email pemulihan Supabase untuk
+email yang diisi. Tautan membuka form password baru TANJ; password dan ulangi
+password baru hanya diminta pada form pemulihan tersebut. Setelah perubahan,
+sesi perangkat ini diakhiri dan pengguna login kembali. Peran admin tetap
+berasal dari `tb_m_admin`; mengganti password tidak memberi hak admin.
+Pesan kredensial salah tidak lagi menyuruh akun yang sudah online daftar ulang.
+Email pemulihan memakai layanan Auth Supabase, bukan template Order EmailJS.
+
 Akun, alamat dan pesanan lama versi localStorage tidak otomatis dimigrasikan.
 Jangan upload hash/password atau mempercayai export browser sebagai pembayaran sah.
 Owner perlu merekonsiliasi pesanan lama, terutama jika pernah menerima dana nyata.

@@ -1,5 +1,5 @@
-import {customerSession} from './customer-account.js?v=supabase-1';
-import {cloudEnabled,cloudPayments,refreshPayments,paymentRPC,createCloudPayment} from './supabase-payments.js?v=supabase-1';
+import {customerSession} from './customer-account.js?v=supabase-2';
+import {cloudEnabled,cloudPayments,refreshPayments,paymentRPC,createCloudPayment} from './supabase-payments.js?v=supabase-2';
 export {refreshPayments};
 import {validateShippingDestination} from './shipping.js?v=districts-1';
 export const PAYMENT_KEY='tanj-manual-payments-demo-v1';

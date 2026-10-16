@@ -1,12 +1,12 @@
-import {cloudEnabled} from './supabase-payments.js?v=supabase-1';
-import {customerSession,requireCustomer} from './customer-account.js?v=supabase-1';
-import {isAdmin} from './admin-session.js?v=supabase-1';
-import {mountCheckoutExperience} from './checkout-experience.js?v=supabase-1';
+import {cloudEnabled} from './supabase-payments.js?v=supabase-2';
+import {customerSession,requireCustomer} from './customer-account.js?v=supabase-2';
+import {isAdmin} from './admin-session.js?v=supabase-2';
+import {mountCheckoutExperience} from './checkout-experience.js?v=supabase-2';
 import {buildOrderEmail} from '../shared/order-email.js';
 import {notifyPayment} from './payment-notifications.js?v=email-live-1';
 import {orderContactLinks} from './order-contact.js';
 import {shippingProvinces,shippingCities,shippingDistricts,getShippingEstimate} from './shipping.js?v=districts-1';
-import {readPayments,refreshPayments,createPayment,buyerUpdate,subscribePayments,orderStatus,paymentLabels,money,escapeHTML as esc} from './manual-payment-store.js?v=supabase-1';
+import {readPayments,refreshPayments,createPayment,buyerUpdate,subscribePayments,orderStatus,paymentLabels,money,escapeHTML as esc} from './manual-payment-store.js?v=supabase-2';
 export const demoNotice='';
 export async function confirmManual(title,message,label='Lanjutkan'){
  const dialog=document.createElement('dialog');dialog.className='manual-dialog';dialog.innerHTML=`<form method="dialog"><h2>${esc(title)}</h2><p>${esc(message)}</p><div class="manual-actions"><button value="cancel">Kembali</button><button value="ok" class="manual-primary">${esc(label)}</button></div></form>`;document.body.append(dialog);dialog.showModal();return new Promise(resolve=>{dialog.addEventListener('close',()=>{const approved=dialog.returnValue==='ok';dialog.remove();resolve(approved);},{once:true});dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close('cancel');});});

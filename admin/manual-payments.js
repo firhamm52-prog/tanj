@@ -1,5 +1,5 @@
-import {readPayments,subscribePayments,orderStatus,paymentLabels,reviewPayment,savePaymentSettings,resetPayments,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=supabase-1';
-import {demoNotice,confirmManual} from '../web/manual-payment.js?v=supabase-1';
+import {readPayments,subscribePayments,orderStatus,paymentLabels,reviewPayment,savePaymentSettings,resetPayments,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=supabase-2';
+import {demoNotice,confirmManual} from '../web/manual-payment.js?v=supabase-2';
 let selected=null,filter='open',query='';
 export function mountManualAdmin(root){
  root.classList.add('manual-admin');let dialog=null;let disposed=false;

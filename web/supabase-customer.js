@@ -1,7 +1,7 @@
-import {supabaseConfig} from './supabase-config.js?v=supabase-1';
+import {supabaseConfig} from './supabase-config.js?v=supabase-2';
 import {getShippingEstimate} from './shipping.js?v=districts-1';
 export const cloudEnabled=supabaseConfig.enabled;
-let client,user=null,list=[],revision=0,admin=false;
+let client,user=null,list=[],revision=0,admin=false,recovering=false;
 const change=()=>window.dispatchEvent(new Event('tanj-customer-change'));
 function check(error){if(error)throw Error(error.message||'Layanan akun tidak dapat diakses.');}
 function profile(u){return u?{id:u.id,email:u.email,name:u.user_metadata?.full_name||u.email.split('@')[0]}:null;}
@@ -19,6 +19,7 @@ export const cloudReady=(async()=>{
  const {createClient}=await import('./vendor/supabase.js');
  client=createClient(supabaseConfig.url,supabaseConfig.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
  client.auth.onAuthStateChange((event,session)=>{
+  if(event==='PASSWORD_RECOVERY'){recovering=true;setTimeout(()=>window.dispatchEvent(new Event('tanj-password-recovery')),0);}
   // Do not call other Supabase methods inside the auth callback (SDK lock).
   if(user?.id!==session?.user?.id){accept(session);setTimeout(()=>loadRole().catch(()=>{}),0);}
  });
@@ -32,7 +33,7 @@ export const cloudAddresses=()=>list.slice();
 export async function cloudAuthenticate({name,email,password},register){
  await cloudReady;
  const {data,error}=register?await client.auth.signUp({email,password,options:{data:{full_name:name.trim()},emailRedirectTo:location.origin+location.pathname}}):await client.auth.signInWithPassword({email,password});
- if(error){if(error.code==='invalid_credentials'||error.message==='Invalid login credentials')throw Error('Email atau password salah. Akun versi browser lama perlu didaftarkan ulang.');if(error.code==='email_not_confirmed'||error.message==='Email not confirmed')throw Error('Verifikasi email terlebih dahulu melalui Inbox/Spam.');check(error);}
+ if(error){if(error.code==='invalid_credentials'||error.message==='Invalid login credentials')throw Error('Email atau password salah. Gunakan Lupa password untuk mengatur password baru lewat email.');if(error.code==='email_not_confirmed'||error.message==='Email not confirmed')throw Error('Verifikasi email terlebih dahulu melalui Inbox/Spam.');check(error);}
  if(!data.session)return {needsConfirmation:true};
  await accept(data.session);await loadRole();await refreshAddresses();return user;
 }
@@ -45,3 +46,15 @@ export async function cloudSaveAddress(a){
  const saved={...a,...address(data)};list=list.filter(x=>x.id!==saved.id);list.push(saved);return saved;
 }
 export async function cloudDeleteAddress(id){await cloudReady;if(!user)throw Error('Login terlebih dahulu.');const {error}=await client.from('tb_m_address').delete().eq('id',id).eq('account_id',user.id);check(error);list=list.filter(a=>a.id!==id);}
+export const needsPasswordRecovery=()=>recovering;
+export async function requestPasswordReset(email){
+ email=String(email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error('Isi email akun terlebih dahulu.');
+ await cloudReady;const redirectTo=new URL('../',import.meta.url).href;
+ const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo});check(error);
+}
+export async function finishPasswordReset(password,repeat){
+ if(!recovering)throw Error('Buka tautan pemulihan terbaru dari email terlebih dahulu.');
+ if(!password.trim()||password.length<12||password.length>128)throw Error('Password baru minimal 12 karakter, maksimal 128 karakter.');
+ if(password!==repeat)throw Error('Ulangi password yang sama.');
+ await cloudReady;const {error}=await client.auth.updateUser({password});check(error);recovering=false;await cloudLogout();
+}
