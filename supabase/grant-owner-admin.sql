@@ -1,11 +1,23 @@
 -- Run only AFTER the owner registers and verifies this email through TANJ.
 -- Only the project owner runs this in SQL Editor; never expose a role-change RPC.
-do $$
-declare owner_id uuid;
-begin
- select id into owner_id from auth.users
- where lower(email)='tanj.indonesia@gmail.com' and email_confirmed_at is not null;
- if owner_id is null then raise exception 'Daftar dan verifikasi akun tanj.indonesia@gmail.com terlebih dahulu.';end if;
- insert into public.tb_m_admin(account_id) values(owner_id) on conflict do nothing;
-end;
+DO $$
+DECLARE
+  owner_id uuid;
+BEGIN
+  SELECT
+    id INTO owner_id
+  FROM
+    auth.users
+  WHERE
+    lower(email) = 'tanj.indonesia@gmail.com'
+    AND email_confirmed_at IS NOT NULL;
+  IF owner_id IS NULL THEN
+    RAISE EXCEPTION 'Daftar dan verifikasi akun tanj.indonesia@gmail.com terlebih dahulu.';
+  END IF;
+  INSERT INTO
+    public.tb_m_admin (account_id)
+  VALUES
+    (owner_id)
+  ON CONFLICT DO NOTHING;
+END;
 $$;

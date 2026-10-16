@@ -1,5 +1,12 @@
 # TANJ — Website & CMS Studio
 
+## Format kode
+
+Jalankan `npm run format` untuk merapikan HTML, CSS, JavaScript, JSON, dan SQL.
+Gunakan `npm run format:check` untuk memeriksa format tanpa mengubah file.
+Formatter SQL memeriksa kesetaraan token dan nilai JSON sebelum menyimpan hasil.
+Perubahan format migrasi tidak perlu dijalankan ulang di Supabase.
+
 Landing page responsive, admin CMS dengan data dummy, dan backend microservice JavaScript menggunakan Node.js 24+ serta SQLite.
 
 ## Coba online
@@ -35,12 +42,12 @@ npm start
 
 Buka `http://localhost:3000` dan `http://localhost:3000/admin/`. Gateway otomatis mengaktifkan mode backend. Kredensial development awal sama dengan demo. Backend tidak membutuhkan dependency npm tambahan. `db:init` tidak menimpa data lama; `npm start` juga melakukan inisialisasi otomatis.
 
-| Proses | Port | Database / tabel |
-| --- | --- | --- |
-| API gateway | 3000 | `publication.sqlite`: `site_releases` |
-| Auth | 4001 | `auth.sqlite`: `users`, `sessions` |
-| Catalog | 4002 | `catalog.sqlite`: `collections`, `products`, `hijabs` |
-| Content | 4003 | `content.sqlite`: `hero`, `banner`, `slides` |
+| Proses      | Port | Database / tabel                                      |
+| ----------- | ---- | ----------------------------------------------------- |
+| API gateway | 3000 | `publication.sqlite`: `site_releases`                 |
+| Auth        | 4001 | `auth.sqlite`: `users`, `sessions`                    |
+| Catalog     | 4002 | `catalog.sqlite`: `collections`, `products`, `hijabs` |
+| Content     | 4003 | `content.sqlite`: `hero`, `banner`, `slides`          |
 
 Database fisik dibuat di `data/` dan tidak diunggah ke GitHub. Skema SQL ada di `database/`. Setiap layanan memiliki database sendiri dan berkomunikasi lewat HTTP internal. Password memakai scrypt, token sesi disimpan sebagai hash. Koleksi berisi produk tidak bisa dihapus. Publikasi menghasilkan satu snapshot utuh. Konflik edit simultan antar admin belum memakai version lock.
 

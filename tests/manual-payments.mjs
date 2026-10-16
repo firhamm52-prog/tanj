@@ -1,56 +1,500 @@
-import {isolateEmail} from './helpers/email-isolation.mjs';
-import {chromium} from 'playwright';
-import {createServer} from 'node:http';
-import {readFile,mkdir} from 'node:fs/promises';
-import {resolve,extname,sep} from 'node:path';
+import { isolateEmail } from './helpers/email-isolation.mjs';
+import { chromium } from 'playwright';
+import { createServer } from 'node:http';
+import { readFile, mkdir } from 'node:fs/promises';
+import { resolve, extname, sep } from 'node:path';
 import assert from 'node:assert/strict';
-const root=process.cwd();let url;
-const server=createServer(async(req,res)=>{try{let path=new URL(req.url,'http://localhost').pathname;if(!path.startsWith('/tanj/')){res.writeHead(404);return res.end();}path=path.slice(5);if(path.endsWith('/'))path+='index.html';const file=resolve(root,'.'+path);if(!file.startsWith(root+sep))throw Error();res.writeHead(200,{'Content-Type':{'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp'}[extname(file)]||'application/octet-stream'});res.end(await readFile(file));}catch{res.writeHead(404);res.end();}});
-await new Promise(r=>server.listen(0,'127.0.0.1',r));url=`http://127.0.0.1:${server.address().port}/tanj/`;
-async function ensureCustomer(page){await page.evaluate(async()=>{const m=await import('./web/customer-account.js?v=owner-ui-3');if(m.customerSession())return;const users=JSON.parse(localStorage.getItem('tanj-customers-v1')||'[]');await m.authenticateCustomer({name:'Customer test',email:'customer@example.com',password:'customer-password-123',repeat:'customer-password-123'},!users.some(u=>u.email==='customer@example.com'));});}
+const root = process.cwd();
+let url;
+const server = createServer(async (req, res) => {
+  try {
+    let path = new URL(req.url, 'http://localhost').pathname;
+    if (!path.startsWith('/tanj/')) {
+      res.writeHead(404);
+      return res.end();
+    }
+    path = path.slice(5);
+    if (path.endsWith('/')) path += 'index.html';
+    const file = resolve(root, '.' + path);
+    if (!file.startsWith(root + sep)) throw Error();
+    res.writeHead(200, {
+      'Content-Type':
+        {
+          '.html': 'text/html',
+          '.js': 'text/javascript',
+          '.css': 'text/css',
+          '.svg': 'image/svg+xml',
+          '.png': 'image/png',
+          '.webp': 'image/webp',
+        }[extname(file)] || 'application/octet-stream',
+    });
+    res.end(await readFile(file));
+  } catch {
+    res.writeHead(404);
+    res.end();
+  }
+});
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+url = `http://127.0.0.1:${server.address().port}/tanj/`;
+async function ensureCustomer(page) {
+  await page.evaluate(async () => {
+    const m = await import('./web/customer-account.js?v=owner-ui-3');
+    if (m.customerSession()) return;
+    const users = JSON.parse(localStorage.getItem('tanj-customers-v1') || '[]');
+    await m.authenticateCustomer(
+      {
+        name: 'Customer test',
+        email: 'customer@example.com',
+        password: 'customer-password-123',
+        repeat: 'customer-password-123',
+      },
+      !users.some((u) => u.email === 'customer@example.com'),
+    );
+  });
+}
 let browser;
-try{
- browser=await chromium.launch({channel:'chrome',headless:true});const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage();await isolateEmail(context);const errors=[],apiRequests=[];context.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));page.on('pageerror',e=>errors.push(e.message));context.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))apiRequests.push(r.url());});
- // Failed lazy region downloads can be retried; stale downloads must not replace a newer city.
- const networkPage=await context.newPage();let failOnce=true;let releaseSlow;const slowGate=new Promise(resolve=>{releaseSlow=resolve;});let announceSlow;const slowStarted=new Promise(resolve=>{announceSlow=resolve;});
- await networkPage.route('**/web/shipping-areas/11.js?*',route=>{if(failOnce){failOnce=false;return route.abort('failed');}return route.continue();});
- await networkPage.route('**/web/shipping-areas/13.js?*',async route=>{announceSlow();await slowGate;await route.continue();});
- await networkPage.goto(url);await networkPage.evaluate(()=>localStorage.setItem('noireaterial-cart-v1',JSON.stringify([{id:'base-0-0',qty:1}])));await networkPage.reload();await networkPage.locator('#bag-open').click();await ensureCustomer(networkPage);await networkPage.locator('#bag-next').click();await networkPage.locator('#address-summary').click();await networkPage.locator('#address-create').click();await networkPage.locator('#checkout-province').selectOption('11');await networkPage.locator('#checkout-city').selectOption('11.01');await networkPage.locator('#checkout-area-retry').waitFor({state:'visible'});assert.equal(await networkPage.locator('#checkout-district').isDisabled(),true);await networkPage.locator('#checkout-area-retry').click();await networkPage.waitForFunction(()=>!document.getElementById('checkout-district').disabled);assert.ok(await networkPage.locator('#checkout-district option').count()>1);
- await networkPage.locator('#checkout-province').selectOption('13');await networkPage.locator('#checkout-city').selectOption('13.01');await slowStarted;assert.equal(await networkPage.locator('#checkout-form button[type=submit]').isDisabled(),true);await networkPage.locator('#checkout-province').selectOption('12');await networkPage.locator('#checkout-city').selectOption('12.01');await networkPage.waitForFunction(()=>!document.getElementById('checkout-district').disabled);const districtsBefore=await networkPage.locator('#checkout-district').innerHTML();releaseSlow();await networkPage.waitForResponse(response=>response.url().includes('/shipping-areas/13.js'));await networkPage.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));assert.equal(await networkPage.locator('#checkout-district').innerHTML(),districtsBefore);assert.equal(await networkPage.locator('#checkout-city').inputValue(),'12.01');await networkPage.close();
- const ledger=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('tanj-manual-payments-demo-v1')));
- async function checkout(name){await page.goto(url);await page.evaluate(()=>localStorage.setItem('noireaterial-cart-v1',JSON.stringify([{id:'base-0-0',qty:1}])));await page.reload();if(await page.locator('#bag-modal').isVisible())await page.locator('#bag-modal [data-utility-close]').click();await page.locator('#bag-open').click();await ensureCustomer(page);await page.locator('#bag-next').click();await page.locator('#address-summary').click();await page.locator('#address-create').click();assert.equal(await page.locator('#checkout-email').inputValue(),'customer@example.com');assert.equal(await page.locator('#checkout-email').getAttribute('readonly'),'');await page.locator('#checkout-name').fill(name);await page.locator('#checkout-phone').fill('081234567890');await page.locator('#checkout-address').fill('Alamat contoh simulasi');await page.locator('#checkout-province').selectOption('36');await page.locator('#checkout-city').selectOption('36.71');assert.equal(await page.locator('#checkout-shipping-estimate').textContent(),'Rp10.000');await page.locator('#checkout-district').selectOption('36.71.07');await page.locator('#checkout-zip').selectOption('15115');await page.locator('#address-editor [type=submit]').click();await page.locator('#address-dialog').waitFor({state:'hidden'});await page.locator('#checkout-form button[type=submit]').click();await page.locator('#manual-payment:not([hidden])').waitFor();assert.match(await page.locator('#manual-payment').textContent(),/Metode Pembayaran/);const data=await ledger();const order=data.orders.at(-1);assert.equal(order.customer.email,'customer@example.com');assert.equal(await page.locator('#manual-payment .manual-notice').count(),0);assert.equal(await page.locator('#send-payment-email').count(),0);assert.match(order.id,/^TANJ-Sand-Cream-/);assert.equal(order.shipping.fee,10000);assert.equal(order.customer.province,'Banten');assert.equal(order.customer.city,'Kota Tangerang');assert.equal(order.customer.district,'Karawaci');assert.equal(order.customer.zip,'15115');const wa=new URL(await page.locator('#order-notify-whatsapp').getAttribute('href'));assert.equal(wa.hostname,'wa.me');assert.equal(wa.pathname,'/6281363661703');assert.ok(wa.searchParams.get('text').includes(order.id));assert.ok(wa.searchParams.get('text').includes('15115'));const email=new URL(await page.locator('#order-notify-email').getAttribute('href'));assert.equal(email.hostname,'mail.google.com');assert.equal(email.searchParams.get('to'),'tanj.indonesia@gmail.com');assert.equal(email.searchParams.get('su'),'Bantuan TANJ');assert.equal(email.searchParams.has('body'),false);assert.equal(order.total%1000,order.code);assert.equal(order.total,order.subtotal+order.shipping.fee+order.adjustment);return order;}
- // Province changes must clear both the previous city and its shipping price.
- await page.goto(url);await page.evaluate(()=>localStorage.setItem('noireaterial-cart-v1',JSON.stringify([{id:'base-0-0',qty:1}])));await page.reload();if(await page.locator('#bag-modal').isVisible())await page.locator('#bag-modal [data-utility-close]').click();await page.locator('#bag-open').click();await ensureCustomer(page);await page.locator('#bag-next').click();await page.locator('#address-summary').click();await page.locator('#address-create').click();
- assert.equal(await page.locator('#checkout-city').isDisabled(),true);assert.equal(await page.locator('#checkout-province option').count(),39);await page.locator('#checkout-province').selectOption('36');await page.locator('#checkout-city').selectOption('36.71');assert.equal(await page.locator('#checkout-shipping-estimate').textContent(),'Rp10.000');await page.locator('#checkout-province').selectOption('91');assert.equal(await page.locator('#checkout-city').inputValue(),'');assert.match(await page.locator('#checkout-shipping-estimate').textContent(),/Pilih kota/);assert.equal(await page.locator('#checkout-city option[value="36.71"]').count(),0);await page.locator('#checkout-city').selectOption('91.71');assert.equal(await page.locator('#checkout-shipping-estimate').textContent(),'Rp90.000');assert.equal(await page.locator('#checkout-base-total').textContent(),'Rp777.000');await page.locator('#checkout-address').fill('Jalan dan kecamatan bisa diketik bebas');assert.equal(await page.locator('#checkout-shipping-estimate').textContent(),'Rp90.000');
- // District and postcode are constrained by their parents; changing either parent clears old selections.
- await page.locator('#checkout-province').selectOption('36');await page.locator('#checkout-city').selectOption('36.71');await page.locator('#checkout-district').selectOption('36.71.07');await page.locator('#checkout-zip').selectOption('15115');assert.match(await page.locator('#checkout-postcode-help').textContent(),/15115/);assert.equal(await page.locator('#checkout-shipping-estimate').textContent(),'Rp10.000');
- await page.locator('#checkout-district').selectOption('36.71.04');assert.equal(await page.locator('#checkout-zip').inputValue(),'');assert.equal(await page.locator('#checkout-zip option[value="15115"]').count(),0);await page.locator('#checkout-zip').selectOption('15125');assert.equal(await page.locator('#checkout-shipping-estimate').textContent(),'Rp10.000');
- await page.locator('#checkout-city').selectOption('36.74');assert.equal(await page.locator('#checkout-zip').inputValue(),'');assert.equal(await page.locator('#checkout-zip').isDisabled(),true);await page.waitForFunction(()=>!document.getElementById('checkout-district').disabled);assert.equal(await page.locator('#checkout-district option[value="36.71.04"]').count(),0);
- await page.locator('#checkout-province').selectOption('32');assert.equal(await page.locator('#checkout-district').isDisabled(),true);assert.equal(await page.locator('#checkout-zip').isDisabled(),true);assert.equal(await page.locator('#checkout-district').inputValue(),'');
- const first=await checkout('Pembeli tanpa konfirmasi');assert.equal(first.status,'WAITING_PAYMENT');assert.equal(first.proofs.length,0);
- await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/manual-payment-mobile.png',fullPage:true});
- const admin=await context.newPage();await admin.goto(url+'admin/#payments');await admin.locator('[name=email]').fill('admin@tanj.test');await admin.locator('[name=password]').fill('demo123');await admin.locator('#login-form button').click();await admin.locator('#manual-admin-list').waitFor();await admin.locator('[data-select-order="'+first.id+'"]').click();assert.match(await admin.locator('#manual-admin-detail').textContent(),/Belum ada bukti/);
- async function review(order,reference,amount=order.total){await admin.locator('[data-select-order="'+order.id+'"]').click();await admin.locator('#manual-review').click();await admin.locator('dialog[open] input[name=reference]').fill(reference);await admin.locator('dialog[open] input[name=amount]').fill(String(amount));await admin.locator('dialog[open] input[name=checked]').check();await admin.locator('dialog[open] textarea[name=note]').fill('Nominal, waktu, dan referensi transaksi contoh sudah dicocokkan.');await admin.locator('dialog[open] button[type=submit]').click();}
- await review(first,'DEMO-REF-001');await admin.locator('dialog.manual-dialog').waitFor({state:'hidden'});await page.locator('#manual-payment h3').filter({hasText:'Payment berhasil'}).waitFor();assert.equal((await ledger()).orders[0].proofs.length,0);
- await page.reload();if(await page.locator('#bag-modal').isVisible())await page.locator('#bag-modal [data-utility-close]').click();await page.locator('#bag-open').click();await page.locator('#manual-orders').click();await page.locator('[data-order-id="'+first.id+'"]').click();assert.match(await page.locator('#manual-payment h3').textContent(),/Payment berhasil/);
- assert.equal(await page.locator('.manual-qr,#manual-copy,#manual-deadline,.manual-code').count(),0);assert.equal(await page.locator('#manual-amount').isVisible(),true);
- const second=await checkout('Pembeli konfirmasi opsional');await page.locator('#manual-confirm').click();await page.locator('#manual-payment h3').filter({hasText:'Menunggu verifikasi'}).waitFor();assert.equal(await page.locator('.manual-qr,#manual-copy,#manual-deadline,.manual-code,#manual-confirm').count(),0);assert.equal(await page.locator('#manual-amount').isVisible(),true);assert.equal(await page.locator('#manual-proof-form').count(),1);await admin.locator('[data-select-order="'+second.id+'"]').waitFor();await review(second,'DEMO-REF-002',second.total-1);await admin.locator('#manual-review-error').filter({hasText:'Nominal transaksi tidak sama'}).waitFor();assert.equal((await ledger()).orders.at(-1).status,'CHECKING');await admin.locator('#manual-review-close').click();await admin.locator('#manual-help').click();await admin.locator('dialog[open] textarea[name=note]').fill('Perlu penelusuran. Jangan bayar ulang.');await admin.locator('dialog[open] button[type=submit]').click();await page.locator('#manual-payment h3').filter({hasText:'Perlu bantuan admin'}).waitFor();assert.match(await page.locator('#manual-payment').textContent(),/Jangan bayar ulang/);
- await page.locator('summary').filter({hasText:'Tambahkan bukti (opsional)'}).click();await page.locator('#manual-proof').setInputFiles({name:'bukti-contoh.png',mimeType:'image/png',buffer:Buffer.from(await page.evaluate(()=>{const c=document.createElement('canvas');c.width=100;c.height=100;const g=c.getContext('2d');g.fillStyle='white';g.fillRect(0,0,100,100);g.fillStyle='black';g.fillText('DEMO',10,50);return c.toDataURL('image/png').split(',')[1];}),'base64')});await page.locator('#manual-proof-form button').click();await page.locator('summary').filter({hasText:'Riwayat bukti opsional (1)'}).waitFor();
- await review(second,'DEMO-REF-001');await admin.locator('#manual-review-error').filter({hasText:'sudah dipakai'}).waitFor();await admin.locator('dialog[open] input[name=reference]').fill('DEMO-REF-002');await admin.locator('dialog[open] button[type=submit]').click();await page.locator('#manual-payment h3').filter({hasText:'Payment berhasil'}).waitFor();
- const third=await checkout('Pembeli lewat batas waktu');await page.evaluate(()=>{const key='tanj-manual-payments-demo-v1';const state=JSON.parse(localStorage.getItem(key));state.orders.at(-1).deadline=Date.now()-1000;localStorage.setItem(key,JSON.stringify(state));window.dispatchEvent(new Event('tanj-payments-change'));});await page.locator('#manual-payment h3').filter({hasText:'Menunggu pembayaran'}).waitFor();await admin.locator('[data-select-order="'+third.id+'"]').waitFor();await review(third,'DEMO-LATE-003');await page.locator('#manual-payment h3').filter({hasText:'Payment berhasil'}).waitFor();
- await admin.setViewportSize({width:1280,height:900});await admin.screenshot({path:'test-results/manual-payment-admin.png',fullPage:true});
- // Preserve the record if a second reviewer submits an older version, and never reuse active three-digit codes.
- const invariants=await page.evaluate(async()=>{const store=await import('./web/manual-payment-store.js?v=districts-1');const original=store.readPayments();const stale=original.orders[0];let conflict='';try{await store.reviewPayment(stale.id,stale.version-1,'help',{note:'stale'})}catch(e){conflict=e.message;}const state=store.readPayments();return {conflict,unchanged:state.orders[0].status==='PAID',codes:state.orders.map(o=>o.total%1000===o.code)};});assert.match(invariants.conflict,/Status pesanan sudah berubah/);assert.equal(invariants.unchanged,true);assert.ok(invariants.codes.every(Boolean));
- // Codes for two unpaid orders remain distinct even when the base total is not a multiple of 1,000.
- const codeTest=await page.evaluate(async()=>{const m=await import('./web/manual-payment-store.js?v=districts-1');const catalog=[{id:'test-code',name:'Tes nominal',colorName:'Cream',price:687123,stock:20,status:'published'}];const customer={name:'Contoh',phone:'081234567890',email:'customer@example.com',address:'Alamat contoh',provinceId:'36',cityId:'36.71',districtId:'36.71.07',zip:'15115'};const a=await m.createPayment(customer,[{id:'test-code',qty:1}],catalog),b=await m.createPayment(customer,[{id:'test-code',qty:1}],catalog);return {unique:a.code!==b.code,total:a.total%1000===a.code&&b.total%1000===b.code};});assert.deepEqual(codeTest,{unique:true,total:true});
- // Earlier demo orders must not consume catalog stock or block repeated presentations.
- const repeatDemo=await page.evaluate(async()=>{const m=await import('./web/manual-payment-store.js?v=stock-demo-2');const catalog=[{id:'repeat-demo',name:'Demo ulang',price:687000,stock:1,status:'published'}];const customer={name:'Demo',phone:'081234567890',email:'customer@example.com',address:'Alamat contoh',provinceId:'36',cityId:'36.71',districtId:'36.71.07',zip:'15115'};const a=await m.createPayment(customer,[{id:'repeat-demo',qty:1}],catalog);const b=await m.createPayment(customer,[{id:'repeat-demo',qty:1}],catalog);let error='';try{await m.createPayment(customer,[{id:'repeat-demo',qty:2}],catalog);}catch(e){error=e.message;}return {distinct:a.id!==b.id,error};});assert.equal(repeatDemo.distinct,true);assert.match(repeatDemo.error,/Stok produk tidak cukup/);
- // Storage quota failures must not silently create an unrecorded order or clear the buyer's cart.
- const invalidRegion=await page.evaluate(async()=>{const m=await import('./web/manual-payment-store.js?v=districts-1');try{await m.createPayment({name:'Test',phone:'081234567890',email:'customer@example.com',address:'Alamat test',provinceId:'36',cityId:'91.71',zip:'15115'},[{id:'x',qty:1}],[{id:'x',name:'Test',price:1,stock:10}]);}catch(e){return e.message;}});assert.match(invalidRegion,/Pilih provinsi dan kota/);
- const invalidPostcode=await page.evaluate(async()=>{const m=await import('./web/manual-payment-store.js?v=districts-1');try{await m.createPayment({name:'Test',phone:'081234567890',email:'customer@example.com',address:'Alamat',provinceId:'36',cityId:'36.71',districtId:'36.71.07',zip:'15125'},[{id:'x',qty:1}],[{id:'x',name:'Test',price:1,stock:10}]);}catch(e){return e.message;}});assert.match(invalidPostcode,/kode pos yang sesuai/);
- const storageError=await page.evaluate(async()=>{const m=await import('./web/manual-payment-store.js?v=districts-1');const original=Storage.prototype.setItem;Storage.prototype.setItem=function(){throw new DOMException('Quota','QuotaExceededError')};try{await m.savePaymentSettings({hours:24,admin:'Test'});}catch(e){return e.message;}finally{Storage.prototype.setItem=original;}});assert.match(storageError,/tidak bisa menyimpan/);
- assert.equal(await page.locator('body').evaluate(el=>el.scrollWidth>innerWidth+1),false,'No mobile horizontal overflow');assert.deepEqual(apiRequests,[],'Static demo must never call nonexistent payment APIs');assert.deepEqual(errors,[]);
- const fresh=await browser.newContext();const other=await fresh.newPage();await other.goto(url+'#pesanan');await other.locator('#customer-account[open]').waitFor();assert.equal(await other.locator('#customer-auth').isVisible(),true);await fresh.close();
- await admin.locator('#manual-settings').click();await admin.locator('#manual-reset').click();await admin.locator('dialog[open]').last().getByRole('button',{name:'Reset simulasi',exact:true}).click();await admin.locator('#manual-admin-list').filter({hasText:'Tidak ada pesanan'}).waitFor();assert.deepEqual((await ledger()).orders,[]);
- console.log('PASS: static checkout, no-proof/no-confirmation approval, optional confirmation and image, wrong amount, duplicate reference, late payment, stale review, exact unique suffix, persistence, isolated browsers, storage errors, responsive layout, reset, no API calls or browser exceptions.');
-}finally{await browser?.close();await new Promise(r=>server.close(r));}
+try {
+  browser = await chromium.launch({ channel: 'chrome', headless: true });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } }),
+    page = await context.newPage();
+  await isolateEmail(context);
+  const errors = [],
+    apiRequests = [];
+  context.on('page', (p) => p.on('pageerror', (e) => errors.push(e.message)));
+  page.on('pageerror', (e) => errors.push(e.message));
+  context.on('request', (r) => {
+    if (new URL(r.url()).pathname.startsWith('/api/')) apiRequests.push(r.url());
+  });
+  // Failed lazy region downloads can be retried; stale downloads must not replace a newer city.
+  const networkPage = await context.newPage();
+  let failOnce = true;
+  let releaseSlow;
+  const slowGate = new Promise((resolve) => {
+    releaseSlow = resolve;
+  });
+  let announceSlow;
+  const slowStarted = new Promise((resolve) => {
+    announceSlow = resolve;
+  });
+  await networkPage.route('**/web/shipping-areas/11.js?*', (route) => {
+    if (failOnce) {
+      failOnce = false;
+      return route.abort('failed');
+    }
+    return route.continue();
+  });
+  await networkPage.route('**/web/shipping-areas/13.js?*', async (route) => {
+    announceSlow();
+    await slowGate;
+    await route.continue();
+  });
+  await networkPage.goto(url);
+  await networkPage.evaluate(() =>
+    localStorage.setItem('noireaterial-cart-v1', JSON.stringify([{ id: 'base-0-0', qty: 1 }])),
+  );
+  await networkPage.reload();
+  await networkPage.locator('#bag-open').click();
+  await ensureCustomer(networkPage);
+  await networkPage.locator('#bag-next').click();
+  await networkPage.locator('#address-summary').click();
+  await networkPage.locator('#address-create').click();
+  await networkPage.locator('#checkout-province').selectOption('11');
+  await networkPage.locator('#checkout-city').selectOption('11.01');
+  await networkPage.locator('#checkout-area-retry').waitFor({ state: 'visible' });
+  assert.equal(await networkPage.locator('#checkout-district').isDisabled(), true);
+  await networkPage.locator('#checkout-area-retry').click();
+  await networkPage.waitForFunction(() => !document.getElementById('checkout-district').disabled);
+  assert.ok((await networkPage.locator('#checkout-district option').count()) > 1);
+  await networkPage.locator('#checkout-province').selectOption('13');
+  await networkPage.locator('#checkout-city').selectOption('13.01');
+  await slowStarted;
+  assert.equal(await networkPage.locator('#checkout-form button[type=submit]').isDisabled(), true);
+  await networkPage.locator('#checkout-province').selectOption('12');
+  await networkPage.locator('#checkout-city').selectOption('12.01');
+  await networkPage.waitForFunction(() => !document.getElementById('checkout-district').disabled);
+  const districtsBefore = await networkPage.locator('#checkout-district').innerHTML();
+  releaseSlow();
+  await networkPage.waitForResponse((response) => response.url().includes('/shipping-areas/13.js'));
+  await networkPage.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
+  assert.equal(await networkPage.locator('#checkout-district').innerHTML(), districtsBefore);
+  assert.equal(await networkPage.locator('#checkout-city').inputValue(), '12.01');
+  await networkPage.close();
+  const ledger = () =>
+    page.evaluate(() => JSON.parse(localStorage.getItem('tanj-manual-payments-demo-v1')));
+  async function checkout(name) {
+    await page.goto(url);
+    await page.evaluate(() =>
+      localStorage.setItem('noireaterial-cart-v1', JSON.stringify([{ id: 'base-0-0', qty: 1 }])),
+    );
+    await page.reload();
+    if (await page.locator('#bag-modal').isVisible())
+      await page.locator('#bag-modal [data-utility-close]').click();
+    await page.locator('#bag-open').click();
+    await ensureCustomer(page);
+    await page.locator('#bag-next').click();
+    await page.locator('#address-summary').click();
+    await page.locator('#address-create').click();
+    assert.equal(await page.locator('#checkout-email').inputValue(), 'customer@example.com');
+    assert.equal(await page.locator('#checkout-email').getAttribute('readonly'), '');
+    await page.locator('#checkout-name').fill(name);
+    await page.locator('#checkout-phone').fill('081234567890');
+    await page.locator('#checkout-address').fill('Alamat contoh simulasi');
+    await page.locator('#checkout-province').selectOption('36');
+    await page.locator('#checkout-city').selectOption('36.71');
+    assert.equal(await page.locator('#checkout-shipping-estimate').textContent(), 'Rp10.000');
+    await page.locator('#checkout-district').selectOption('36.71.07');
+    await page.locator('#checkout-zip').selectOption('15115');
+    await page.locator('#address-editor [type=submit]').click();
+    await page.locator('#address-dialog').waitFor({ state: 'hidden' });
+    await page.locator('#checkout-form button[type=submit]').click();
+    await page.locator('#manual-payment:not([hidden])').waitFor();
+    assert.match(await page.locator('#manual-payment').textContent(), /Metode Pembayaran/);
+    const data = await ledger();
+    const order = data.orders.at(-1);
+    assert.equal(order.customer.email, 'customer@example.com');
+    assert.equal(await page.locator('#manual-payment .manual-notice').count(), 0);
+    assert.equal(await page.locator('#send-payment-email').count(), 0);
+    assert.match(order.id, /^TANJ-Sand-Cream-/);
+    assert.equal(order.shipping.fee, 10000);
+    assert.equal(order.customer.province, 'Banten');
+    assert.equal(order.customer.city, 'Kota Tangerang');
+    assert.equal(order.customer.district, 'Karawaci');
+    assert.equal(order.customer.zip, '15115');
+    const wa = new URL(await page.locator('#order-notify-whatsapp').getAttribute('href'));
+    assert.equal(wa.hostname, 'wa.me');
+    assert.equal(wa.pathname, '/6281363661703');
+    assert.ok(wa.searchParams.get('text').includes(order.id));
+    assert.ok(wa.searchParams.get('text').includes('15115'));
+    const email = new URL(await page.locator('#order-notify-email').getAttribute('href'));
+    assert.equal(email.hostname, 'mail.google.com');
+    assert.equal(email.searchParams.get('to'), 'tanj.indonesia@gmail.com');
+    assert.equal(email.searchParams.get('su'), 'Bantuan TANJ');
+    assert.equal(email.searchParams.has('body'), false);
+    assert.equal(order.total % 1000, order.code);
+    assert.equal(order.total, order.subtotal + order.shipping.fee + order.adjustment);
+    return order;
+  }
+  // Province changes must clear both the previous city and its shipping price.
+  await page.goto(url);
+  await page.evaluate(() =>
+    localStorage.setItem('noireaterial-cart-v1', JSON.stringify([{ id: 'base-0-0', qty: 1 }])),
+  );
+  await page.reload();
+  if (await page.locator('#bag-modal').isVisible())
+    await page.locator('#bag-modal [data-utility-close]').click();
+  await page.locator('#bag-open').click();
+  await ensureCustomer(page);
+  await page.locator('#bag-next').click();
+  await page.locator('#address-summary').click();
+  await page.locator('#address-create').click();
+  assert.equal(await page.locator('#checkout-city').isDisabled(), true);
+  assert.equal(await page.locator('#checkout-province option').count(), 39);
+  await page.locator('#checkout-province').selectOption('36');
+  await page.locator('#checkout-city').selectOption('36.71');
+  assert.equal(await page.locator('#checkout-shipping-estimate').textContent(), 'Rp10.000');
+  await page.locator('#checkout-province').selectOption('91');
+  assert.equal(await page.locator('#checkout-city').inputValue(), '');
+  assert.match(await page.locator('#checkout-shipping-estimate').textContent(), /Pilih kota/);
+  assert.equal(await page.locator('#checkout-city option[value="36.71"]').count(), 0);
+  await page.locator('#checkout-city').selectOption('91.71');
+  assert.equal(await page.locator('#checkout-shipping-estimate').textContent(), 'Rp90.000');
+  assert.equal(await page.locator('#checkout-base-total').textContent(), 'Rp777.000');
+  await page.locator('#checkout-address').fill('Jalan dan kecamatan bisa diketik bebas');
+  assert.equal(await page.locator('#checkout-shipping-estimate').textContent(), 'Rp90.000');
+  // District and postcode are constrained by their parents; changing either parent clears old selections.
+  await page.locator('#checkout-province').selectOption('36');
+  await page.locator('#checkout-city').selectOption('36.71');
+  await page.locator('#checkout-district').selectOption('36.71.07');
+  await page.locator('#checkout-zip').selectOption('15115');
+  assert.match(await page.locator('#checkout-postcode-help').textContent(), /15115/);
+  assert.equal(await page.locator('#checkout-shipping-estimate').textContent(), 'Rp10.000');
+  await page.locator('#checkout-district').selectOption('36.71.04');
+  assert.equal(await page.locator('#checkout-zip').inputValue(), '');
+  assert.equal(await page.locator('#checkout-zip option[value="15115"]').count(), 0);
+  await page.locator('#checkout-zip').selectOption('15125');
+  assert.equal(await page.locator('#checkout-shipping-estimate').textContent(), 'Rp10.000');
+  await page.locator('#checkout-city').selectOption('36.74');
+  assert.equal(await page.locator('#checkout-zip').inputValue(), '');
+  assert.equal(await page.locator('#checkout-zip').isDisabled(), true);
+  await page.waitForFunction(() => !document.getElementById('checkout-district').disabled);
+  assert.equal(await page.locator('#checkout-district option[value="36.71.04"]').count(), 0);
+  await page.locator('#checkout-province').selectOption('32');
+  assert.equal(await page.locator('#checkout-district').isDisabled(), true);
+  assert.equal(await page.locator('#checkout-zip').isDisabled(), true);
+  assert.equal(await page.locator('#checkout-district').inputValue(), '');
+  const first = await checkout('Pembeli tanpa konfirmasi');
+  assert.equal(first.status, 'WAITING_PAYMENT');
+  assert.equal(first.proofs.length, 0);
+  await mkdir('test-results', { recursive: true });
+  await page.screenshot({ path: 'test-results/manual-payment-mobile.png', fullPage: true });
+  const admin = await context.newPage();
+  await admin.goto(url + 'admin/#payments');
+  await admin.locator('[name=email]').fill('admin@tanj.test');
+  await admin.locator('[name=password]').fill('demo123');
+  await admin.locator('#login-form button').click();
+  await admin.locator('#manual-admin-list').waitFor();
+  await admin.locator('[data-select-order="' + first.id + '"]').click();
+  assert.match(await admin.locator('#manual-admin-detail').textContent(), /Belum ada bukti/);
+  async function review(order, reference, amount = order.total) {
+    await admin.locator('[data-select-order="' + order.id + '"]').click();
+    await admin.locator('#manual-review').click();
+    await admin.locator('dialog[open] input[name=reference]').fill(reference);
+    await admin.locator('dialog[open] input[name=amount]').fill(String(amount));
+    await admin.locator('dialog[open] input[name=checked]').check();
+    await admin
+      .locator('dialog[open] textarea[name=note]')
+      .fill('Nominal, waktu, dan referensi transaksi contoh sudah dicocokkan.');
+    await admin.locator('dialog[open] button[type=submit]').click();
+  }
+  await review(first, 'DEMO-REF-001');
+  await admin.locator('dialog.manual-dialog').waitFor({ state: 'hidden' });
+  await page.locator('#manual-payment h3').filter({ hasText: 'Payment berhasil' }).waitFor();
+  assert.equal((await ledger()).orders[0].proofs.length, 0);
+  await page.reload();
+  if (await page.locator('#bag-modal').isVisible())
+    await page.locator('#bag-modal [data-utility-close]').click();
+  await page.locator('#bag-open').click();
+  await page.locator('#manual-orders').click();
+  await page.locator('[data-order-id="' + first.id + '"]').click();
+  assert.match(await page.locator('#manual-payment h3').textContent(), /Payment berhasil/);
+  assert.equal(
+    await page.locator('.manual-qr,#manual-copy,#manual-deadline,.manual-code').count(),
+    0,
+  );
+  assert.equal(await page.locator('#manual-amount').isVisible(), true);
+  const second = await checkout('Pembeli konfirmasi opsional');
+  await page.locator('#manual-confirm').click();
+  await page.locator('#manual-payment h3').filter({ hasText: 'Menunggu verifikasi' }).waitFor();
+  assert.equal(
+    await page
+      .locator('.manual-qr,#manual-copy,#manual-deadline,.manual-code,#manual-confirm')
+      .count(),
+    0,
+  );
+  assert.equal(await page.locator('#manual-amount').isVisible(), true);
+  assert.equal(await page.locator('#manual-proof-form').count(), 1);
+  await admin.locator('[data-select-order="' + second.id + '"]').waitFor();
+  await review(second, 'DEMO-REF-002', second.total - 1);
+  await admin
+    .locator('#manual-review-error')
+    .filter({ hasText: 'Nominal transaksi tidak sama' })
+    .waitFor();
+  assert.equal((await ledger()).orders.at(-1).status, 'CHECKING');
+  await admin.locator('#manual-review-close').click();
+  await admin.locator('#manual-help').click();
+  await admin
+    .locator('dialog[open] textarea[name=note]')
+    .fill('Perlu penelusuran. Jangan bayar ulang.');
+  await admin.locator('dialog[open] button[type=submit]').click();
+  await page.locator('#manual-payment h3').filter({ hasText: 'Perlu bantuan admin' }).waitFor();
+  assert.match(await page.locator('#manual-payment').textContent(), /Jangan bayar ulang/);
+  await page.locator('summary').filter({ hasText: 'Tambahkan bukti (opsional)' }).click();
+  await page.locator('#manual-proof').setInputFiles({
+    name: 'bukti-contoh.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      await page.evaluate(() => {
+        const c = document.createElement('canvas');
+        c.width = 100;
+        c.height = 100;
+        const g = c.getContext('2d');
+        g.fillStyle = 'white';
+        g.fillRect(0, 0, 100, 100);
+        g.fillStyle = 'black';
+        g.fillText('DEMO', 10, 50);
+        return c.toDataURL('image/png').split(',')[1];
+      }),
+      'base64',
+    ),
+  });
+  await page.locator('#manual-proof-form button').click();
+  await page.locator('summary').filter({ hasText: 'Riwayat bukti opsional (1)' }).waitFor();
+  await review(second, 'DEMO-REF-001');
+  await admin.locator('#manual-review-error').filter({ hasText: 'sudah dipakai' }).waitFor();
+  await admin.locator('dialog[open] input[name=reference]').fill('DEMO-REF-002');
+  await admin.locator('dialog[open] button[type=submit]').click();
+  await page.locator('#manual-payment h3').filter({ hasText: 'Payment berhasil' }).waitFor();
+  const third = await checkout('Pembeli lewat batas waktu');
+  await page.evaluate(() => {
+    const key = 'tanj-manual-payments-demo-v1';
+    const state = JSON.parse(localStorage.getItem(key));
+    state.orders.at(-1).deadline = Date.now() - 1000;
+    localStorage.setItem(key, JSON.stringify(state));
+    window.dispatchEvent(new Event('tanj-payments-change'));
+  });
+  await page.locator('#manual-payment h3').filter({ hasText: 'Menunggu pembayaran' }).waitFor();
+  await admin.locator('[data-select-order="' + third.id + '"]').waitFor();
+  await review(third, 'DEMO-LATE-003');
+  await page.locator('#manual-payment h3').filter({ hasText: 'Payment berhasil' }).waitFor();
+  await admin.setViewportSize({ width: 1280, height: 900 });
+  await admin.screenshot({ path: 'test-results/manual-payment-admin.png', fullPage: true });
+  // Preserve the record if a second reviewer submits an older version, and never reuse active three-digit codes.
+  const invariants = await page.evaluate(async () => {
+    const store = await import('./web/manual-payment-store.js?v=districts-1');
+    const original = store.readPayments();
+    const stale = original.orders[0];
+    let conflict = '';
+    try {
+      await store.reviewPayment(stale.id, stale.version - 1, 'help', { note: 'stale' });
+    } catch (e) {
+      conflict = e.message;
+    }
+    const state = store.readPayments();
+    return {
+      conflict,
+      unchanged: state.orders[0].status === 'PAID',
+      codes: state.orders.map((o) => o.total % 1000 === o.code),
+    };
+  });
+  assert.match(invariants.conflict, /Status pesanan sudah berubah/);
+  assert.equal(invariants.unchanged, true);
+  assert.ok(invariants.codes.every(Boolean));
+  // Codes for two unpaid orders remain distinct even when the base total is not a multiple of 1,000.
+  const codeTest = await page.evaluate(async () => {
+    const m = await import('./web/manual-payment-store.js?v=districts-1');
+    const catalog = [
+      {
+        id: 'test-code',
+        name: 'Tes nominal',
+        colorName: 'Cream',
+        price: 687123,
+        stock: 20,
+        status: 'published',
+      },
+    ];
+    const customer = {
+      name: 'Contoh',
+      phone: '081234567890',
+      email: 'customer@example.com',
+      address: 'Alamat contoh',
+      provinceId: '36',
+      cityId: '36.71',
+      districtId: '36.71.07',
+      zip: '15115',
+    };
+    const a = await m.createPayment(customer, [{ id: 'test-code', qty: 1 }], catalog),
+      b = await m.createPayment(customer, [{ id: 'test-code', qty: 1 }], catalog);
+    return {
+      unique: a.code !== b.code,
+      total: a.total % 1000 === a.code && b.total % 1000 === b.code,
+    };
+  });
+  assert.deepEqual(codeTest, { unique: true, total: true });
+  // Earlier demo orders must not consume catalog stock or block repeated presentations.
+  const repeatDemo = await page.evaluate(async () => {
+    const m = await import('./web/manual-payment-store.js?v=stock-demo-2');
+    const catalog = [
+      { id: 'repeat-demo', name: 'Demo ulang', price: 687000, stock: 1, status: 'published' },
+    ];
+    const customer = {
+      name: 'Demo',
+      phone: '081234567890',
+      email: 'customer@example.com',
+      address: 'Alamat contoh',
+      provinceId: '36',
+      cityId: '36.71',
+      districtId: '36.71.07',
+      zip: '15115',
+    };
+    const a = await m.createPayment(customer, [{ id: 'repeat-demo', qty: 1 }], catalog);
+    const b = await m.createPayment(customer, [{ id: 'repeat-demo', qty: 1 }], catalog);
+    let error = '';
+    try {
+      await m.createPayment(customer, [{ id: 'repeat-demo', qty: 2 }], catalog);
+    } catch (e) {
+      error = e.message;
+    }
+    return { distinct: a.id !== b.id, error };
+  });
+  assert.equal(repeatDemo.distinct, true);
+  assert.match(repeatDemo.error, /Stok produk tidak cukup/);
+  // Storage quota failures must not silently create an unrecorded order or clear the buyer's cart.
+  const invalidRegion = await page.evaluate(async () => {
+    const m = await import('./web/manual-payment-store.js?v=districts-1');
+    try {
+      await m.createPayment(
+        {
+          name: 'Test',
+          phone: '081234567890',
+          email: 'customer@example.com',
+          address: 'Alamat test',
+          provinceId: '36',
+          cityId: '91.71',
+          zip: '15115',
+        },
+        [{ id: 'x', qty: 1 }],
+        [{ id: 'x', name: 'Test', price: 1, stock: 10 }],
+      );
+    } catch (e) {
+      return e.message;
+    }
+  });
+  assert.match(invalidRegion, /Pilih provinsi dan kota/);
+  const invalidPostcode = await page.evaluate(async () => {
+    const m = await import('./web/manual-payment-store.js?v=districts-1');
+    try {
+      await m.createPayment(
+        {
+          name: 'Test',
+          phone: '081234567890',
+          email: 'customer@example.com',
+          address: 'Alamat',
+          provinceId: '36',
+          cityId: '36.71',
+          districtId: '36.71.07',
+          zip: '15125',
+        },
+        [{ id: 'x', qty: 1 }],
+        [{ id: 'x', name: 'Test', price: 1, stock: 10 }],
+      );
+    } catch (e) {
+      return e.message;
+    }
+  });
+  assert.match(invalidPostcode, /kode pos yang sesuai/);
+  const storageError = await page.evaluate(async () => {
+    const m = await import('./web/manual-payment-store.js?v=districts-1');
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function () {
+      throw new DOMException('Quota', 'QuotaExceededError');
+    };
+    try {
+      await m.savePaymentSettings({ hours: 24, admin: 'Test' });
+    } catch (e) {
+      return e.message;
+    } finally {
+      Storage.prototype.setItem = original;
+    }
+  });
+  assert.match(storageError, /tidak bisa menyimpan/);
+  assert.equal(
+    await page.locator('body').evaluate((el) => el.scrollWidth > innerWidth + 1),
+    false,
+    'No mobile horizontal overflow',
+  );
+  assert.deepEqual(apiRequests, [], 'Static demo must never call nonexistent payment APIs');
+  assert.deepEqual(errors, []);
+  const fresh = await browser.newContext();
+  const other = await fresh.newPage();
+  await other.goto(url + '#pesanan');
+  await other.locator('#customer-account[open]').waitFor();
+  assert.equal(await other.locator('#customer-auth').isVisible(), true);
+  await fresh.close();
+  await admin.locator('#manual-settings').click();
+  await admin.locator('#manual-reset').click();
+  await admin
+    .locator('dialog[open]')
+    .last()
+    .getByRole('button', { name: 'Reset simulasi', exact: true })
+    .click();
+  await admin.locator('#manual-admin-list').filter({ hasText: 'Tidak ada pesanan' }).waitFor();
+  assert.deepEqual((await ledger()).orders, []);
+  console.log(
+    'PASS: static checkout, no-proof/no-confirmation approval, optional confirmation and image, wrong amount, duplicate reference, late payment, stale review, exact unique suffix, persistence, isolated browsers, storage errors, responsive layout, reset, no API calls or browser exceptions.',
+  );
+} finally {
+  await browser?.close();
+  await new Promise((r) => server.close(r));
+}

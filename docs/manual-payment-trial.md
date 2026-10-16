@@ -60,11 +60,9 @@ Pembentukan pesanan memvalidasi ulang rantai provinsi/kota/kecamatan/kode pos te
 
 Tes data mengecek semua induk kecamatan dan seluruh kode pos, menolak kode pos atau kecamatan dari wilayah lain, dan memastikan ongkir tidak berubah antar kecamatan pada kota yang sama. Tes browser mencakup dropdown bertingkat, reset induk, retry pemuatan data, race pemilihan kota, validasi stok, dan persetujuan pembayaran tanpa bukti wajib.
 
-
 Kontak pesanan: WhatsApp 081363661703 (6281363661703), email tanj.indonesia@gmail.com. Detail pesanan menyediakan tautan WhatsApp dan mailto dengan ringkasan, alamat, rincian produk, ongkir, total, dan status. Pengguna harus menekan Kirim di aplikasi tujuan. Tidak ada pengiriman otomatis atau sinkronisasi pesanan lintas perangkat; hosting statis masih simulasi.
 
 Demo berulang: pesanan sebelumnya di browser tidak mengurangi stok katalog. Setiap checkout tetap memvalidasi jumlah terhadap stok katalog terbaru; tidak perlu reset riwayat untuk presentasi ulang.
-
 
 ## Dedicated admin payment prototype
 
@@ -77,6 +75,5 @@ Forgot-password links compose an email/WhatsApp request to the owner; they do no
 Validation: `node tests/payment-admin.mjs` covers first setup, wrong/correct password, fresh-page login gate, rejection persistence and mobile overflow.
 
 Admin QRIS trial: expand Pengaturan QRIS in admin/payments.html, upload a decoded JPG/PNG/WebP up to 1 MB and save. The image persists in browser settings and appears on checkout in that browser; deleting restores the placeholder. Trial labels remain visible. No transfer, upload to hosting, or automatic payment detection occurs.
-
 
 Login admin kini melalui ikon account di beranda. Setelah login, pilihan Pembeli/Admin hanya muncul untuk sesi admin. Pindah layar dan reload mempertahankan sesi pada tab yang sama hingga 8 jam. Logout melalui account mengakhiri sesi dan kembali ke beranda. Akses langsung halaman pembayaran tanpa sesi diarahkan ke login beranda. Ini tetap prototipe browser, bukan otorisasi server.

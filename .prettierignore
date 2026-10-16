@@ -1,0 +1,9 @@
+node_modules/
+assets/
+data/
+test-results/
+web/vendor/
+web/shipping-areas/
+web/shipping-master.js
+package-lock.json
+*.sql

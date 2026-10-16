@@ -10,28 +10,28 @@ x-runtime: &runtime
 services:
   auth:
     <<: *runtime
-    command: ["node", "services/auth.mjs"]
-    volumes: ["auth-data:/app/data"]
+    command: ['node', 'services/auth.mjs']
+    volumes: ['auth-data:/app/data']
   catalog:
     <<: *runtime
-    command: ["node", "services/catalog.mjs"]
-    volumes: ["catalog-data:/app/data"]
+    command: ['node', 'services/catalog.mjs']
+    volumes: ['catalog-data:/app/data']
   content:
     <<: *runtime
-    command: ["node", "services/content.mjs"]
-    volumes: ["content-data:/app/data"]
+    command: ['node', 'services/content.mjs']
+    volumes: ['content-data:/app/data']
   gateway:
     <<: *runtime
-    command: ["node", "services/gateway.mjs"]
+    command: ['node', 'services/gateway.mjs']
     environment:
       <<: *environment
       HOST: 0.0.0.0
       AUTH_URL: http://auth:4001
       CATALOG_URL: http://catalog:4002
       CONTENT_URL: http://content:4003
-    ports: ["127.0.0.1:3000:3000"]
+    ports: ['127.0.0.1:3000:3000']
     depends_on: [auth, catalog, content]
-    volumes: ["publication-data:/app/data"]
+    volumes: ['publication-data:/app/data']
 volumes:
   auth-data:
   catalog-data:

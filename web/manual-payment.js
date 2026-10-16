@@ -1,90 +1,563 @@
-import {cloudEnabled} from './supabase-payments.js?v=improve-2';
-import {cropQrisArtwork} from './qris-crop.js';
-import {mountPaymentSocialLinks} from './payment-social-links.js';
-import {shipmentTracking} from '../shared/shipment-tracking.js';
-import {customerSession,requireCustomer} from './customer-account.js?v=owner-ui-3';
-import {isAdmin} from './admin-session.js?v=improve-2';
-import {mountCheckoutExperience} from './checkout-experience.js?v=owner-ui-3';
-import {buildOrderEmail} from '../shared/order-email.js';
-import {notifyPayment} from './payment-notifications.js?v=email-live-1';
-import {orderContactLinks} from './order-contact.js?v=gmail-compose-2';
-import {shippingProvinces,shippingCities,shippingDistricts,getShippingEstimate} from './shipping.js?v=districts-1';
-import {readPayments,refreshPayments,createPayment,buyerUpdate,subscribePayments,orderStatus,paymentLabels,money,escapeHTML as esc} from './manual-payment-store.js?v=owner-ui-3';
-export const demoNotice='';
-export async function confirmManual(title,message,label='Lanjutkan'){
- const dialog=document.createElement('dialog');dialog.className='manual-dialog';dialog.innerHTML=`<form method="dialog"><h2>${esc(title)}</h2><p>${esc(message)}</p><div class="manual-actions"><button value="cancel">Kembali</button><button value="ok" class="manual-primary">${esc(label)}</button></div></form>`;document.body.append(dialog);dialog.showModal();return new Promise(resolve=>{dialog.addEventListener('close',()=>{const approved=dialog.returnValue==='ok';dialog.remove();resolve(approved);},{once:true});dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close('cancel');});});
+import { cloudEnabled } from './supabase-payments.js?v=improve-2';
+import { cropQrisArtwork } from './qris-crop.js';
+import { mountPaymentSocialLinks } from './payment-social-links.js';
+import { shipmentTracking } from '../shared/shipment-tracking.js';
+import { customerSession, requireCustomer } from './customer-account.js?v=owner-ui-3';
+import { isAdmin } from './admin-session.js?v=improve-2';
+import { mountCheckoutExperience } from './checkout-experience.js?v=owner-ui-3';
+import { buildOrderEmail } from '../shared/order-email.js';
+import { notifyPayment } from './payment-notifications.js?v=email-live-1';
+import { orderContactLinks } from './order-contact.js?v=gmail-compose-2';
+import {
+  shippingProvinces,
+  shippingCities,
+  shippingDistricts,
+  getShippingEstimate,
+} from './shipping.js?v=districts-1';
+import {
+  readPayments,
+  refreshPayments,
+  createPayment,
+  buyerUpdate,
+  subscribePayments,
+  orderStatus,
+  paymentLabels,
+  money,
+  escapeHTML as esc,
+} from './manual-payment-store.js?v=owner-ui-3';
+export const demoNotice = '';
+export async function confirmManual(title, message, label = 'Lanjutkan') {
+  const dialog = document.createElement('dialog');
+  dialog.className = 'manual-dialog';
+  dialog.innerHTML = `<form method="dialog"><h2>${esc(title)}</h2><p>${esc(message)}</p><div class="manual-actions"><button value="cancel">Kembali</button><button value="ok" class="manual-primary">${esc(label)}</button></div></form>`;
+  document.body.append(dialog);
+  dialog.showModal();
+  return new Promise((resolve) => {
+    dialog.addEventListener(
+      'close',
+      () => {
+        const approved = dialog.returnValue === 'ok';
+        dialog.remove();
+        resolve(approved);
+      },
+      { once: true },
+    );
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) dialog.close('cancel');
+    });
+  });
 }
-export function initManualPayment({getItems,getCatalog,getSubtotal,onCreated,openBag}){
- const $=id=>document.getElementById(id),form=$('checkout-form'),submit=form.querySelector('[type=submit]');
- form.removeAttribute('action');form.removeAttribute('target');form.removeAttribute('method');form.removeAttribute('rel');$('checkout-wa-message')?.remove();submit.innerHTML='Lanjut pembayaran <span aria-hidden="true">→</span>';
- $('bag-summary').querySelector('p').textContent='Checkout dan pembayaran manual. Ongkir mengikuti kota/kabupaten tujuan.';
- form.querySelector('.checkout-fine').textContent='Bukti pembayaran tidak wajib. Admin dapat mencocokkan dana tanpa menunggu konfirmasi pembeli.';
- document.querySelector('#bag-checkout-view .checkout-help').textContent='Isi detail kontak dan alamat pengiriman untuk pesanan Anda.';
- form.insertAdjacentHTML('afterbegin','<label for="checkout-email">Email customer</label><input id="checkout-email" type="email" autocomplete="email" maxlength="120" required placeholder="nama@email.com">');
- const locations=document.createElement('div');locations.innerHTML=`<label for="checkout-province">Provinsi</label><select id="checkout-province" autocomplete="address-level1" required><option value="">Pilih provinsi</option>${shippingProvinces.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select><label for="checkout-city">Kota / kabupaten</label><select id="checkout-city" autocomplete="address-level2" required disabled><option value="">Pilih provinsi terlebih dahulu</option></select><label for="checkout-district">Kecamatan</label><select id="checkout-district" autocomplete="address-level3" required disabled><option value="">Pilih kota/kabupaten terlebih dahulu</option></select><label for="checkout-zip">Kode pos</label><select id="checkout-zip" autocomplete="postal-code" required disabled><option value="">Pilih kecamatan terlebih dahulu</option></select><p id="checkout-postcode-help" class="manual-muted" aria-live="polite">Pilih kode pos yang sesuai desa/kelurahan Anda.</p><button id="checkout-area-retry" class="checkout-back" type="button" hidden>Coba lagi memuat kecamatan</button>`;form.insertBefore(locations,form.querySelector('label[for="checkout-address"]'));
- $('checkout-address').placeholder='Jalan, nomor rumah, RT/RW, desa/kelurahan, dan patokan alamat';
- const fields=document.createElement('div');fields.innerHTML=`<p class="manual-muted">Ongkir memakai perkiraan bawah master wilayah, dari Matraman, Jakarta Timur, dengan patokan paket 1 kg. Harga tetap mengikuti kota/kabupaten. Pilih kecamatan dan kode pos; alamat lengkap diisi bebas pada kolom alamat. Bukan tarif live JNE/J&T.</p><p id="manual-checkout-error" role="alert"></p>`;form.insertBefore(fields,form.querySelector('.checkout-total'));
- const quote=document.createElement('div');quote.className='manual-breakdown';quote.innerHTML='<p><span>Ongkir</span><strong id="checkout-shipping-estimate">Pilih kota/kabupaten</strong></p><p><span>Total sebelum kode unik</span><strong id="checkout-base-total">-</strong></p>';form.querySelector('.checkout-total').after(quote);
- function updateShipping(){const city=$('checkout-city').value,province=$('checkout-province').value;$('manual-checkout-error').textContent='';if(!city){$('checkout-shipping-estimate').textContent='Pilih kota/kabupaten';$('checkout-base-total').textContent='-';return;}try{const estimate=getShippingEstimate(province,city);$('checkout-shipping-estimate').textContent=money(estimate.fee);$('checkout-base-total').textContent=money(getSubtotal()+estimate.fee);}catch(err){$('manual-checkout-error').textContent=err.message;}}
- let districtRequest=0,areaLoading=false,submitting=false,currentDistricts=[];
- const syncSubmit=()=>{submit.disabled=areaLoading||submitting;};
- function clearPostcodes(){const select=$('checkout-zip');select.replaceChildren(new Option('Pilih kecamatan terlebih dahulu',''));select.disabled=true;$('checkout-postcode-help').textContent='Pilih kode pos yang sesuai desa/kelurahan Anda.';}
- function clearDistricts(){districtRequest++;currentDistricts=[];areaLoading=false;syncSubmit();$('checkout-area-retry').hidden=true;$('checkout-district').replaceChildren(new Option('Pilih kota/kabupaten terlebih dahulu',''));$('checkout-district').disabled=true;clearPostcodes();}
- async function loadDistricts(){
-  clearDistricts();updateShipping();const city=$('checkout-city').value;if(!city)return;const request=++districtRequest;areaLoading=true;syncSubmit();$('checkout-district').replaceChildren(new Option('Memuat kecamatan...',''));
-  try{const districts=await shippingDistricts(city);if(request!==districtRequest)return;if(!districts.length)throw Error('Data kecamatan kota ini belum tersedia.');currentDistricts=districts;$('checkout-district').replaceChildren(new Option('Pilih kecamatan',''),...districts.map(d=>new Option(d.name,d.id)));$('checkout-district').disabled=false;
-  }catch(err){if(request!==districtRequest)return;$('manual-checkout-error').textContent=err.message;$('checkout-district').replaceChildren(new Option('Kecamatan belum berhasil dimuat',''));$('checkout-area-retry').hidden=false;
-  }finally{if(request===districtRequest){areaLoading=false;syncSubmit();}}
- }
- $('checkout-province').onchange=()=>{clearDistricts();const cities=shippingCities($('checkout-province').value);$('checkout-city').replaceChildren(new Option(cities.length?'Pilih kota/kabupaten':'Pilih provinsi terlebih dahulu',''),...cities.map(c=>new Option(c.name,c.id)));$('checkout-city').disabled=!cities.length;updateShipping();};$('checkout-city').onchange=loadDistricts;$('checkout-area-retry').onclick=loadDistricts;
- $('checkout-district').onchange=()=>{clearPostcodes();const district=currentDistricts.find(d=>d.id===$('checkout-district').value);if(!district)return;const codes=district.postcodes.slice().sort((a,b)=>a.code.localeCompare(b.code));$('checkout-zip').replaceChildren(new Option('Pilih kode pos sesuai desa/kelurahan',''),...codes.map(p=>new Option(p.code+' - '+p.villages,p.code)));$('checkout-zip').disabled=false;};
- $('checkout-zip').onchange=()=>{const district=currentDistricts.find(d=>d.id===$('checkout-district').value);const code=district?.postcodes.find(p=>p.code===$('checkout-zip').value);$('checkout-postcode-help').textContent=code?'Desa/kelurahan untuk '+code.code+': '+code.villages:'Pilih kode pos yang sesuai desa/kelurahan Anda.';};
+export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated, openBag }) {
+  const $ = (id) => document.getElementById(id),
+    form = $('checkout-form'),
+    submit = form.querySelector('[type=submit]');
+  form.removeAttribute('action');
+  form.removeAttribute('target');
+  form.removeAttribute('method');
+  form.removeAttribute('rel');
+  $('checkout-wa-message')?.remove();
+  submit.innerHTML = 'Lanjut pembayaran <span aria-hidden="true">→</span>';
+  $('bag-summary').querySelector('p').textContent =
+    'Checkout dan pembayaran manual. Ongkir mengikuti kota/kabupaten tujuan.';
+  form.querySelector('.checkout-fine').textContent =
+    'Bukti pembayaran tidak wajib. Admin dapat mencocokkan dana tanpa menunggu konfirmasi pembeli.';
+  document.querySelector('#bag-checkout-view .checkout-help').textContent =
+    'Isi detail kontak dan alamat pengiriman untuk pesanan Anda.';
+  form.insertAdjacentHTML(
+    'afterbegin',
+    '<label for="checkout-email">Email customer</label><input id="checkout-email" type="email" autocomplete="email" maxlength="120" required placeholder="nama@email.com">',
+  );
+  const locations = document.createElement('div');
+  locations.innerHTML = `<label for="checkout-province">Provinsi</label><select id="checkout-province" autocomplete="address-level1" required><option value="">Pilih provinsi</option>${shippingProvinces.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select><label for="checkout-city">Kota / kabupaten</label><select id="checkout-city" autocomplete="address-level2" required disabled><option value="">Pilih provinsi terlebih dahulu</option></select><label for="checkout-district">Kecamatan</label><select id="checkout-district" autocomplete="address-level3" required disabled><option value="">Pilih kota/kabupaten terlebih dahulu</option></select><label for="checkout-zip">Kode pos</label><select id="checkout-zip" autocomplete="postal-code" required disabled><option value="">Pilih kecamatan terlebih dahulu</option></select><p id="checkout-postcode-help" class="manual-muted" aria-live="polite">Pilih kode pos yang sesuai desa/kelurahan Anda.</p><button id="checkout-area-retry" class="checkout-back" type="button" hidden>Coba lagi memuat kecamatan</button>`;
+  form.insertBefore(locations, form.querySelector('label[for="checkout-address"]'));
+  $('checkout-address').placeholder =
+    'Jalan, nomor rumah, RT/RW, desa/kelurahan, dan patokan alamat';
+  const fields = document.createElement('div');
+  fields.innerHTML = `<p class="manual-muted">Ongkir memakai perkiraan bawah master wilayah, dari Matraman, Jakarta Timur, dengan patokan paket 1 kg. Harga tetap mengikuti kota/kabupaten. Pilih kecamatan dan kode pos; alamat lengkap diisi bebas pada kolom alamat. Bukan tarif live JNE/J&T.</p><p id="manual-checkout-error" role="alert"></p>`;
+  form.insertBefore(fields, form.querySelector('.checkout-total'));
+  const quote = document.createElement('div');
+  quote.className = 'manual-breakdown';
+  quote.innerHTML =
+    '<p><span>Ongkir</span><strong id="checkout-shipping-estimate">Pilih kota/kabupaten</strong></p><p><span>Total sebelum kode unik</span><strong id="checkout-base-total">-</strong></p>';
+  form.querySelector('.checkout-total').after(quote);
+  function updateShipping() {
+    const city = $('checkout-city').value,
+      province = $('checkout-province').value;
+    $('manual-checkout-error').textContent = '';
+    if (!city) {
+      $('checkout-shipping-estimate').textContent = 'Pilih kota/kabupaten';
+      $('checkout-base-total').textContent = '-';
+      return;
+    }
+    try {
+      const estimate = getShippingEstimate(province, city);
+      $('checkout-shipping-estimate').textContent = money(estimate.fee);
+      $('checkout-base-total').textContent = money(getSubtotal() + estimate.fee);
+    } catch (err) {
+      $('manual-checkout-error').textContent = err.message;
+    }
+  }
+  let districtRequest = 0,
+    areaLoading = false,
+    submitting = false,
+    currentDistricts = [];
+  const syncSubmit = () => {
+    submit.disabled = areaLoading || submitting;
+  };
+  function clearPostcodes() {
+    const select = $('checkout-zip');
+    select.replaceChildren(new Option('Pilih kecamatan terlebih dahulu', ''));
+    select.disabled = true;
+    $('checkout-postcode-help').textContent = 'Pilih kode pos yang sesuai desa/kelurahan Anda.';
+  }
+  function clearDistricts() {
+    districtRequest++;
+    currentDistricts = [];
+    areaLoading = false;
+    syncSubmit();
+    $('checkout-area-retry').hidden = true;
+    $('checkout-district').replaceChildren(new Option('Pilih kota/kabupaten terlebih dahulu', ''));
+    $('checkout-district').disabled = true;
+    clearPostcodes();
+  }
+  async function loadDistricts() {
+    clearDistricts();
+    updateShipping();
+    const city = $('checkout-city').value;
+    if (!city) return;
+    const request = ++districtRequest;
+    areaLoading = true;
+    syncSubmit();
+    $('checkout-district').replaceChildren(new Option('Memuat kecamatan...', ''));
+    try {
+      const districts = await shippingDistricts(city);
+      if (request !== districtRequest) return;
+      if (!districts.length) throw Error('Data kecamatan kota ini belum tersedia.');
+      currentDistricts = districts;
+      $('checkout-district').replaceChildren(
+        new Option('Pilih kecamatan', ''),
+        ...districts.map((d) => new Option(d.name, d.id)),
+      );
+      $('checkout-district').disabled = false;
+    } catch (err) {
+      if (request !== districtRequest) return;
+      $('manual-checkout-error').textContent = err.message;
+      $('checkout-district').replaceChildren(new Option('Kecamatan belum berhasil dimuat', ''));
+      $('checkout-area-retry').hidden = false;
+    } finally {
+      if (request === districtRequest) {
+        areaLoading = false;
+        syncSubmit();
+      }
+    }
+  }
+  $('checkout-province').onchange = () => {
+    clearDistricts();
+    const cities = shippingCities($('checkout-province').value);
+    $('checkout-city').replaceChildren(
+      new Option(cities.length ? 'Pilih kota/kabupaten' : 'Pilih provinsi terlebih dahulu', ''),
+      ...cities.map((c) => new Option(c.name, c.id)),
+    );
+    $('checkout-city').disabled = !cities.length;
+    updateShipping();
+  };
+  $('checkout-city').onchange = loadDistricts;
+  $('checkout-area-retry').onclick = loadDistricts;
+  $('checkout-district').onchange = () => {
+    clearPostcodes();
+    const district = currentDistricts.find((d) => d.id === $('checkout-district').value);
+    if (!district) return;
+    const codes = district.postcodes.slice().sort((a, b) => a.code.localeCompare(b.code));
+    $('checkout-zip').replaceChildren(
+      new Option('Pilih kode pos sesuai desa/kelurahan', ''),
+      ...codes.map((p) => new Option(p.code + ' - ' + p.villages, p.code)),
+    );
+    $('checkout-zip').disabled = false;
+  };
+  $('checkout-zip').onchange = () => {
+    const district = currentDistricts.find((d) => d.id === $('checkout-district').value);
+    const code = district?.postcodes.find((p) => p.code === $('checkout-zip').value);
+    $('checkout-postcode-help').textContent = code
+      ? 'Desa/kelurahan untuk ' + code.code + ': ' + code.villages
+      : 'Pilih kode pos yang sesuai desa/kelurahan Anda.';
+  };
 
+  const panel = document.createElement('section');
+  panel.id = 'manual-payment';
+  panel.className = 'manual-payment';
+  panel.hidden = true;
+  panel.setAttribute('aria-label', 'Pembayaran dan pesanan saya');
+  $('bag-checkout-view').after(panel);
+  const history = document.createElement('button');
+  history.id = 'manual-orders';
+  history.type = 'button';
+  history.className = 'checkout-back';
+  history.textContent = 'Pesanan saya';
+  $('bag-cart-view').prepend(history);
+  let selected = null;
+  let requested = new URLSearchParams(location.hash.split('?')[1] || '').get('order');
+  if (requested) selected = requested;
+  const visibleOrders = (state) =>
+    state.orders.filter(
+      (o) => isAdmin() || (customerSession() && o.customerId === customerSession().id),
+    );
 
- const panel=document.createElement('section');panel.id='manual-payment';panel.className='manual-payment';panel.hidden=true;panel.setAttribute('aria-label','Pembayaran dan pesanan saya');$('bag-checkout-view').after(panel);
- const history=document.createElement('button');history.id='manual-orders';history.type='button';history.className='checkout-back';history.textContent='Pesanan saya';$('bag-cart-view').prepend(history);
- let selected=null;let requested=new URLSearchParams(location.hash.split('?')[1]||'').get('order');if(requested)selected=requested;
- const visibleOrders=state=>state.orders.filter(o=>isAdmin()||customerSession()&&o.customerId===customerSession().id);
-
- const showError=e=>{const el=$('manual-payment-error')||$('manual-checkout-error');el.textContent=e.message;};
- const focusTitle=()=>panel.querySelector('[tabindex="-1"]')?.focus();
- async function showPanel(){openBag();$('bag-cart-view').hidden=true;$('bag-checkout-view').hidden=true;panel.hidden=false;if(cloudEnabled){panel.innerHTML='<p role="status">Memuat pesanan...</p>';try{await refreshPayments();}catch(error){panel.innerHTML='<p id="manual-payment-error" role="alert"></p>';$('manual-payment-error').textContent=error.message;return;}}render();focusTitle();}
- function render(){
-  panel.dataset.selectedOrder=selected||'';
-  try{if(panel.hidden)return;const state=readPayments();const order=visibleOrders(state).find(o=>o.id===selected);
-   if(!order){panel.innerHTML=`<button type="button" class="checkout-back" id="manual-back">← Kembali ke tas</button><h3 tabindex="-1">Pesanan saya</h3>${demoNotice}<p id="manual-payment-error" role="alert">${requested&&selected===requested?esc("Pesanan dari link ini belum tersedia untuk akun di browser ini. Pastikan akun sesuai dengan pemilik pesanan. Pesanan lama versi browser belum otomatis dipindahkan. Hubungi admin TANJ dengan nomor pesanan "+requested+"."):""}</p><label for="customer-status-filter">Status pesanan</label><select id="customer-status-filter"><option value="all">Semua</option><option value="WAITING_PAYMENT">Menunggu pembayaran</option><option value="CHECKING">Menunggu verifikasi</option><option value="PAID">Payment berhasil</option><option value="REJECTED">Pembayaran ditolak</option><option value="CANCELLED">Dibatalkan</option></select><div class="manual-order-list">${visibleOrders(state).slice().reverse().map(o=>`<button class="manual-order" data-order-status="${orderStatus(o)}" data-order-id="${o.id}"><span>${esc(o.id)}</span><strong>${money(o.total)}</strong><small>${esc(paymentLabels[orderStatus(o)])}</small></button>`).join('')||'<p>Belum ada pesanan. Pilih produk dan lanjut ke checkout.</p>'}</div>`;$('manual-back').onclick=()=>{panel.hidden=true;$('bag-cart-view').hidden=false;history.focus();};$('customer-status-filter').onchange=e=>panel.querySelectorAll('[data-order-id]').forEach(b=>{const status=b.dataset.orderStatus;const group=status==='REVIEW_DUE'?'WAITING_PAYMENT':status==='NEEDS_HELP'?'CHECKING':status;b.hidden=e.target.value!=='all'&&group!==e.target.value;});panel.querySelectorAll('[data-order-id]').forEach(b=>b.onclick=()=>{selected=b.dataset.orderId;render();focusTitle();});return;}
-   const status=orderStatus(order),unpaid=!['PAID','CANCELLED'].includes(status);
-   const lastNote=order.logs.at(-1)?.note||'';
-   const contact=orderContactLinks(order,paymentLabels[status]);
-   const messages={REJECTED:'Pembayaran ditolak. Periksa alasan admin dan hubungi admin jika dana sudah terdebit.',WAITING_PAYMENT:'Sudah membayar? Konfirmasi boleh, bukti tidak wajib. Admin tetap dapat memeriksa transaksi meskipun Anda tidak menekan tombol.',CHECKING:'Pernyataan atau bukti Anda sudah tercatat. Admin akan mencocokkan dana masuk. Jangan bayar ulang.',NEEDS_HELP:'Admin perlu menelusuri pembayaran ini. Jangan bayar ulang sebelum ada konfirmasi.',REVIEW_DUE:'Batas waktu lewat. Pesanan tidak otomatis dibatalkan. Jika sudah bayar, jangan bayar ulang; admin tetap dapat mencocokkan transaksi.',PAID:'Dana telah dicocokkan oleh admin. Pesanan siap diproses.',CANCELLED:'Pesanan dibatalkan. Jika ternyata sudah membayar, hubungi admin; pembayaran tetap bisa ditelusuri.'};
-   panel.innerHTML=`<button type="button" class="checkout-back" id="manual-all">← Pesanan saya</button><p class="shop-step">03 / PEMBAYARAN MANUAL</p><h3 tabindex="-1">${esc(paymentLabels[status])}</h3>${demoNotice}<p class="manual-id">${esc(order.id)}</p><div class="order-overview"><p><span>Tanggal pemesanan</span><strong>${new Date(order.createdAt).toLocaleDateString('id-ID')}</strong></p><p><span>Metode pengiriman</span><strong>${esc(order.shipping.methodName||'Reguler')}</strong></p><p><span>Metode pembayaran</span><strong>${esc(order.payment?.name||'QRIS manual')}</strong></p></div>${order.status==='PAID'?`<section class="order-tracking"><p class="checkout-eyebrow">PENGIRIMAN</p><h4>Nomor resi</h4>${order.tracking?`<p>${esc(order.tracking.courier)}</p><strong>${esc(order.tracking.number)}</strong><button type="button" class="customer-text" id="tracking-copy">Salin nomor resi</button><p id="tracking-copy-result" role="status"></p>`:'<p>Nomor resi akan tampil setelah pesanan dikirim oleh admin.</p>'}</section>`:''}<div class="order-items">${order.items.map(i=>`<article class="order-item"><strong>${esc(i.name)}</strong><small>${esc(i.color)} · All Size · ${i.qty} barang</small></article>`).join('')}</div><p class="manual-status" role="status">${esc(messages[status])}</p>${['NEEDS_HELP','REJECTED'].includes(status)?`<p>Catatan admin: ${esc(lastNote)}</p>`:''}<div class="manual-breakdown"><p><span>Subtotal produk</span><strong>${money(order.subtotal)}</strong></p><p><span>${esc((order.shipping.name||String.fromCharCode(79,110,103,107,105,114)).replace(/^Perkiraan ongkir/,'Ongkir'))}</span><strong>${money(order.shipping.fee)}</strong></p><p><span>Kode unik</span><strong>+${money(order.adjustment)}</strong></p><p class="manual-total"><span>Total pembayaran</span><strong id="manual-amount">${money(order.total)}</strong></p></div><p class="manual-muted">${order.shipping.estimate?"Ongkir perkiraan master wilayah untuk paket 1 kg. Bukan tarif live kurir.":"Ongkir contoh dari pesanan simulasi sebelumnya."}</p><p>Tiga digit terakhir: <strong class="manual-code">${String(order.code).padStart(3,'0')}</strong>. Kode sudah termasuk total. Tidak perlu menambahkan angka lagi.</p><p id="manual-deadline" data-deadline="${order.deadline}"></p>${unpaid?`<div class="manual-qr" aria-label="QRIS TANJ">${state.settings.qris?`<img id="checkout-qris-image" src="${esc(state.settings.qris.data)}" alt="QRIS dari admin" style="max-width:100%;max-height:300px;object-fit:contain">`:'<p>QRIS belum tersedia. Hubungi admin sebelum membayar.</p>'}<strong>TANJ INDONESIA</strong><small>Gunakan nominal sesuai total pembayaran.</small></div><button type="button" class="shop-outline" id="manual-copy">Salin nominal</button><p id="manual-copy-result" role="status"></p><details class="manual-details"><summary>Metode Pembayaran</summary><ol><li>Scan QRIS yang tersedia.</li><li>Buka aplikasi bank/e-wallet, pilih scan QRIS atau gambar galeri jika QRIS disimpan sebagai screenshot.</li><li>Periksa nama TANJ INDONESIA dan masukkan nominal sesuai angka di website.</li><li>Setelah membayar, tunggu verifikasi pembayaran dari admin.</li><li>Upload bukti pembayaran (opsional).</li></ol></details>${status!=='CHECKING'?'<button type="button" class="shop-primary" id="manual-confirm">Saya sudah bayar</button>':''}<details class="manual-details"><summary>Tambahkan bukti (opsional)</summary><p>Upload bukti jika diperlukan untuk membantu penelusuran pembayaran.</p><form id="manual-proof-form"><label for="manual-proof">Gambar JPG/PNG/WebP, maksimal 1 MB</label><input id="manual-proof" type="file" accept="image/jpeg,image/png,image/webp" required><button class="shop-outline" type="submit">Upload bukti pembayaran</button></form></details>`:''}<p id="manual-payment-error" role="alert"></p>${order.proofs.length?`<details class="manual-details"><summary>Riwayat bukti opsional (${order.proofs.length})</summary>${order.proofs.map(p=>`<p>${esc(p.name)} · ${new Date(p.at).toLocaleString('id-ID')}</p><img class="manual-proof-image" src="${esc(p.data)}" alt="Bukti pembayaran">`).join('')}</details>`:''}<button type="button" class="customer-text" id="preview-payment-email">Pratinjau email pesanan</button><div class="manual-actions"><a id="order-notify-whatsapp" class="shop-outline" href="${esc(contact.whatsapp)}" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.6A8.5 8.5 0 1 1 20.5 11.5Z"/><path d="M8 7c0 4.5 2.5 7 7 7l1-2-3-1-1 1-2-2 1-1-1-3Z"/></svg> +6281363661703</a><a id="order-notify-email" class="shop-outline" href="${esc(contact.gmail)}" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg> tanj.indonesia@gmail.com</a></div><p class="manual-muted">Kontak membuka WhatsApp atau draf Gmail. Tekan Kirim di Gmail untuk mengirim email. Notifikasi otomatis dikirim saat Order jika layanan email telah diaktifkan.</p>${['WAITING_PAYMENT','REVIEW_DUE'].includes(status)?'<button type="button" class="checkout-back" id="manual-cancel">Batalkan jika belum membayar</button>':''}`;
-   void cropQrisArtwork($('checkout-qris-image'));
-   mountPaymentSocialLinks($('order-notify-whatsapp'),$('order-notify-email'));
-   // Once payment is reported, keep the receipt summary and optional proof,
-   // without inviting another transfer while the admin checks the payment.
-   if(!['WAITING_PAYMENT','REVIEW_DUE'].includes(status)){
-    panel.querySelector('.manual-total span').textContent='Total pesanan';
-    panel.querySelector('.manual-breakdown')?.nextElementSibling?.remove();
-    panel.querySelector('.manual-code')?.closest('p')?.remove();
-    panel.querySelectorAll('.manual-qr,#manual-copy,#manual-copy-result,#manual-deadline,#manual-confirm').forEach(el=>el.remove());
-    [...panel.querySelectorAll('.manual-details')].find(el=>el.querySelector('summary')?.textContent==='Metode Pembayaran')?.remove();
-   }
-   $('preview-payment-email').onclick=()=>{const email=buildOrderEmail(order,{baseUrl:location.origin+location.pathname});const dialog=document.createElement('dialog');dialog.id='email-preview-dialog';dialog.className='checkout-dialog';dialog.innerHTML='<button type="button" class="customer-close" aria-label="Tutup pratinjau">&times;</button><h2>Email pesanan</h2><p>Pratinjau template; email belum dikirim.</p><iframe title="Pratinjau email TANJ" sandbox></iframe><button type="button" class="shop-primary" id="email-open-payment">Cek cara membayar</button>';document.body.append(dialog);dialog.querySelector('iframe').srcdoc=email.html;dialog.querySelector('.customer-close').onclick=()=>dialog.close();dialog.querySelector('#email-open-payment').onclick=()=>{dialog.close();focusTitle();};dialog.addEventListener('close',()=>dialog.remove());dialog.showModal();};
-   const trackingSite=shipmentTracking(order.tracking?.courier);
-   if(trackingSite&&$('tracking-copy')){const link=document.createElement('a');link.id='tracking-link';link.className='customer-text';link.href=trackingSite.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Lacak di '+trackingSite.name+' ↗';link.setAttribute('aria-label','Lacak pengiriman di situs resmi '+trackingSite.name+' (tab baru)');$('tracking-copy').after(link);const hint=document.createElement('p');hint.textContent='Salin nomor resi, lalu tempel di situs pelacakan kurir.';link.after(hint);}
-   $('tracking-copy')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(order.tracking.number);$('tracking-copy-result').textContent='Nomor resi disalin.';}catch{$('tracking-copy-result').textContent='Salin nomor resi yang ditampilkan di atas.';}});
-   $('manual-all').onclick=()=>{selected=null;render();focusTitle();};
-   $('manual-copy')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(String(order.total));$('manual-copy-result').textContent='Nominal pembayaran disalin.';}catch{const range=document.createRange();range.selectNodeContents($('manual-amount'));const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);$('manual-copy-result').textContent='Nominal dipilih. Tekan lama atau gunakan Salin di perangkat Anda.';}});
-   $('manual-confirm')?.addEventListener('click',async e=>{const button=e.currentTarget;button.disabled=true;try{await buyerUpdate(order.id,'confirm');render();focusTitle();try{await notifyPayment(order);$('manual-payment-error').textContent='Notifikasi pesanan sudah diterima layanan email. Periksa Inbox/Spam.';}catch(err){$('manual-payment-error').textContent=err.message;}}catch(err){showError(err);button.disabled=false;}});
-   $('manual-cancel')?.addEventListener('click',async()=>{if(await confirmManual('Batalkan pesanan?','Lanjutkan hanya jika Anda belum membayar. Jika sudah bayar, jangan batalkan atau bayar ulang; minta admin menelusuri transaksi.','Ya, belum bayar · batalkan')){try{await buyerUpdate(order.id,'cancel');render();focusTitle();}catch(err){showError(err);}}});
-   $('manual-proof-form')?.addEventListener('submit',async e=>{e.preventDefault();const button=e.currentTarget.querySelector('button');button.disabled=true;try{const file=$('manual-proof').files[0];if(!file||file.size>1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Gunakan gambar JPG/PNG/WebP maksimal 1 MB.');const bitmap=await createImageBitmap(file);bitmap.close();const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('Gambar tidak bisa dibaca.'));reader.readAsDataURL(file);});await buyerUpdate(order.id,'proof',{name:file.name,data});render();}catch(err){showError(err);}finally{button.disabled=false;}});
-   tick();
-  }catch(err){panel.innerHTML='<p id="manual-payment-error" role="alert"></p>';$('manual-payment-error').textContent=err.message;}
- }
- function tick(){const el=$('manual-deadline');if(!el)return;const remaining=Number(el.dataset.deadline)-Date.now();if(remaining<=0){el.textContent='Batas bayar lewat. Admin tetap dapat memeriksa pembayaran; pesanan tidak otomatis dibatalkan.';return;}const mins=Math.ceil(remaining/60000);el.textContent=`Batas bayar: ${new Date(Number(el.dataset.deadline)).toLocaleString('id-ID')} · ${Math.floor(mins/60)} jam ${mins%60} menit lagi.`;}
- form.addEventListener('submit',async e=>{e.preventDefault();if(submitting||areaLoading||!form.reportValidity())return;submitting=true;syncSubmit();$('manual-checkout-error').textContent='';try{const selection=await checkout.validate();const catalog=await getCatalog();const order=await createPayment({...selection,name:$('checkout-name').value,phone:$('checkout-phone').value,email:$('checkout-email').value,address:$('checkout-address').value,provinceId:$('checkout-province').value,cityId:$('checkout-city').value,districtId:$('checkout-district').value,zip:$('checkout-zip').value,note:$('checkout-note').value},getItems(),catalog);selected=order.id;onCreated();await showPanel();$('manual-payment-error').textContent='Pesanan tersimpan. Mengirim notifikasi email...';try{await notifyPayment(order);$('manual-payment-error').textContent='Pesanan tersimpan. Notifikasi diterima layanan email untuk admin dan customer. Periksa Inbox/Spam.';}catch(err){$('manual-payment-error').textContent='Pesanan tersimpan. '+err.message;}}catch(err){$('manual-checkout-error').textContent=err.message;}finally{submitting=false;syncSubmit();}});
- const checkout=mountCheckoutExperience({form,locations,getItems,getSubtotal,getCatalog});
- window.addEventListener('tanj-restore-order-screen',async e=>{try{if(!customerSession()&&!isAdmin()){requireCustomer(()=>{selected=e.detail.id||null;showPanel();});return;}selected=e.detail.id||null;await showPanel();}finally{e.detail.done();}});
- history.onclick=()=>{if(isAdmin()){selected=null;showPanel();return;}requireCustomer(()=>{selected=null;showPanel();});};$('bag-open').addEventListener('click',()=>{panel.hidden=true;});$('bag-next').addEventListener('click',()=>{panel.hidden=true;updateShipping();});$('product-add').addEventListener('click',()=>{panel.hidden=true;});subscribePayments(()=>{if(!panel.hidden)render();});window.addEventListener('tanj-customer-change',()=>{if(!panel.hidden)render();});setInterval(tick,30000);
- function routeOrder(){if(!location.hash.startsWith('#pesanan'))return;requested=new URLSearchParams(location.hash.split('?')[1]||'').get('order');const resume=async()=>{selected=requested||null;await showPanel();if(requested&&!visibleOrders(readPayments()).some(o=>o.id===requested)){$('manual-payment-error').textContent='Pesanan dari link ini belum tersedia untuk akun di browser ini. Pastikan akun sesuai dengan pemilik pesanan. Pesanan lama versi browser belum otomatis dipindahkan. Hubungi admin TANJ dengan nomor pesanan '+requested+'.';}};if(isAdmin()){resume();return;}requireCustomer(resume);}window.addEventListener('hashchange',routeOrder);window.addEventListener('tanj-customer-authenticated',()=>{if(location.hash.startsWith('#pesanan'))routeOrder();});if(location.hash.startsWith('#pesanan'))requestAnimationFrame(routeOrder);
+  const showError = (e) => {
+    const el = $('manual-payment-error') || $('manual-checkout-error');
+    el.textContent = e.message;
+  };
+  const focusTitle = () => panel.querySelector('[tabindex="-1"]')?.focus();
+  async function showPanel() {
+    openBag();
+    $('bag-cart-view').hidden = true;
+    $('bag-checkout-view').hidden = true;
+    panel.hidden = false;
+    if (cloudEnabled) {
+      panel.innerHTML = '<p role="status">Memuat pesanan...</p>';
+      try {
+        await refreshPayments();
+      } catch (error) {
+        panel.innerHTML = '<p id="manual-payment-error" role="alert"></p>';
+        $('manual-payment-error').textContent = error.message;
+        return;
+      }
+    }
+    render();
+    focusTitle();
+  }
+  function render() {
+    panel.dataset.selectedOrder = selected || '';
+    try {
+      if (panel.hidden) return;
+      const state = readPayments();
+      const order = visibleOrders(state).find((o) => o.id === selected);
+      if (!order) {
+        panel.innerHTML = `<button type="button" class="checkout-back" id="manual-back">← Kembali ke tas</button><h3 tabindex="-1">Pesanan saya</h3>${demoNotice}<p id="manual-payment-error" role="alert">${requested && selected === requested ? esc('Pesanan dari link ini belum tersedia untuk akun di browser ini. Pastikan akun sesuai dengan pemilik pesanan. Pesanan lama versi browser belum otomatis dipindahkan. Hubungi admin TANJ dengan nomor pesanan ' + requested + '.') : ''}</p><label for="customer-status-filter">Status pesanan</label><select id="customer-status-filter"><option value="all">Semua</option><option value="WAITING_PAYMENT">Menunggu pembayaran</option><option value="CHECKING">Menunggu verifikasi</option><option value="PAID">Payment berhasil</option><option value="REJECTED">Pembayaran ditolak</option><option value="CANCELLED">Dibatalkan</option></select><div class="manual-order-list">${
+          visibleOrders(state)
+            .slice()
+            .reverse()
+            .map(
+              (o) =>
+                `<button class="manual-order" data-order-status="${orderStatus(o)}" data-order-id="${o.id}"><span>${esc(o.id)}</span><strong>${money(o.total)}</strong><small>${esc(paymentLabels[orderStatus(o)])}</small></button>`,
+            )
+            .join('') || '<p>Belum ada pesanan. Pilih produk dan lanjut ke checkout.</p>'
+        }</div>`;
+        $('manual-back').onclick = () => {
+          panel.hidden = true;
+          $('bag-cart-view').hidden = false;
+          history.focus();
+        };
+        $('customer-status-filter').onchange = (e) =>
+          panel.querySelectorAll('[data-order-id]').forEach((b) => {
+            const status = b.dataset.orderStatus;
+            const group =
+              status === 'REVIEW_DUE'
+                ? 'WAITING_PAYMENT'
+                : status === 'NEEDS_HELP'
+                  ? 'CHECKING'
+                  : status;
+            b.hidden = e.target.value !== 'all' && group !== e.target.value;
+          });
+        panel.querySelectorAll('[data-order-id]').forEach(
+          (b) =>
+            (b.onclick = () => {
+              selected = b.dataset.orderId;
+              render();
+              focusTitle();
+            }),
+        );
+        return;
+      }
+      const status = orderStatus(order),
+        unpaid = !['PAID', 'CANCELLED'].includes(status);
+      const lastNote = order.logs.at(-1)?.note || '';
+      const contact = orderContactLinks(order, paymentLabels[status]);
+      const messages = {
+        REJECTED:
+          'Pembayaran ditolak. Periksa alasan admin dan hubungi admin jika dana sudah terdebit.',
+        WAITING_PAYMENT:
+          'Sudah membayar? Konfirmasi boleh, bukti tidak wajib. Admin tetap dapat memeriksa transaksi meskipun Anda tidak menekan tombol.',
+        CHECKING:
+          'Pernyataan atau bukti Anda sudah tercatat. Admin akan mencocokkan dana masuk. Jangan bayar ulang.',
+        NEEDS_HELP:
+          'Admin perlu menelusuri pembayaran ini. Jangan bayar ulang sebelum ada konfirmasi.',
+        REVIEW_DUE:
+          'Batas waktu lewat. Pesanan tidak otomatis dibatalkan. Jika sudah bayar, jangan bayar ulang; admin tetap dapat mencocokkan transaksi.',
+        PAID: 'Dana telah dicocokkan oleh admin. Pesanan siap diproses.',
+        CANCELLED:
+          'Pesanan dibatalkan. Jika ternyata sudah membayar, hubungi admin; pembayaran tetap bisa ditelusuri.',
+      };
+      panel.innerHTML = `<button type="button" class="checkout-back" id="manual-all">← Pesanan saya</button><p class="shop-step">03 / PEMBAYARAN MANUAL</p><h3 tabindex="-1">${esc(paymentLabels[status])}</h3>${demoNotice}<p class="manual-id">${esc(order.id)}</p><div class="order-overview"><p><span>Tanggal pemesanan</span><strong>${new Date(order.createdAt).toLocaleDateString('id-ID')}</strong></p><p><span>Metode pengiriman</span><strong>${esc(order.shipping.methodName || 'Reguler')}</strong></p><p><span>Metode pembayaran</span><strong>${esc(order.payment?.name || 'QRIS manual')}</strong></p></div>${order.status === 'PAID' ? `<section class="order-tracking"><p class="checkout-eyebrow">PENGIRIMAN</p><h4>Nomor resi</h4>${order.tracking ? `<p>${esc(order.tracking.courier)}</p><strong>${esc(order.tracking.number)}</strong><button type="button" class="customer-text" id="tracking-copy">Salin nomor resi</button><p id="tracking-copy-result" role="status"></p>` : '<p>Nomor resi akan tampil setelah pesanan dikirim oleh admin.</p>'}</section>` : ''}<div class="order-items">${order.items.map((i) => `<article class="order-item"><strong>${esc(i.name)}</strong><small>${esc(i.color)} · All Size · ${i.qty} barang</small></article>`).join('')}</div><p class="manual-status" role="status">${esc(messages[status])}</p>${['NEEDS_HELP', 'REJECTED'].includes(status) ? `<p>Catatan admin: ${esc(lastNote)}</p>` : ''}<div class="manual-breakdown"><p><span>Subtotal produk</span><strong>${money(order.subtotal)}</strong></p><p><span>${esc((order.shipping.name || String.fromCharCode(79, 110, 103, 107, 105, 114)).replace(/^Perkiraan ongkir/, 'Ongkir'))}</span><strong>${money(order.shipping.fee)}</strong></p><p><span>Kode unik</span><strong>+${money(order.adjustment)}</strong></p><p class="manual-total"><span>Total pembayaran</span><strong id="manual-amount">${money(order.total)}</strong></p></div><p class="manual-muted">${order.shipping.estimate ? 'Ongkir perkiraan master wilayah untuk paket 1 kg. Bukan tarif live kurir.' : 'Ongkir contoh dari pesanan simulasi sebelumnya.'}</p><p>Tiga digit terakhir: <strong class="manual-code">${String(order.code).padStart(3, '0')}</strong>. Kode sudah termasuk total. Tidak perlu menambahkan angka lagi.</p><p id="manual-deadline" data-deadline="${order.deadline}"></p>${unpaid ? `<div class="manual-qr" aria-label="QRIS TANJ">${state.settings.qris ? `<img id="checkout-qris-image" src="${esc(state.settings.qris.data)}" alt="QRIS dari admin" style="max-width:100%;max-height:300px;object-fit:contain">` : '<p>QRIS belum tersedia. Hubungi admin sebelum membayar.</p>'}<strong>TANJ INDONESIA</strong><small>Gunakan nominal sesuai total pembayaran.</small></div><button type="button" class="shop-outline" id="manual-copy">Salin nominal</button><p id="manual-copy-result" role="status"></p><details class="manual-details"><summary>Metode Pembayaran</summary><ol><li>Scan QRIS yang tersedia.</li><li>Buka aplikasi bank/e-wallet, pilih scan QRIS atau gambar galeri jika QRIS disimpan sebagai screenshot.</li><li>Periksa nama TANJ INDONESIA dan masukkan nominal sesuai angka di website.</li><li>Setelah membayar, tunggu verifikasi pembayaran dari admin.</li><li>Upload bukti pembayaran (opsional).</li></ol></details>${status !== 'CHECKING' ? '<button type="button" class="shop-primary" id="manual-confirm">Saya sudah bayar</button>' : ''}<details class="manual-details"><summary>Tambahkan bukti (opsional)</summary><p>Upload bukti jika diperlukan untuk membantu penelusuran pembayaran.</p><form id="manual-proof-form"><label for="manual-proof">Gambar JPG/PNG/WebP, maksimal 1 MB</label><input id="manual-proof" type="file" accept="image/jpeg,image/png,image/webp" required><button class="shop-outline" type="submit">Upload bukti pembayaran</button></form></details>` : ''}<p id="manual-payment-error" role="alert"></p>${order.proofs.length ? `<details class="manual-details"><summary>Riwayat bukti opsional (${order.proofs.length})</summary>${order.proofs.map((p) => `<p>${esc(p.name)} · ${new Date(p.at).toLocaleString('id-ID')}</p><img class="manual-proof-image" src="${esc(p.data)}" alt="Bukti pembayaran">`).join('')}</details>` : ''}<button type="button" class="customer-text" id="preview-payment-email">Pratinjau email pesanan</button><div class="manual-actions"><a id="order-notify-whatsapp" class="shop-outline" href="${esc(contact.whatsapp)}" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.6A8.5 8.5 0 1 1 20.5 11.5Z"/><path d="M8 7c0 4.5 2.5 7 7 7l1-2-3-1-1 1-2-2 1-1-1-3Z"/></svg> +6281363661703</a><a id="order-notify-email" class="shop-outline" href="${esc(contact.gmail)}" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg> tanj.indonesia@gmail.com</a></div><p class="manual-muted">Kontak membuka WhatsApp atau draf Gmail. Tekan Kirim di Gmail untuk mengirim email. Notifikasi otomatis dikirim saat Order jika layanan email telah diaktifkan.</p>${['WAITING_PAYMENT', 'REVIEW_DUE'].includes(status) ? '<button type="button" class="checkout-back" id="manual-cancel">Batalkan jika belum membayar</button>' : ''}`;
+      void cropQrisArtwork($('checkout-qris-image'));
+      mountPaymentSocialLinks($('order-notify-whatsapp'), $('order-notify-email'));
+      // Once payment is reported, keep the receipt summary and optional proof,
+      // without inviting another transfer while the admin checks the payment.
+      if (!['WAITING_PAYMENT', 'REVIEW_DUE'].includes(status)) {
+        panel.querySelector('.manual-total span').textContent = 'Total pesanan';
+        panel.querySelector('.manual-breakdown')?.nextElementSibling?.remove();
+        panel.querySelector('.manual-code')?.closest('p')?.remove();
+        panel
+          .querySelectorAll(
+            '.manual-qr,#manual-copy,#manual-copy-result,#manual-deadline,#manual-confirm',
+          )
+          .forEach((el) => el.remove());
+        [...panel.querySelectorAll('.manual-details')]
+          .find((el) => el.querySelector('summary')?.textContent === 'Metode Pembayaran')
+          ?.remove();
+      }
+      $('preview-payment-email').onclick = () => {
+        const email = buildOrderEmail(order, { baseUrl: location.origin + location.pathname });
+        const dialog = document.createElement('dialog');
+        dialog.id = 'email-preview-dialog';
+        dialog.className = 'checkout-dialog';
+        dialog.innerHTML =
+          '<button type="button" class="customer-close" aria-label="Tutup pratinjau">&times;</button><h2>Email pesanan</h2><p>Pratinjau template; email belum dikirim.</p><iframe title="Pratinjau email TANJ" sandbox></iframe><button type="button" class="shop-primary" id="email-open-payment">Cek cara membayar</button>';
+        document.body.append(dialog);
+        dialog.querySelector('iframe').srcdoc = email.html;
+        dialog.querySelector('.customer-close').onclick = () => dialog.close();
+        dialog.querySelector('#email-open-payment').onclick = () => {
+          dialog.close();
+          focusTitle();
+        };
+        dialog.addEventListener('close', () => dialog.remove());
+        dialog.showModal();
+      };
+      const trackingSite = shipmentTracking(order.tracking?.courier);
+      if (trackingSite && $('tracking-copy')) {
+        const link = document.createElement('a');
+        link.id = 'tracking-link';
+        link.className = 'customer-text';
+        link.href = trackingSite.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = 'Lacak di ' + trackingSite.name + ' ↗';
+        link.setAttribute(
+          'aria-label',
+          'Lacak pengiriman di situs resmi ' + trackingSite.name + ' (tab baru)',
+        );
+        $('tracking-copy').after(link);
+        const hint = document.createElement('p');
+        hint.textContent = 'Salin nomor resi, lalu tempel di situs pelacakan kurir.';
+        link.after(hint);
+      }
+      $('tracking-copy')?.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(order.tracking.number);
+          $('tracking-copy-result').textContent = 'Nomor resi disalin.';
+        } catch {
+          $('tracking-copy-result').textContent = 'Salin nomor resi yang ditampilkan di atas.';
+        }
+      });
+      $('manual-all').onclick = () => {
+        selected = null;
+        render();
+        focusTitle();
+      };
+      $('manual-copy')?.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(String(order.total));
+          $('manual-copy-result').textContent = 'Nominal pembayaran disalin.';
+        } catch {
+          const range = document.createRange();
+          range.selectNodeContents($('manual-amount'));
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          $('manual-copy-result').textContent =
+            'Nominal dipilih. Tekan lama atau gunakan Salin di perangkat Anda.';
+        }
+      });
+      $('manual-confirm')?.addEventListener('click', async (e) => {
+        const button = e.currentTarget;
+        button.disabled = true;
+        try {
+          await buyerUpdate(order.id, 'confirm');
+          render();
+          focusTitle();
+          try {
+            await notifyPayment(order);
+            $('manual-payment-error').textContent =
+              'Notifikasi pesanan sudah diterima layanan email. Periksa Inbox/Spam.';
+          } catch (err) {
+            $('manual-payment-error').textContent = err.message;
+          }
+        } catch (err) {
+          showError(err);
+          button.disabled = false;
+        }
+      });
+      $('manual-cancel')?.addEventListener('click', async () => {
+        if (
+          await confirmManual(
+            'Batalkan pesanan?',
+            'Lanjutkan hanya jika Anda belum membayar. Jika sudah bayar, jangan batalkan atau bayar ulang; minta admin menelusuri transaksi.',
+            'Ya, belum bayar · batalkan',
+          )
+        ) {
+          try {
+            await buyerUpdate(order.id, 'cancel');
+            render();
+            focusTitle();
+          } catch (err) {
+            showError(err);
+          }
+        }
+      });
+      $('manual-proof-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const button = e.currentTarget.querySelector('button');
+        button.disabled = true;
+        try {
+          const file = $('manual-proof').files[0];
+          if (
+            !file ||
+            file.size > 1024 * 1024 ||
+            !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+          )
+            throw Error('Gunakan gambar JPG/PNG/WebP maksimal 1 MB.');
+          const bitmap = await createImageBitmap(file);
+          bitmap.close();
+          const data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(Error('Gambar tidak bisa dibaca.'));
+            reader.readAsDataURL(file);
+          });
+          await buyerUpdate(order.id, 'proof', { name: file.name, data });
+          render();
+        } catch (err) {
+          showError(err);
+        } finally {
+          button.disabled = false;
+        }
+      });
+      tick();
+    } catch (err) {
+      panel.innerHTML = '<p id="manual-payment-error" role="alert"></p>';
+      $('manual-payment-error').textContent = err.message;
+    }
+  }
+  function tick() {
+    const el = $('manual-deadline');
+    if (!el) return;
+    const remaining = Number(el.dataset.deadline) - Date.now();
+    if (remaining <= 0) {
+      el.textContent =
+        'Batas bayar lewat. Admin tetap dapat memeriksa pembayaran; pesanan tidak otomatis dibatalkan.';
+      return;
+    }
+    const mins = Math.ceil(remaining / 60000);
+    el.textContent = `Batas bayar: ${new Date(Number(el.dataset.deadline)).toLocaleString('id-ID')} · ${Math.floor(mins / 60)} jam ${mins % 60} menit lagi.`;
+  }
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (submitting || areaLoading || !form.reportValidity()) return;
+    submitting = true;
+    syncSubmit();
+    $('manual-checkout-error').textContent = '';
+    try {
+      const selection = await checkout.validate();
+      const catalog = await getCatalog();
+      const order = await createPayment(
+        {
+          ...selection,
+          name: $('checkout-name').value,
+          phone: $('checkout-phone').value,
+          email: $('checkout-email').value,
+          address: $('checkout-address').value,
+          provinceId: $('checkout-province').value,
+          cityId: $('checkout-city').value,
+          districtId: $('checkout-district').value,
+          zip: $('checkout-zip').value,
+          note: $('checkout-note').value,
+        },
+        getItems(),
+        catalog,
+      );
+      selected = order.id;
+      onCreated();
+      await showPanel();
+      $('manual-payment-error').textContent = 'Pesanan tersimpan. Mengirim notifikasi email...';
+      try {
+        await notifyPayment(order);
+        $('manual-payment-error').textContent =
+          'Pesanan tersimpan. Notifikasi diterima layanan email untuk admin dan customer. Periksa Inbox/Spam.';
+      } catch (err) {
+        $('manual-payment-error').textContent = 'Pesanan tersimpan. ' + err.message;
+      }
+    } catch (err) {
+      $('manual-checkout-error').textContent = err.message;
+    } finally {
+      submitting = false;
+      syncSubmit();
+    }
+  });
+  const checkout = mountCheckoutExperience({ form, locations, getItems, getSubtotal, getCatalog });
+  window.addEventListener('tanj-restore-order-screen', async (e) => {
+    try {
+      if (!customerSession() && !isAdmin()) {
+        requireCustomer(() => {
+          selected = e.detail.id || null;
+          showPanel();
+        });
+        return;
+      }
+      selected = e.detail.id || null;
+      await showPanel();
+    } finally {
+      e.detail.done();
+    }
+  });
+  history.onclick = () => {
+    if (isAdmin()) {
+      selected = null;
+      showPanel();
+      return;
+    }
+    requireCustomer(() => {
+      selected = null;
+      showPanel();
+    });
+  };
+  $('bag-open').addEventListener('click', () => {
+    panel.hidden = true;
+  });
+  $('bag-next').addEventListener('click', () => {
+    panel.hidden = true;
+    updateShipping();
+  });
+  $('product-add').addEventListener('click', () => {
+    panel.hidden = true;
+  });
+  subscribePayments(() => {
+    if (!panel.hidden) render();
+  });
+  window.addEventListener('tanj-customer-change', () => {
+    if (!panel.hidden) render();
+  });
+  setInterval(tick, 30000);
+  function routeOrder() {
+    if (!location.hash.startsWith('#pesanan')) return;
+    requested = new URLSearchParams(location.hash.split('?')[1] || '').get('order');
+    const resume = async () => {
+      selected = requested || null;
+      await showPanel();
+      if (requested && !visibleOrders(readPayments()).some((o) => o.id === requested)) {
+        $('manual-payment-error').textContent =
+          'Pesanan dari link ini belum tersedia untuk akun di browser ini. Pastikan akun sesuai dengan pemilik pesanan. Pesanan lama versi browser belum otomatis dipindahkan. Hubungi admin TANJ dengan nomor pesanan ' +
+          requested +
+          '.';
+      }
+    };
+    if (isAdmin()) {
+      resume();
+      return;
+    }
+    requireCustomer(resume);
+  }
+  window.addEventListener('hashchange', routeOrder);
+  window.addEventListener('tanj-customer-authenticated', () => {
+    if (location.hash.startsWith('#pesanan')) routeOrder();
+  });
+  if (location.hash.startsWith('#pesanan')) requestAnimationFrame(routeOrder);
 }

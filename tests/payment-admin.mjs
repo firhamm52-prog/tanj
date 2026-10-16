@@ -1,73 +1,334 @@
-import {isolateEmail} from './helpers/email-isolation.mjs';
-import {chromium} from 'playwright';
-import {createServer} from 'node:http';
-import {readFile,mkdir} from 'node:fs/promises';
-import {resolve,extname,sep} from 'node:path';
+import { isolateEmail } from './helpers/email-isolation.mjs';
+import { chromium } from 'playwright';
+import { createServer } from 'node:http';
+import { readFile, mkdir } from 'node:fs/promises';
+import { resolve, extname, sep } from 'node:path';
 import assert from 'node:assert/strict';
-const root=process.cwd();let url;
-const server=createServer(async(req,res)=>{try{let path=new URL(req.url,'http://localhost').pathname;if(!path.startsWith('/tanj/')){res.writeHead(404);return res.end();}path=path.slice(5);if(path.endsWith('/'))path+='index.html';const file=resolve(root,'.'+path);if(!file.startsWith(root+sep))throw Error();res.writeHead(200,{'Content-Type':{'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp'}[extname(file)]||'application/octet-stream'});res.end(await readFile(file));}catch{res.writeHead(404);res.end();}});
-await new Promise(r=>server.listen(0,'127.0.0.1',r));
-url=`http://127.0.0.1:${server.address().port}/tanj/`;
+const root = process.cwd();
+let url;
+const server = createServer(async (req, res) => {
+  try {
+    let path = new URL(req.url, 'http://localhost').pathname;
+    if (!path.startsWith('/tanj/')) {
+      res.writeHead(404);
+      return res.end();
+    }
+    path = path.slice(5);
+    if (path.endsWith('/')) path += 'index.html';
+    const file = resolve(root, '.' + path);
+    if (!file.startsWith(root + sep)) throw Error();
+    res.writeHead(200, {
+      'Content-Type':
+        {
+          '.html': 'text/html',
+          '.js': 'text/javascript',
+          '.css': 'text/css',
+          '.svg': 'image/svg+xml',
+          '.png': 'image/png',
+          '.webp': 'image/webp',
+        }[extname(file)] || 'application/octet-stream',
+    });
+    res.end(await readFile(file));
+  } catch {
+    res.writeHead(404);
+    res.end();
+  }
+});
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+url = `http://127.0.0.1:${server.address().port}/tanj/`;
 let browser;
 try {
- browser=await chromium.launch({channel:'chrome',headless:true});
- const page=await browser.newPage({viewport:{width:390,height:844}});await isolateEmail(page.context());
- await page.goto(url+'admin/payments.html');
- await page.locator('#login-title').filter({hasText:'Buat akun admin'}).waitFor({state:'attached'});
- await page.locator('#auth-form [name=id]').fill('owner');
- await page.locator('#auth-submit').click();await page.locator('#auth-error').filter({hasText:'Password wajib diisi'}).waitFor();assert.equal(await page.locator('#admin-view-switch').isVisible(),false);
- await page.evaluate(()=>document.getElementById('auth-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
- await page.locator('#auth-error').filter({hasText:'Password wajib diisi'}).waitFor();
- assert.equal(await page.evaluate(()=>localStorage.getItem('tanj-payment-admin-local-v1')),null);
- await page.locator('#auth-form [name=id]').fill('owner');await page.locator('#auth-form [name=password]').fill('demo-password-123');await page.locator('#auth-form [name=repeat]').fill('demo-password-123');await page.locator('#auth-submit').click();await page.locator('#admin-view-switch').waitFor({state:'visible'});await page.locator('#admin-view-switch a').filter({hasText:'Admin'}).click();await page.locator('#dashboard').waitFor({state:'visible'});
- await page.evaluate(()=>{localStorage.setItem('tanj-manual-payments-demo-v1',JSON.stringify({version:1,settings:{admin:'Owner',hours:24},orders:[{id:'TANJ-TEST',customer:{name:'Pembeli',phone:'081200000000',address:'Alamat contoh',district:'Karawaci',city:'Tangerang',zip:'15115'},items:[{name:'Dress',color:'Black',qty:1}],shipping:{fee:10000},subtotal:687000,total:697123,adjustment:123,code:123,status:'CHECKING',createdAt:Date.now(),deadline:Date.now()+86400000,version:1,proofs:[],logs:[]}]}));window.dispatchEvent(new Event('tanj-payments-change'));});
- const whatsapp=new URL(await page.locator('#customer-whatsapp-send').getAttribute('href'));assert.equal(whatsapp.hostname,'wa.me');assert.equal(whatsapp.pathname,'/6281200000000');assert.match(whatsapp.searchParams.get('text'),/TANJ-TEST/);assert.match(whatsapp.searchParams.get('text'),/Menunggu verifikasi/);assert.match(whatsapp.searchParams.get('text'),/\/tanj\/#pesanan\?order=TANJ-TEST/);assert.equal(await page.locator('#customer-whatsapp-send').getAttribute('target'),'_blank');
- await page.locator('#reject').click();assert.equal(await page.locator('#review-form textarea').count(),0);await page.locator('#review-form [type=submit]').click();await page.locator('[data-filter=REJECTED]').click();await page.locator('.order').waitFor();assert.match(await page.locator('#detail').textContent(),/Pembayaran ditolak/);
- await page.evaluate(()=>{const key='tanj-manual-payments-demo-v1',state=JSON.parse(localStorage.getItem(key));state.orders.push({...structuredClone(state.orders[0]),id:'TANJ-SHIPPING',status:'CHECKING',version:1});localStorage.setItem(key,JSON.stringify(state));window.dispatchEvent(new Event('tanj-payments-change'));});
- await page.locator('[data-filter=CHECKING]').click();await page.locator('#approve').click();assert.equal(await page.locator('#review-form [name=amount],#review-form [name=reference],#review-form [name=paidAt],#review-form textarea').count(),0);await page.locator('#review-form [name=checked]').check();await page.locator('#review-form [type=submit]').click();await page.locator('#tracking-form').waitFor();await page.locator('#tracking-form [name=courier]').fill('JNE');await page.locator('#tracking-form [name=number]').fill('JNE-TEST-123');await page.locator('#tracking-form [type=submit]').click();await page.waitForFunction(()=>JSON.parse(localStorage.getItem('tanj-manual-payments-demo-v1')).orders.find(o=>o.id==='TANJ-SHIPPING').tracking?.number==='JNE-TEST-123');
- await page.locator('[data-filter=REJECTED]').click();
- await page.locator('summary').filter({hasText:'Pengaturan QRIS'}).click();
- await page.locator('#qris-file').setInputFiles({name:'invalid.png',mimeType:'image/png',buffer:Buffer.from('invalid image')});await page.locator('#qris-form [type=submit]').click();await page.locator('#qris-message').filter({hasText:'decoded'}).waitFor();
- await page.locator('#qris-file').setInputFiles({name:'qris-trial.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6l8AAAAASUVORK5CYII=','base64')});
- await page.locator('#qris-message').filter({hasText:'Gambar dipilih'}).waitFor();
- assert.equal(await page.locator('#qris-preview').isVisible(),false);
- await page.locator('#qris-form [type=submit]').click();
- await page.locator('#qris-message').filter({hasText:'tersimpan'}).waitFor();assert.equal(await page.locator('#qris-preview').isVisible(),true);
- assert.match(await page.locator('#qris-preview').getAttribute('src'),/^data:image\/png;base64,/);
- assert.ok(await page.locator('#qris-preview').evaluate(image=>image.getBoundingClientRect().width)>250);
- assert.equal(await page.locator('#qris-file').inputValue(),'');
- assert.equal(await page.locator('#qris-form [type=submit]').isDisabled(),false);
- assert.equal(await page.locator('#qris-file').getAttribute('required'),null);
- await page.locator('#qris-form').evaluate(form=>form.requestSubmit());
- await page.locator('#qris-message').filter({hasText:'QRIS sudah tersimpan'}).waitFor();
- await page.reload();await page.locator('#dashboard').waitFor({state:'visible'});
- await page.locator('summary').filter({hasText:'Pengaturan QRIS'}).click();
- assert.equal(await page.locator('#qris-preview').isVisible(),true);
- assert.equal(await page.locator('#qris-form [type=submit]').isDisabled(),false);
- await page.goto(url);await page.locator('#bag-open').click();await page.locator('#manual-orders').click();await page.locator('[data-order-id=TANJ-TEST]').click();assert.equal(await page.locator('.manual-qr').count(),0);
- await page.locator('#manual-all').click();await page.locator('[data-order-id=TANJ-SHIPPING]').click();assert.match(await page.locator('.order-tracking').textContent(),/JNE-TEST-123/);assert.match(await page.locator('.order-tracking').textContent(),/JNE/);
- const gmail=new URL(await page.locator('#order-notify-email').getAttribute('href'));assert.equal(gmail.hostname,'mail.google.com');assert.equal(gmail.searchParams.get('to'),'tanj.indonesia@gmail.com');assert.equal(gmail.searchParams.get('su'),'Bantuan TANJ');assert.equal(gmail.searchParams.has('body'),false);assert.equal(gmail.searchParams.has('cc'),false);assert.equal(await page.locator('#order-notify-email').getAttribute('target'),'_blank');
- assert.equal(await page.locator('.payment-social-links>a').count(),4);
- assert.equal((await page.locator('#order-notify-email').textContent()).trim(),'');
- assert.equal((await page.locator('#order-notify-whatsapp').textContent()).trim(),'');
- assert.equal(await page.locator('.payment-social-links').getByRole('link',{name:'TikTok TANJ',exact:true}).getAttribute('href'),'https://www.tiktok.com/@tanj.co.id');
- assert.equal(await page.locator('.payment-social-links').getByRole('link',{name:'Instagram TANJ',exact:true}).getAttribute('href'),'https://www.instagram.com/tanjofficial/');
- await page.context().route('https://mail.google.com/**',route=>route.fulfill({contentType:'text/html',body:'<h1>Draft email test</h1>'}));
- const draftPromise=page.waitForEvent('popup');await page.locator('#order-notify-email').click();const draft=await draftPromise;await draft.waitForLoadState();assert.equal(new URL(draft.url()).searchParams.get('to'),'tanj.indonesia@gmail.com');await draft.close();
- await page.goBack();await page.locator('#customer-status-filter').waitFor();
- await page.goForward();await page.locator('.order-tracking').waitFor();
- assert.match(await page.locator('.order-tracking').textContent(),/JNE-TEST-123/);
- assert.equal(await page.locator('#tracking-link').getAttribute('href'),'https://jne.co.id/tracking-package');assert.equal(await page.locator('#tracking-link').getAttribute('target'),'_blank');assert.match(await page.locator('#tracking-link').getAttribute('rel'),/noopener/);
- for(const [courier,href] of [['J&T Express','https://www.jet.co.id/track'],['Lion Parcel','https://lionparcel.com/track'],['Unknown courier',null]]){await page.evaluate(courier=>{const key='tanj-manual-payments-demo-v1',state=JSON.parse(localStorage.getItem(key));state.orders.find(o=>o.id==='TANJ-SHIPPING').tracking.courier=courier;localStorage.setItem(key,JSON.stringify(state));window.dispatchEvent(new Event('tanj-payments-change'));},courier);if(href)assert.equal(await page.locator('#tracking-link').getAttribute('href'),href);else assert.equal(await page.locator('#tracking-link').count(),0);assert.equal(await page.locator('#tracking-copy').isVisible(),true);}
- await page.goto(url+'admin/payments.html');await page.locator('#dashboard').waitFor({state:'visible'});
- await page.reload();await page.locator('#dashboard').waitFor({state:'visible'});assert.equal(await page.locator('#filters button').count(),6);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
- await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/payments-mobile.png',fullPage:true});await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'test-results/payments-desktop.png',fullPage:true});
- await page.getByRole('link',{name:'Pembeli',exact:true}).click();await page.locator('#admin-view-switch').waitFor({state:'visible'});await page.locator('[data-account-open]').first().click();await page.locator('#customer-admin').click();await page.locator('#admin-signout').click();await page.waitForURL(url);assert.equal(await page.locator('#admin-view-switch').isVisible(),false);
- await page.goto(url+'admin/payments.html');await page.locator('#login').waitFor({state:'visible'});assert.ok(page.url().includes('#admin-login'));assert.equal(await page.locator('#auth-form [name=repeat]').count(),0);await page.locator('#auth-form [name=id]').fill('owner');await page.locator('#auth-submit').click();await page.locator('#auth-error').filter({hasText:'Password wajib diisi'}).waitFor();await page.locator('#auth-form [name=id]').fill('');await page.evaluate(()=>document.getElementById('auth-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));await page.locator('#auth-error').filter({hasText:'Isi ID'}).waitFor();await page.locator('#auth-form [name=id]').fill('owner');await page.locator('#auth-form [name=password]').fill('wrong-password-123');await page.locator('#auth-submit').click();await page.locator('#auth-error').filter({hasText:'ID atau password salah'}).waitFor();await page.locator('#auth-form [name=password]').fill('demo-password-123');await page.locator('#auth-submit').click();await page.locator('#admin-view-switch').waitFor({state:'visible'});assert.equal(await page.locator('#account-modal').isVisible(),false);
- await page.locator('[data-account-open]').first().click();await page.locator('#customer-admin').click();await page.locator('#admin-reauthenticate').click();assert.equal(await page.locator('#auth-form [name=repeat]').count(),0);await page.locator('#auth-form [name=id]').fill('owner');await page.locator('#auth-submit').click();await page.locator('#auth-error').filter({hasText:'Password wajib diisi'}).waitFor();assert.equal(await page.locator('#admin-view-switch').isVisible(),false);await page.locator('#auth-form [name=password]').fill('demo-password-123');await page.locator('#auth-submit').click();await page.locator('#admin-view-switch').waitFor({state:'visible'});
- await page.evaluate(()=>{const key='tanj-admin-session-v2';const session=JSON.parse(sessionStorage.getItem(key));session.expires=Date.now()-1;sessionStorage.setItem(key,JSON.stringify(session));});
- await page.goto(url+'admin/payments.html');await page.locator('#login').waitFor({state:'visible'});
- await page.evaluate(()=>{sessionStorage.removeItem('tanj-admin-session-v2');const saved=JSON.parse(localStorage.getItem('tanj-payment-admin-local-v1'));sessionStorage.setItem('tanj-admin-session-v1',JSON.stringify({...saved,expires:Date.now()+60000}));});
- await page.goto(url+'admin/payments.html');await page.locator('#login').waitFor({state:'visible'});
- console.log('Unified account setup, login, buyer/admin switching, persistent session, logout guard, QRIS, rejection and mobile checks passed.');
-} finally {await browser?.close();await new Promise(r=>server.close(r));}
+  browser = await chromium.launch({ channel: 'chrome', headless: true });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await isolateEmail(page.context());
+  await page.goto(url + 'admin/payments.html');
+  await page
+    .locator('#login-title')
+    .filter({ hasText: 'Buat akun admin' })
+    .waitFor({ state: 'attached' });
+  await page.locator('#auth-form [name=id]').fill('owner');
+  await page.locator('#auth-submit').click();
+  await page.locator('#auth-error').filter({ hasText: 'Password wajib diisi' }).waitFor();
+  assert.equal(await page.locator('#admin-view-switch').isVisible(), false);
+  await page.evaluate(() =>
+    document
+      .getElementById('auth-form')
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+  );
+  await page.locator('#auth-error').filter({ hasText: 'Password wajib diisi' }).waitFor();
+  assert.equal(
+    await page.evaluate(() => localStorage.getItem('tanj-payment-admin-local-v1')),
+    null,
+  );
+  await page.locator('#auth-form [name=id]').fill('owner');
+  await page.locator('#auth-form [name=password]').fill('demo-password-123');
+  await page.locator('#auth-form [name=repeat]').fill('demo-password-123');
+  await page.locator('#auth-submit').click();
+  await page.locator('#admin-view-switch').waitFor({ state: 'visible' });
+  await page.locator('#admin-view-switch a').filter({ hasText: 'Admin' }).click();
+  await page.locator('#dashboard').waitFor({ state: 'visible' });
+  await page.evaluate(() => {
+    localStorage.setItem(
+      'tanj-manual-payments-demo-v1',
+      JSON.stringify({
+        version: 1,
+        settings: { admin: 'Owner', hours: 24 },
+        orders: [
+          {
+            id: 'TANJ-TEST',
+            customer: {
+              name: 'Pembeli',
+              phone: '081200000000',
+              address: 'Alamat contoh',
+              district: 'Karawaci',
+              city: 'Tangerang',
+              zip: '15115',
+            },
+            items: [{ name: 'Dress', color: 'Black', qty: 1 }],
+            shipping: { fee: 10000 },
+            subtotal: 687000,
+            total: 697123,
+            adjustment: 123,
+            code: 123,
+            status: 'CHECKING',
+            createdAt: Date.now(),
+            deadline: Date.now() + 86400000,
+            version: 1,
+            proofs: [],
+            logs: [],
+          },
+        ],
+      }),
+    );
+    window.dispatchEvent(new Event('tanj-payments-change'));
+  });
+  const whatsapp = new URL(await page.locator('#customer-whatsapp-send').getAttribute('href'));
+  assert.equal(whatsapp.hostname, 'wa.me');
+  assert.equal(whatsapp.pathname, '/6281200000000');
+  assert.match(whatsapp.searchParams.get('text'), /TANJ-TEST/);
+  assert.match(whatsapp.searchParams.get('text'), /Menunggu verifikasi/);
+  assert.match(whatsapp.searchParams.get('text'), /\/tanj\/#pesanan\?order=TANJ-TEST/);
+  assert.equal(await page.locator('#customer-whatsapp-send').getAttribute('target'), '_blank');
+  await page.locator('#reject').click();
+  assert.equal(await page.locator('#review-form textarea').count(), 0);
+  await page.locator('#review-form [type=submit]').click();
+  await page.locator('[data-filter=REJECTED]').click();
+  await page.locator('.order').waitFor();
+  assert.match(await page.locator('#detail').textContent(), /Pembayaran ditolak/);
+  await page.evaluate(() => {
+    const key = 'tanj-manual-payments-demo-v1',
+      state = JSON.parse(localStorage.getItem(key));
+    state.orders.push({
+      ...structuredClone(state.orders[0]),
+      id: 'TANJ-SHIPPING',
+      status: 'CHECKING',
+      version: 1,
+    });
+    localStorage.setItem(key, JSON.stringify(state));
+    window.dispatchEvent(new Event('tanj-payments-change'));
+  });
+  await page.locator('[data-filter=CHECKING]').click();
+  await page.locator('#approve').click();
+  assert.equal(
+    await page
+      .locator(
+        '#review-form [name=amount],#review-form [name=reference],#review-form [name=paidAt],#review-form textarea',
+      )
+      .count(),
+    0,
+  );
+  await page.locator('#review-form [name=checked]').check();
+  await page.locator('#review-form [type=submit]').click();
+  await page.locator('#tracking-form').waitFor();
+  await page.locator('#tracking-form [name=courier]').fill('JNE');
+  await page.locator('#tracking-form [name=number]').fill('JNE-TEST-123');
+  await page.locator('#tracking-form [type=submit]').click();
+  await page.waitForFunction(
+    () =>
+      JSON.parse(localStorage.getItem('tanj-manual-payments-demo-v1')).orders.find(
+        (o) => o.id === 'TANJ-SHIPPING',
+      ).tracking?.number === 'JNE-TEST-123',
+  );
+  await page.locator('[data-filter=REJECTED]').click();
+  await page.locator('summary').filter({ hasText: 'Pengaturan QRIS' }).click();
+  await page.locator('#qris-file').setInputFiles({
+    name: 'invalid.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('invalid image'),
+  });
+  await page.locator('#qris-form [type=submit]').click();
+  await page.locator('#qris-message').filter({ hasText: 'decoded' }).waitFor();
+  await page.locator('#qris-file').setInputFiles({
+    name: 'qris-trial.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6l8AAAAASUVORK5CYII=',
+      'base64',
+    ),
+  });
+  await page.locator('#qris-message').filter({ hasText: 'Gambar dipilih' }).waitFor();
+  assert.equal(await page.locator('#qris-preview').isVisible(), false);
+  await page.locator('#qris-form [type=submit]').click();
+  await page.locator('#qris-message').filter({ hasText: 'tersimpan' }).waitFor();
+  assert.equal(await page.locator('#qris-preview').isVisible(), true);
+  assert.match(await page.locator('#qris-preview').getAttribute('src'), /^data:image\/png;base64,/);
+  assert.ok(
+    (await page.locator('#qris-preview').evaluate((image) => image.getBoundingClientRect().width)) >
+      250,
+  );
+  assert.equal(await page.locator('#qris-file').inputValue(), '');
+  assert.equal(await page.locator('#qris-form [type=submit]').isDisabled(), false);
+  assert.equal(await page.locator('#qris-file').getAttribute('required'), null);
+  await page.locator('#qris-form').evaluate((form) => form.requestSubmit());
+  await page.locator('#qris-message').filter({ hasText: 'QRIS sudah tersimpan' }).waitFor();
+  await page.reload();
+  await page.locator('#dashboard').waitFor({ state: 'visible' });
+  await page.locator('summary').filter({ hasText: 'Pengaturan QRIS' }).click();
+  assert.equal(await page.locator('#qris-preview').isVisible(), true);
+  assert.equal(await page.locator('#qris-form [type=submit]').isDisabled(), false);
+  await page.goto(url);
+  await page.locator('#bag-open').click();
+  await page.locator('#manual-orders').click();
+  await page.locator('[data-order-id=TANJ-TEST]').click();
+  assert.equal(await page.locator('.manual-qr').count(), 0);
+  await page.locator('#manual-all').click();
+  await page.locator('[data-order-id=TANJ-SHIPPING]').click();
+  assert.match(await page.locator('.order-tracking').textContent(), /JNE-TEST-123/);
+  assert.match(await page.locator('.order-tracking').textContent(), /JNE/);
+  const gmail = new URL(await page.locator('#order-notify-email').getAttribute('href'));
+  assert.equal(gmail.hostname, 'mail.google.com');
+  assert.equal(gmail.searchParams.get('to'), 'tanj.indonesia@gmail.com');
+  assert.equal(gmail.searchParams.get('su'), 'Bantuan TANJ');
+  assert.equal(gmail.searchParams.has('body'), false);
+  assert.equal(gmail.searchParams.has('cc'), false);
+  assert.equal(await page.locator('#order-notify-email').getAttribute('target'), '_blank');
+  assert.equal(await page.locator('.payment-social-links>a').count(), 4);
+  assert.equal((await page.locator('#order-notify-email').textContent()).trim(), '');
+  assert.equal((await page.locator('#order-notify-whatsapp').textContent()).trim(), '');
+  assert.equal(
+    await page
+      .locator('.payment-social-links')
+      .getByRole('link', { name: 'TikTok TANJ', exact: true })
+      .getAttribute('href'),
+    'https://www.tiktok.com/@tanj.co.id',
+  );
+  assert.equal(
+    await page
+      .locator('.payment-social-links')
+      .getByRole('link', { name: 'Instagram TANJ', exact: true })
+      .getAttribute('href'),
+    'https://www.instagram.com/tanjofficial/',
+  );
+  await page
+    .context()
+    .route('https://mail.google.com/**', (route) =>
+      route.fulfill({ contentType: 'text/html', body: '<h1>Draft email test</h1>' }),
+    );
+  const draftPromise = page.waitForEvent('popup');
+  await page.locator('#order-notify-email').click();
+  const draft = await draftPromise;
+  await draft.waitForLoadState();
+  assert.equal(new URL(draft.url()).searchParams.get('to'), 'tanj.indonesia@gmail.com');
+  await draft.close();
+  await page.goBack();
+  await page.locator('#customer-status-filter').waitFor();
+  await page.goForward();
+  await page.locator('.order-tracking').waitFor();
+  assert.match(await page.locator('.order-tracking').textContent(), /JNE-TEST-123/);
+  assert.equal(
+    await page.locator('#tracking-link').getAttribute('href'),
+    'https://jne.co.id/tracking-package',
+  );
+  assert.equal(await page.locator('#tracking-link').getAttribute('target'), '_blank');
+  assert.match(await page.locator('#tracking-link').getAttribute('rel'), /noopener/);
+  for (const [courier, href] of [
+    ['J&T Express', 'https://www.jet.co.id/track'],
+    ['Lion Parcel', 'https://lionparcel.com/track'],
+    ['Unknown courier', null],
+  ]) {
+    await page.evaluate((courier) => {
+      const key = 'tanj-manual-payments-demo-v1',
+        state = JSON.parse(localStorage.getItem(key));
+      state.orders.find((o) => o.id === 'TANJ-SHIPPING').tracking.courier = courier;
+      localStorage.setItem(key, JSON.stringify(state));
+      window.dispatchEvent(new Event('tanj-payments-change'));
+    }, courier);
+    if (href) assert.equal(await page.locator('#tracking-link').getAttribute('href'), href);
+    else assert.equal(await page.locator('#tracking-link').count(), 0);
+    assert.equal(await page.locator('#tracking-copy').isVisible(), true);
+  }
+  await page.goto(url + 'admin/payments.html');
+  await page.locator('#dashboard').waitFor({ state: 'visible' });
+  await page.reload();
+  await page.locator('#dashboard').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('#filters button').count(), 6);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await mkdir('test-results', { recursive: true });
+  await page.screenshot({ path: 'test-results/payments-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.screenshot({ path: 'test-results/payments-desktop.png', fullPage: true });
+  await page.getByRole('link', { name: 'Pembeli', exact: true }).click();
+  await page.locator('#admin-view-switch').waitFor({ state: 'visible' });
+  await page.locator('[data-account-open]').first().click();
+  await page.locator('#customer-admin').click();
+  await page.locator('#admin-signout').click();
+  await page.waitForURL(url);
+  assert.equal(await page.locator('#admin-view-switch').isVisible(), false);
+  await page.goto(url + 'admin/payments.html');
+  await page.locator('#login').waitFor({ state: 'visible' });
+  assert.ok(page.url().includes('#admin-login'));
+  assert.equal(await page.locator('#auth-form [name=repeat]').count(), 0);
+  await page.locator('#auth-form [name=id]').fill('owner');
+  await page.locator('#auth-submit').click();
+  await page.locator('#auth-error').filter({ hasText: 'Password wajib diisi' }).waitFor();
+  await page.locator('#auth-form [name=id]').fill('');
+  await page.evaluate(() =>
+    document
+      .getElementById('auth-form')
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+  );
+  await page.locator('#auth-error').filter({ hasText: 'Isi ID' }).waitFor();
+  await page.locator('#auth-form [name=id]').fill('owner');
+  await page.locator('#auth-form [name=password]').fill('wrong-password-123');
+  await page.locator('#auth-submit').click();
+  await page.locator('#auth-error').filter({ hasText: 'ID atau password salah' }).waitFor();
+  await page.locator('#auth-form [name=password]').fill('demo-password-123');
+  await page.locator('#auth-submit').click();
+  await page.locator('#admin-view-switch').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('#account-modal').isVisible(), false);
+  await page.locator('[data-account-open]').first().click();
+  await page.locator('#customer-admin').click();
+  await page.locator('#admin-reauthenticate').click();
+  assert.equal(await page.locator('#auth-form [name=repeat]').count(), 0);
+  await page.locator('#auth-form [name=id]').fill('owner');
+  await page.locator('#auth-submit').click();
+  await page.locator('#auth-error').filter({ hasText: 'Password wajib diisi' }).waitFor();
+  assert.equal(await page.locator('#admin-view-switch').isVisible(), false);
+  await page.locator('#auth-form [name=password]').fill('demo-password-123');
+  await page.locator('#auth-submit').click();
+  await page.locator('#admin-view-switch').waitFor({ state: 'visible' });
+  await page.evaluate(() => {
+    const key = 'tanj-admin-session-v2';
+    const session = JSON.parse(sessionStorage.getItem(key));
+    session.expires = Date.now() - 1;
+    sessionStorage.setItem(key, JSON.stringify(session));
+  });
+  await page.goto(url + 'admin/payments.html');
+  await page.locator('#login').waitFor({ state: 'visible' });
+  await page.evaluate(() => {
+    sessionStorage.removeItem('tanj-admin-session-v2');
+    const saved = JSON.parse(localStorage.getItem('tanj-payment-admin-local-v1'));
+    sessionStorage.setItem(
+      'tanj-admin-session-v1',
+      JSON.stringify({ ...saved, expires: Date.now() + 60000 }),
+    );
+  });
+  await page.goto(url + 'admin/payments.html');
+  await page.locator('#login').waitFor({ state: 'visible' });
+  console.log(
+    'Unified account setup, login, buyer/admin switching, persistent session, logout guard, QRIS, rejection and mobile checks passed.',
+  );
+} finally {
+  await browser?.close();
+  await new Promise((r) => server.close(r));
+}

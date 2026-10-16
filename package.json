@@ -7,6 +7,8 @@
     "node": ">=24.0.0"
   },
   "scripts": {
+    "format": "prettier --write . && node scripts/format-sql.mjs",
+    "format:check": "prettier --check . && node scripts/format-sql.mjs --check",
     "start": "node scripts/start.mjs",
     "db:init": "node scripts/init-db.mjs",
     "admin:reset-password": "node scripts/reset-password.mjs",
@@ -23,7 +25,9 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10",
     "esbuild": "^0.28.2",
-    "playwright": "^1.58.0"
+    "playwright": "^1.58.0",
+    "prettier": "^3.9.10",
+    "sql-formatter": "^15.9.0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0"

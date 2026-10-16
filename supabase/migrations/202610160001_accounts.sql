@@ -1,48 +1,131 @@
 -- TANJ foundation. Run in the project's SQL Editor before connecting the app.
-begin;
-create table public.tb_m_account (
- id uuid primary key references auth.users(id) on delete cascade,
- full_name text not null default '' check (char_length(full_name)<=80),
- created_at timestamptz not null default now()
+BEGIN;
+
+CREATE TABLE public.tb_m_account (
+  id uuid PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
+  full_name text NOT NULL DEFAULT '' CHECK (char_length(full_name) <= 80),
+  created_at timestamptz NOT NULL DEFAULT now()
 );
-create table public.tb_m_address (
- id uuid primary key default gen_random_uuid(),
- account_id uuid not null references public.tb_m_account(id) on delete cascade,
- label text not null default '' check (char_length(label)<=80),
- recipient text not null check (char_length(recipient) between 1 and 80),
- phone text not null check (char_length(phone)<=20),
- address text not null check (char_length(address) between 1 and 500),
- province_id text not null, city_id text not null, district_id text not null,
- postcode text not null check (postcode ~ '^[0-9]{5}$'),
- created_at timestamptz not null default now()
+
+CREATE TABLE public.tb_m_address (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id uuid NOT NULL REFERENCES public.tb_m_account (id) ON DELETE CASCADE,
+  label text NOT NULL DEFAULT '' CHECK (char_length(label) <= 80),
+  recipient text NOT NULL CHECK (char_length(recipient) BETWEEN 1 AND 80),
+  phone text NOT NULL CHECK (char_length(phone) <= 20),
+  address text NOT NULL CHECK (char_length(address) BETWEEN 1 AND 500),
+  province_id text NOT NULL,
+  city_id text NOT NULL,
+  district_id text NOT NULL,
+  postcode text NOT NULL CHECK (postcode ~ '^[0-9]{5}$'),
+  created_at timestamptz NOT NULL DEFAULT now()
 );
-create index tb_m_address_account_idx on public.tb_m_address(account_id);
-alter table public.tb_m_account enable row level security;
-alter table public.tb_m_address enable row level security;
-revoke all on public.tb_m_account, public.tb_m_address from anon, authenticated;
-grant select on public.tb_m_account to authenticated;
-grant update(full_name) on public.tb_m_account to authenticated;
-grant select, insert, update, delete on public.tb_m_address to authenticated;
-create policy account_read_self on public.tb_m_account for select to authenticated
- using ((select auth.uid())=id);
-create policy account_update_self on public.tb_m_account for update to authenticated
- using ((select auth.uid())=id) with check ((select auth.uid())=id);
-create policy address_owner on public.tb_m_address for all to authenticated
- using ((select auth.uid())=account_id) with check ((select auth.uid())=account_id);
+
+CREATE INDEX tb_m_address_account_idx ON public.tb_m_address (account_id);
+
+ALTER TABLE public.tb_m_account enable ROW level SECURITY;
+
+ALTER TABLE public.tb_m_address enable ROW level SECURITY;
+
+REVOKE ALL ON public.tb_m_account,
+public.tb_m_address
+FROM
+  anon,
+  authenticated;
+
+GRANT
+SELECT
+  ON public.tb_m_account TO authenticated;
+
+GRANT
+UPDATE (full_name) ON public.tb_m_account TO authenticated;
+
+GRANT
+SELECT
+,
+  insert,
+UPDATE,
+delete ON public.tb_m_address TO authenticated;
+
+CREATE POLICY account_read_self ON public.tb_m_account FOR
+SELECT
+  TO authenticated USING (
+    (
+      SELECT
+        auth.uid ()
+    ) = id
+  );
+
+CREATE POLICY account_update_self ON public.tb_m_account
+FOR UPDATE
+  TO authenticated USING (
+    (
+      SELECT
+        auth.uid ()
+    ) = id
+  )
+WITH
+  CHECK (
+    (
+      SELECT
+        auth.uid ()
+    ) = id
+  );
+
+CREATE POLICY address_owner ON public.tb_m_address FOR ALL TO authenticated USING (
+  (
+    SELECT
+      auth.uid ()
+  ) = account_id
+)
+WITH
+  CHECK (
+    (
+      SELECT
+        auth.uid ()
+    ) = account_id
+  );
+
 -- Passwords and verified email remain managed by Supabase Auth, never this table.
-create function public.tanj_create_account() returns trigger
-language plpgsql security definer set search_path='' as $$
-begin
- insert into public.tb_m_account(id,full_name)
- values(new.id,left(coalesce(new.raw_user_meta_data->>'full_name',''),80));
- return new;
-end;
+CREATE FUNCTION public.tanj_create_account () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET
+  search_path = '' AS $$
+BEGIN
+  INSERT INTO
+    public.tb_m_account (id, full_name)
+  VALUES
+    (
+      new.id,
+      left(
+        coalesce(new.raw_user_meta_data ->> 'full_name', ''),
+        80
+      )
+    );
+  RETURN new;
+END;
 $$;
-revoke all on function public.tanj_create_account() from public, anon, authenticated;
-create trigger tanj_auth_user_created after insert on auth.users
- for each row execute function public.tanj_create_account();
+
+REVOKE ALL ON function public.tanj_create_account ()
+FROM
+  public,
+  anon,
+  authenticated;
+
+CREATE TRIGGER tanj_auth_user_created
+AFTER INSERT ON auth.users FOR EACH ROW
+EXECUTE FUNCTION public.tanj_create_account ();
+
 -- Backfill Auth users created before this migration (not browser demo accounts).
-insert into public.tb_m_account(id,full_name)
- select id,left(coalesce(raw_user_meta_data->>'full_name',''),80) from auth.users
- on conflict(id) do nothing;
-commit;
+INSERT INTO
+  public.tb_m_account (id, full_name)
+SELECT
+  id,
+  left(
+    coalesce(raw_user_meta_data ->> 'full_name', ''),
+    80
+  )
+FROM
+  auth.users
+ON CONFLICT (id) DO NOTHING;
+
+COMMIT;
