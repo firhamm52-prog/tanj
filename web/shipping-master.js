@@ -1,6 +1,6 @@
 // Generated from the supplied workbook using scripts/import-shipping.py.
 export const shippingMaster = {
-  "source": "Master-Wilayah-dan-Riset-Ongkir-Jakarta (1).xlsx",
+  "source": "Master-Wilayah-dan-Riset-Ongkir-Jakarta (2).xlsx",
   "sheet": "Master wilayah",
   "column": "Perkiraan bawah (Rp)",
   "date": "2026-10-16",
@@ -3245,5 +3245,8 @@ export const shippingMaster = {
       "name": "Kota Sorong",
       "fee": 85000
     }
-  ]
+  ],
+  "districtSheet": "Kecamatan dan kode pos",
+  "districtCount": 7285,
+  "postcodePairCount": 11580
 };

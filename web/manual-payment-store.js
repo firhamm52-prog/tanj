@@ -1,4 +1,4 @@
-import {getShippingEstimate} from './shipping.js?v=shipping-1';
+import {validateShippingDestination} from './shipping.js?v=districts-1';
 export const PAYMENT_KEY='tanj-manual-payments-demo-v1';
 export const paymentLabels={WAITING_PAYMENT:'Menunggu pembayaran',CHECKING:'Menunggu pengecekan admin',NEEDS_HELP:'Perlu bantuan admin',REVIEW_DUE:'Batas waktu lewat · perlu diperiksa',PAID:'Pembayaran diterima',CANCELLED:'Pesanan dibatalkan'};
 export const money=value=>'Rp'+Number(value).toLocaleString('id-ID');
@@ -11,15 +11,16 @@ async function mutate(action){const perform=()=>{const state=readPayments();cons
 function log(order,to,actor,note){const from=orderStatus(order);order.status=to;order.version++;order.logs.push({from,to,actor,note,at:Date.now()});}
 function required(value,max,label){if(typeof value!=='string'||!value.trim()||value.length>max)throw Error(label+' belum valid.');return value.trim();}
 export async function createPayment(customer,lines,catalog){
+ const delivery=await validateShippingDestination(customer.provinceId,customer.cityId,customer.districtId,customer.zip);
  return mutate(state=>{
   const name=required(customer.name,80,'Nama'),phone=required(customer.phone,20,'Nomor WhatsApp'),address=required(customer.address,500,'Alamat'),zip=required(customer.zip,5,'Kode pos');
   if(!/^\d{5}$/.test(zip))throw Error('Kode pos harus 5 angka.');if(!/^[+() .\d-]{8,20}$/.test(phone))throw Error('Nomor WhatsApp belum valid.');
-  const shipping=getShippingEstimate(customer.provinceId,customer.cityId);
+  const shipping=delivery.shipping;
   if(!Array.isArray(lines)||!lines.length||lines.length>40)throw Error('Tas belanja kosong atau tidak valid.');const seen=new Set();
   const items=lines.map(line=>{const item=catalog.find(p=>p.id===line.id&&p.status!=='draft'&&p.inStock!==false);if(!item||seen.has(line.id)||!Number.isInteger(line.qty)||line.qty<1||line.qty>99)throw Error('Pilihan produk berubah. Periksa tas belanja.');seen.add(line.id);const held=state.orders.filter(o=>o.status!=='CANCELLED').flatMap(o=>o.items).filter(i=>i.id===line.id).reduce((n,i)=>n+i.qty,0);if(line.qty>item.stock-held)throw Error('Stok simulasi tidak cukup. Kurangi jumlah atau reset simulasi pembayaran di admin.');return {id:item.id,name:item.name,color:item.colorName||'',qty:line.qty,price:item.price};});
   const subtotal=items.reduce((n,i)=>n+i.qty*i.price,0),base=subtotal+shipping.fee;if(!Number.isSafeInteger(base)||base<0)throw Error('Harga tidak valid.');
   const used=new Set(state.orders.filter(o=>!['PAID','CANCELLED'].includes(o.status)).map(o=>o.code));const free=Array.from({length:999},(_,i)=>i+1).filter(i=>!used.has(i));if(!free.length)throw Error('Antrean simulasi penuh. Periksa pesanan atau reset simulasi di admin.');const random=crypto.getRandomValues(new Uint32Array(1))[0];const code=free[random%free.length],adjustment=(code-base%1000+1000)%1000;
-  const at=Date.now();const order={id:'TANJ-'+new Date(at).toISOString().slice(0,10).replaceAll('-','')+'-'+crypto.randomUUID().slice(0,8).toUpperCase(),customer:{name,phone,address,province:shipping.province,provinceId:shipping.provinceId,city:shipping.city,cityId:shipping.id,zip,note:String(customer.note||'').slice(0,300)},items,shipping,subtotal,code,adjustment,total:base+adjustment,status:'WAITING_PAYMENT',createdAt:at,deadline:at+state.settings.hours*3600000,version:1,proofs:[],logs:[{from:null,to:'WAITING_PAYMENT',actor:'Pembeli',note:'Pesanan simulasi dibuat; bukti tidak wajib.',at}],review:null};state.orders.push(order);return order;
+  const at=Date.now();const order={id:'TANJ-'+new Date(at).toISOString().slice(0,10).replaceAll('-','')+'-'+crypto.randomUUID().slice(0,8).toUpperCase(),customer:{name,phone,address,province:shipping.province,provinceId:shipping.provinceId,city:shipping.city,cityId:shipping.id,districtId:delivery.districtId,district:delivery.district,zip,note:String(customer.note||'').slice(0,300)},items,shipping,subtotal,code,adjustment,total:base+adjustment,status:'WAITING_PAYMENT',createdAt:at,deadline:at+state.settings.hours*3600000,version:1,proofs:[],logs:[{from:null,to:'WAITING_PAYMENT',actor:'Pembeli',note:'Pesanan simulasi dibuat; bukti tidak wajib.',at}],review:null};state.orders.push(order);return order;
  });
 }
 export async function buyerUpdate(id,action,payload){
