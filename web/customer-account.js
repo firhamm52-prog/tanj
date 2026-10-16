@@ -53,7 +53,7 @@ function render(){
  dialog.querySelector('#customer-forgot')?.addEventListener('click',e=>sendReset(dialog.querySelector('[name=email]').value,dialog.querySelector('#customer-auth-error'),e.currentTarget));
  dialog.querySelector('form').onsubmit=async e=>{
   e.preventDefault();const button=e.currentTarget.querySelector('[type=submit]');button.disabled=true;
-  try{const result=await authenticateCustomer(Object.fromEntries(new FormData(e.currentTarget)),register);if(result?.needsConfirmation){dialog.querySelector('#customer-auth-error').textContent='Pendaftaran diterima. Periksa Inbox/Spam untuk verifikasi email, lalu login. Akun lama versi browser perlu daftar ulang di sini.';e.currentTarget?.reset();return;}const next=pending;pending=null;dialog.close();next?.();window.dispatchEvent(new Event('tanj-customer-authenticated'));}
+  try{const result=await authenticateCustomer(Object.fromEntries(new FormData(e.currentTarget)),register);if(result?.needsConfirmation){dialog.querySelector('#customer-auth-error').textContent='Pendaftaran diterima. Periksa Inbox/Spam untuk verifikasi email, lalu login.';e.currentTarget?.reset();return;}const next=pending;pending=null;dialog.close();next?.();window.dispatchEvent(new Event('tanj-customer-authenticated'));}
   catch(err){dialog.querySelector('#customer-auth-error').textContent=err.message;}
   finally{button.disabled=false;}
  };

@@ -23,6 +23,7 @@ try{
  else if(u.pathname==='/auth/v1/recover'){resetRequests++;assert.equal(req.postDataJSON().email,user.email);body={};}
  else if(u.pathname==='/auth/v1/logout'){status=204;}
  else if(u.pathname==='/rest/v1/rpc/tanj_is_admin')body=adminRole;
+ else if(u.pathname==='/rest/v1/rpc/tanj_signup_email_exists')body=req.postDataJSON().candidate_email==='existing@example.com';
  else if(u.pathname==='/rest/v1/tb_m_payment_settings')body={data:{hours:24,admin:'TANJ'}};
  else if(u.pathname==='/rest/v1/tb_t_order')body=orders.map(data=>({data}));
  else if(u.pathname==='/rest/v1/rpc/tanj_decide_payment'){
@@ -56,7 +57,7 @@ try{
  await phone.page.goto(url+'#pesanan?order='+encodeURIComponent(order.id));await phone.page.locator('.manual-id').filter({hasText:order.id}).waitFor();assert.match(await phone.page.locator('#manual-payment h3').textContent(),/Menunggu pembayaran/);
  await phone.page.reload();assert.equal(await phone.page.evaluate(async()=>{const m=await import('./web/customer-account.js?v=improve-2');await m.customerReady;return m.customerSession()?.id;}),user.id);
  await phone.page.evaluate(async()=>{const m=await import('./web/customer-account.js?v=improve-2');await m.customerLogout();});assert.equal(await phone.page.evaluate(async()=>(await import('./web/customer-account.js?v=improve-2')).customerSession()),null);
- for(const email of ['duplicate@example.com','hidden@example.com']){
+ for(const email of ['duplicate@example.com','hidden@example.com','existing@example.com']){
   const message=await phone.page.evaluate(async email=>{const m=await import('./web/customer-account.js?v=improve-2');try{await m.authenticateCustomer({name:'Duplicate',email,password:'cloud-password-123',repeat:'cloud-password-123'},true);}catch(error){return error.message;}},email);
   assert.equal(message,'Akun sudah terdaftar, silahkan buat email yang belum terdaftar');
  }
