@@ -14,9 +14,16 @@
     "test:ui": "node tests/browser.mjs",
     "test:payments": "node tests/manual-payments.mjs",
     "test:checkout": "node tests/checkout-experience.mjs",
-    "test:commerce": "node scripts/test-commerce.mjs"
+    "test:commerce": "node scripts/test-commerce.mjs",
+    "build:supabase": "node scripts/build-supabase.mjs",
+    "test:supabase": "node tests/supabase-database.mjs && node tests/supabase-customer.mjs"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
+    "esbuild": "^0.28.2",
     "playwright": "^1.58.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0"
   }
 }

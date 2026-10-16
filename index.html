@@ -265,7 +265,7 @@ body.collection-menu-open .nav .category-nav-trigger{color:#fff!important}
     tanjHeroVideo.addEventListener('loadedmetadata', slowTanjHero);
   </script>
   <script type="module">
-import {initManualPayment} from './web/manual-payment.js?v=payment-resume-2';
+import {initManualPayment} from './web/manual-payment.js?v=supabase-1';
 import { isApi, loadStorefront } from './web/data.js?v=sold-publish-2';
 import { DEFAULT_PRODUCT_PRICE, PUBLISHED_KEY, freshSeed, storefront } from './shared/seed.js';
 // Refresh an already open demo tab after publication, including back/forward restore.
@@ -442,4 +442,4 @@ const siteHeader=document.querySelector('header.nav');let previousY=window.scrol
 function syncHeader(){const y=window.scrollY;const hero=document.querySelector('.video-hero');siteHeader.classList.toggle('over-hero',!document.body.classList.contains('catalog-open')&&!document.body.classList.contains('admin-open')&&hero&&hero.getBoundingClientRect().bottom>siteHeader.offsetHeight);siteHeader.classList.toggle('is-scrolled',y>70||document.body.classList.contains('catalog-open'));if(y<90||y<previousY-5||!regionPanel.hidden||document.body.classList.contains('mobile-menu-open'))siteHeader.classList.remove('is-hidden');else if(y>180&&y>previousY+5)siteHeader.classList.add('is-hidden');previousY=y}
 window.addEventListener('scroll',syncHeader,{passive:true});syncHeader();applyRegion();
 </script>
-<script type="module" src="web/account.js?v=payment-resume-2"></script></body></html>
+<script type="module" src="web/account.js?v=supabase-1"></script></body></html>

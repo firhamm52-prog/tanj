@@ -1,11 +1,13 @@
-import {customerSession} from './customer-account.js?v=payment-resume-2';
+import {customerSession} from './customer-account.js?v=supabase-1';
+import {cloudEnabled,cloudPayments,refreshPayments,paymentRPC,createCloudPayment} from './supabase-payments.js?v=supabase-1';
+export {refreshPayments};
 import {validateShippingDestination} from './shipping.js?v=districts-1';
 export const PAYMENT_KEY='tanj-manual-payments-demo-v1';
 export const paymentLabels={WAITING_PAYMENT:'Menunggu pembayaran',CHECKING:'Menunggu verifikasi',NEEDS_HELP:'Perlu bantuan admin',REVIEW_DUE:'Menunggu pembayaran',PAID:'Payment berhasil',REJECTED:'Pembayaran ditolak',CANCELLED:'Dibatalkan'};
 export const money=value=>'Rp'+Number(value).toLocaleString('id-ID');
 export const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const empty=()=>({version:1,orders:[],settings:{hours:24,admin:'Admin TANJ'}});
-export function readPayments(){try{const raw=localStorage.getItem(PAYMENT_KEY);if(!raw)return empty();const result=JSON.parse(raw);if(result.version!==1||!Array.isArray(result.orders)||!result.settings)throw Error();return result;}catch{throw Error('Simulasi tidak dapat dibaca. Izinkan penyimpanan browser atau coba browser lain.');}}
+export function readPayments(){if(cloudEnabled)return cloudPayments();try{const raw=localStorage.getItem(PAYMENT_KEY);if(!raw)return empty();const result=JSON.parse(raw);if(result.version!==1||!Array.isArray(result.orders)||!result.settings)throw Error();return result;}catch{throw Error('Simulasi tidak dapat dibaca. Izinkan penyimpanan browser atau coba browser lain.');}}
 export function orderStatus(order){return order.status==='WAITING_PAYMENT'&&Date.now()>order.deadline?'REVIEW_DUE':order.status;}
 export function subscribePayments(callback){const storage=e=>{if(e.key===PAYMENT_KEY||e.key===null)callback();};window.addEventListener('storage',storage);window.addEventListener('tanj-payments-change',callback);return ()=>{window.removeEventListener('storage',storage);window.removeEventListener('tanj-payments-change',callback);};}
 async function mutate(action){const perform=()=>{const state=readPayments();const result=action(state);try{localStorage.setItem(PAYMENT_KEY,JSON.stringify(state));}catch{throw Error('Browser tidak bisa menyimpan simulasi. Hapus bukti contoh yang besar atau izinkan penyimpanan, lalu coba lagi.');}window.dispatchEvent(new Event('tanj-payments-change'));return result;};return navigator.locks? navigator.locks.request(PAYMENT_KEY,perform):perform();}
@@ -17,6 +19,7 @@ export async function createPayment(customer,lines,catalog){
  customer={...customer,email:owner.email};
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(owner.email||'')))throw Error('Email akun belum valid. Login kembali.');
  const delivery=await validateShippingDestination(customer.provinceId,customer.cityId,customer.districtId,customer.zip);
+ if(cloudEnabled)return createCloudPayment({...customer,district:delivery.district},lines);
  return mutate(state=>{
   const name=required(customer.name,80,'Nama'),phone=required(customer.phone,20,'Nomor WhatsApp'),address=required(customer.address,500,'Alamat'),zip=required(customer.zip,5,'Kode pos');
   if(!/^\d{5}$/.test(zip))throw Error('Kode pos harus 5 angka.');if(!/^[+() .\d-]{8,20}$/.test(phone))throw Error('Nomor WhatsApp belum valid.');
@@ -29,6 +32,7 @@ export async function createPayment(customer,lines,catalog){
  });
 }
 export async function buyerUpdate(id,action,payload){
+ if(cloudEnabled){const order=readPayments().orders.find(o=>o.id===id);if(!order)throw Error('Pesanan tidak ditemukan.');return paymentRPC('tanj_update_order',{order_id:id,expected_version:order.version,action,payload:payload||{}});}
  return mutate(state=>{const order=state.orders.find(o=>o.id===id);if(!order)throw Error('Pesanan tidak ditemukan.');const status=orderStatus(order);if(['PAID','CANCELLED'].includes(status))throw Error('Status pesanan sudah berubah. Muat ulang pesanan.');
   if(action==='confirm'){if(status==='CHECKING')return order;log(order,'CHECKING','Pembeli','Pembeli menyatakan sudah bayar. Dana tetap perlu dicocokkan admin.');}
   else if(action==='proof'){if(!payload||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(payload.data)||payload.data.length>1450000)throw Error('Bukti harus gambar JPG, PNG, atau WebP maksimal 1 MB.');order.proofs.push({name:String(payload.name).slice(0,120),data:payload.data,at:Date.now()});log(order,'CHECKING','Pembeli','Bukti opsional ditambahkan; bukan bukti dana masuk.');}
@@ -37,6 +41,7 @@ export async function buyerUpdate(id,action,payload){
  });
 }
 export async function reviewPayment(id,version,action,input){
+ if(cloudEnabled)return paymentRPC('tanj_update_order',{order_id:id,expected_version:version,action,payload:input});
  return mutate(state=>{const order=state.orders.find(o=>o.id===id);if(!order||order.version!==version||order.status==='PAID')throw Error('Status pesanan sudah berubah. Periksa ulang data terbaru.');const admin=state.settings.admin;
   if(action==='approve'){
    if(input.checked!==true)throw Error('Cocokkan dana masuk sebelum menyetujui.');if(Number(input.amount)!==order.total)throw Error('Nominal transaksi tidak sama dengan tagihan. Pilih Perlu bantuan; jangan minta pembeli membayar ulang.');const reference=required(input.reference,100,'Referensi transaksi');if(state.orders.some(o=>o.id!==id&&o.review?.reference.toLowerCase()===reference.toLowerCase()))throw Error('Referensi transaksi ini sudah dipakai pada pesanan lain.');const paidAt=new Date(input.paidAt).getTime();if(!Number.isFinite(paidAt)||paidAt>Date.now()+60000)throw Error('Waktu transaksi belum valid.');order.review={amount:order.total,reference,paidAt,admin};log(order,'PAID',admin,'Dana simulasi dicocokkan: '+reference+'. '+required(input.note,300,'Catatan pemeriksaan'));}
@@ -45,10 +50,11 @@ export async function reviewPayment(id,version,action,input){
   else throw Error('Aksi tidak tersedia.');return order;
  });
 }
-export async function savePaymentSettings(input){return mutate(state=>{const hours=Number(input.hours);if(!Number.isInteger(hours)||hours<1||hours>72)throw Error('Batas bayar harus 1–72 jam.');state.settings={...state.settings,hours,admin:required(input.admin,80,'Nama admin')};});}
-export async function resetPayments(){return mutate(state=>{Object.assign(state,empty());});}
+export async function savePaymentSettings(input){if(cloudEnabled)throw Error('Pengaturan online dikelola melalui Supabase.');return mutate(state=>{const hours=Number(input.hours);if(!Number.isInteger(hours)||hours<1||hours>72)throw Error('Batas bayar harus 1–72 jam.');state.settings={...state.settings,hours,admin:required(input.admin,80,'Nama admin')};});}
+export async function resetPayments(){if(cloudEnabled)throw Error('Reset pesanan online tidak tersedia.');return mutate(state=>{Object.assign(state,empty());});}
 
 export async function savePaymentQR(image){
  if(image!==null&&(!image||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image.data)||image.data.length>1450000))throw Error('Gambar QRIS harus JPG, PNG, atau WebP maksimal 1 MB.');
+ if(cloudEnabled)return paymentRPC('tanj_save_qris',{image:image?{data:image.data,name:String(image.name||'QRIS').slice(0,120)}:null});
  return mutate(state=>{state.settings.qris=image?{data:image.data,name:String(image.name||'QRIS').slice(0,120)}:null;});
 }

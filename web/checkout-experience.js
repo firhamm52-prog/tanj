@@ -1,4 +1,4 @@
-import {customerSession,requireCustomer,addresses,saveAddress,deleteAddress} from './customer-account.js?v=payment-resume-2';
+import {customerSession,requireCustomer,addresses,loadAddresses,saveAddress,deleteAddress} from './customer-account.js?v=supabase-1';
 import {getShippingEstimate,validateShippingDestination} from './shipping.js?v=districts-1';
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -37,12 +37,14 @@ export function mountCheckoutExperience({form,locations,getItems,getSubtotal,get
  $('address-create').onclick=()=>editAddress();
  $('address-editor-back').onclick=()=>openAddresses();
  function showError(error){$('address-error').textContent=error.message;}
- function openAddresses(){
+ async function openAddresses(){
+  if(!addressDialog.open)addressDialog.showModal();
+  try{await loadAddresses();}catch(error){showError(error);return;}
   $('address-error').textContent='';$('address-editor').hidden=true;$('address-create').hidden=false;$('address-list').hidden=false;
   $('address-list').innerHTML=addresses().map(a=>`<article class="saved-address ${selectedAddress?.id===a.id?'selected':''}"><button class="address-select" type="button" data-address="${esc(a.id)}"><strong>${esc(a.name)}</strong><span>${esc(a.phone)} · ${esc(a.email)}</span><span>${esc(a.address)}, ${esc(a.district)}, ${esc(a.city)}, ${esc(a.province)} ${esc(a.zip)}</span></button><div><button type="button" class="customer-text" data-edit="${esc(a.id)}">Ubah</button><button type="button" class="customer-text" data-delete="${esc(a.id)}">Hapus</button></div></article>`).join('')||'<p>Belum ada alamat tersimpan. Tambahkan alamat pertamamu.</p>';
   $('address-list').querySelectorAll('[data-address]').forEach(b=>b.onclick=async()=>{try{await applyAddress(addresses().find(a=>a.id===b.dataset.address));addressDialog.close();}catch(e){editAddress(addresses().find(a=>a.id===b.dataset.address));showError(e);}});
   $('address-list').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editAddress(addresses().find(a=>a.id===b.dataset.edit)));
-  $('address-list').querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{try{deleteAddress(b.dataset.delete);if(selectedAddress?.id===b.dataset.delete){selectedAddress=null;render();}openAddresses();}catch(e){showError(e);}});
+  $('address-list').querySelectorAll('[data-delete]').forEach(b=>b.onclick=async()=>{try{await deleteAddress(b.dataset.delete);if(selectedAddress?.id===b.dataset.delete){selectedAddress=null;render();}openAddresses();}catch(e){showError(e);}});
   if(!addressDialog.open)addressDialog.showModal();
  }
  async function applyAddress(a){
@@ -65,7 +67,7 @@ export function mountCheckoutExperience({form,locations,getItems,getSubtotal,get
   e.preventDefault();if(!e.currentTarget.reportValidity())return;const button=e.submitter;button.disabled=true;
   try{
    const delivery=await validateShippingDestination($('checkout-province').value,$('checkout-city').value,$('checkout-district').value,$('checkout-zip').value);
-   const a=saveAddress({id:editing,name:$('checkout-name').value.trim(),phone:$('checkout-phone').value.trim(),email:customerSession()?.email||'',address:$('checkout-address').value.trim(),provinceId:$('checkout-province').value,cityId:$('checkout-city').value,districtId:delivery.districtId,district:delivery.district,city:delivery.shipping.city,province:delivery.shipping.province,zip:delivery.zip});
+   const a=await saveAddress({id:editing,name:$('checkout-name').value.trim(),phone:$('checkout-phone').value.trim(),email:customerSession()?.email||'',address:$('checkout-address').value.trim(),provinceId:$('checkout-province').value,cityId:$('checkout-city').value,districtId:delivery.districtId,district:delivery.district,city:delivery.shipping.city,province:delivery.shipping.province,zip:delivery.zip});
    selectedAddress=a;render();addressDialog.close();
   }catch(e){showError(e);}finally{button.disabled=false;}
  };
@@ -88,7 +90,7 @@ export function mountCheckoutExperience({form,locations,getItems,getSubtotal,get
  }
  $('bag-next').addEventListener('click',async()=>{
   $('bag-modal').classList.add('checkout-surface');
-  try{const list=addresses();if(!selectedAddress&&list.length)await applyAddress(list[0]);else await render();}catch(err){$('manual-checkout-error').textContent=err.message;}
+  try{const list=await loadAddresses();if(!selectedAddress&&list.length)await applyAddress(list[0]);else await render();}catch(err){$('manual-checkout-error').textContent=err.message;}
  });
  for(const id of ['bag-open','checkout-back'])$(id).addEventListener('click',()=>$('bag-modal').classList.remove('checkout-surface'));
  window.addEventListener('tanj-customer-change',()=>{selectedAddress=null;render().catch(()=>{});});
