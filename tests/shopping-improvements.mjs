@@ -10,6 +10,8 @@ try{
  browser=await chromium.launch({channel:'chrome',headless:true});const context=await browser.newContext();await isolateEmail(context);const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await mkdir('test-results',{recursive:true});
  for(const viewport of [{width:1440,height:900},{width:1366,height:768},{width:1280,height:600},{width:390,height:844},{width:390,height:667},{width:320,height:568}]){
   await page.setViewportSize(viewport);await page.goto(url);await page.locator('.tanj-chat').waitFor();assert.equal(await page.locator('.tanj-chat').getAttribute('href'),'https://wa.me/6281363661703');
+  assert.equal(await page.locator('.moving-intro h2').textContent(),'Must be have combination.');
+  assert.match(await page.locator('.moving-intro h2').evaluate(el=>getComputedStyle(el).fontFamily),/Times New Roman/);
   await page.locator('.product-preview').first().click();await page.locator('#product-recommendations [data-recommended-id]').first().waitFor();assert.equal(await page.locator('.tanj-chat').isVisible(),false);
   const box=await page.locator('#product-buy-now').boundingBox();assert.ok(box&&box.y>=0&&box.y+box.height<=viewport.height,`Order button must fit ${JSON.stringify(viewport)}: ${JSON.stringify(box)}`);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);

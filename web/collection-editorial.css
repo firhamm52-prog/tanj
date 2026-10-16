@@ -1,0 +1,11 @@
+.moving-lookbook{background:#faf8f4;padding:48px 0 60px}
+.moving-intro{padding:0 24px 36px;text-align:center}
+.moving-intro h2{font-family:"Times New Roman",Times,serif;font-size:clamp(22px,2.3vw,30px);font-weight:400;letter-spacing:.025em;line-height:1.4;margin:0;color:#302b26}
+.photo-track figure{padding:6px;border:1px solid #dfd5c7;border-radius:14px;background:#fffdf9;margin-inline:7px;box-shadow:0 4px 15px #49362008}
+.photo-track figure img,.photo-track figure video{border-radius:9px}
+.card .product-preview{padding:6px;border:1px solid #e0d7ca;border-radius:14px;background:#fffdf9;box-shadow:0 4px 16px #49362006;transition:border-color .2s,box-shadow .2s}
+.card .product-preview .photo{border-radius:9px}
+.card .product-preview:hover{border-color:#bba789;box-shadow:0 8px 24px #49362010}
+.card .photo-hint{padding:9px 7px 5px}
+.catalog-photo{border:6px solid #fffdf9;border-radius:14px;outline:1px solid #e0d7ca;box-shadow:0 4px 16px #49362008;overflow:hidden}
+@media(max-width:520px){.moving-lookbook{padding:35px 0 42px}.moving-intro{padding-bottom:26px}.moving-intro h2{font-size:22px}.photo-track figure{margin-inline:5px;padding:5px;border-radius:12px}.card .product-preview{padding:4px;border-radius:11px}.card .product-preview .photo{border-radius:7px}.catalog-photo{border-width:4px;border-radius:11px}}
