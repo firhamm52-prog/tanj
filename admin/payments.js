@@ -32,7 +32,7 @@ async function uploadQR(){
  if(!isAdmin()||uploadingQR)return;
  if(!$('qris-file').files.length){$('qris-message').textContent=readPayments().settings.qris?'QRIS sudah tersimpan. Pilih gambar baru jika ingin menggantinya.':'Pilih gambar QRIS terlebih dahulu.';return;}
  const button=$('qris-form').querySelector('[type=submit]');
- uploadingQR=true;button.disabled=true;$('qris-file').disabled=true;$('qris-message').textContent='Mengunggah QRIS...';
+ uploadingQR=true;button.disabled=true;button.textContent='Menyimpan...';$('qris-file').disabled=true;$('qris-message').textContent='Mengunggah QRIS...';
  try{
   const file=$('qris-file').files[0];
   if(!file||!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>10*1024*1024)throw Error('Pilih JPG, PNG, atau WebP maksimal 10 MB.');
@@ -46,13 +46,17 @@ async function uploadQR(){
   $('qris-message').textContent='QRIS berhasil tersimpan dan langsung tampil di halaman pembayaran untuk semua perangkat.';
   $('qris-file').value='';render();
  }catch(err){$('qris-message').textContent=err.message;}
- finally{uploadingQR=false;button.disabled=!$('qris-file').files.length;$('qris-file').disabled=false;}
+ finally{uploadingQR=false;button.disabled=false;button.textContent='Simpan QRIS';$('qris-file').disabled=false;}
 }
 $('qris-form').onsubmit=e=>{e.preventDefault();uploadQR();};
-$('qris-file').onchange=()=>{if($('qris-file').files.length)uploadQR();};
+$('qris-file').onchange=()=>{
+ const file=$('qris-file').files[0];
+ $('qris-form').querySelector('[type=submit]').disabled=uploadingQR;
+ $('qris-message').textContent=file?'Gambar dipilih. Tekan Simpan QRIS untuk menyimpan.':'';
+};
 $('qris-remove').onclick=async()=>{if(!isAdmin())return;try{await savePaymentQR(null);$('qris-message').textContent='Gambar QRIS dihapus.';render();}catch(err){$('qris-message').textContent=err.message;}};
 
-if(cloudEnabled){document.querySelector('.notice').textContent='Akun dan pesanan tersimpan online. Transfer bank tidak terdeteksi otomatis; cocokkan mutasi rekening sebelum menyetujui pembayaran.';document.querySelector('.trial-tag').textContent='Pembayaran manual';document.querySelector('details>p').textContent='Pilih gambar QRIS. Gambar disimpan online dan tampil di checkout semua perangkat.';}
+if(cloudEnabled){document.querySelector('.notice').textContent='Akun dan pesanan tersimpan online. Transfer bank tidak terdeteksi otomatis; cocokkan mutasi rekening sebelum menyetujui pembayaran.';document.querySelector('.trial-tag').textContent='Pembayaran manual';document.querySelector('details>p').textContent='Pilih gambar, lalu tekan Simpan QRIS. Gambar disimpan online dan tampil di checkout semua perangkat.';}
 
 function customerWhatsApp(order){
  const section=document.createElement('section');section.id='customer-whatsapp';
