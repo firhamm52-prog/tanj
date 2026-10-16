@@ -30,6 +30,15 @@ try {
  await page.locator('#qris-file').setInputFiles({name:'invalid.png',mimeType:'image/png',buffer:Buffer.from('invalid image')});await page.locator('#qris-message').filter({hasText:'decoded'}).waitFor();
  await page.locator('#qris-file').setInputFiles({name:'qris-trial.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6l8AAAAASUVORK5CYII=','base64')});
  await page.locator('#qris-message').filter({hasText:'tersimpan'}).waitFor();assert.equal(await page.locator('#qris-preview').isVisible(),true);
+ assert.equal(await page.locator('#qris-file').inputValue(),'');
+ assert.equal(await page.locator('#qris-form [type=submit]').isDisabled(),true);
+ assert.equal(await page.locator('#qris-file').getAttribute('required'),null);
+ await page.locator('#qris-form').evaluate(form=>form.requestSubmit());
+ await page.locator('#qris-message').filter({hasText:'QRIS sudah tersimpan'}).waitFor();
+ await page.reload();await page.locator('#dashboard').waitFor({state:'visible'});
+ await page.locator('summary').filter({hasText:'Pengaturan QRIS'}).click();
+ assert.equal(await page.locator('#qris-preview').isVisible(),true);
+ assert.equal(await page.locator('#qris-form [type=submit]').isDisabled(),true);
  await page.goto(url);await page.locator('#bag-open').click();await page.locator('#manual-orders').click();await page.locator('[data-order-id=TANJ-TEST]').click();assert.equal(await page.locator('.manual-qr').count(),0);
  await page.locator('#manual-all').click();await page.locator('[data-order-id=TANJ-SHIPPING]').click();assert.match(await page.locator('.order-tracking').textContent(),/JNE-TEST-123/);assert.match(await page.locator('.order-tracking').textContent(),/JNE/);
  assert.equal(await page.locator('#tracking-link').getAttribute('href'),'https://jne.co.id/tracking-package');assert.equal(await page.locator('#tracking-link').getAttribute('target'),'_blank');assert.match(await page.locator('#tracking-link').getAttribute('rel'),/noopener/);

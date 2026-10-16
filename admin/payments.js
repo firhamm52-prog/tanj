@@ -30,6 +30,7 @@ $('email-delivery-state').textContent=emailConfig.enabled&&emailConfig.serviceId
 let uploadingQR=false;
 async function uploadQR(){
  if(!isAdmin()||uploadingQR)return;
+ if(!$('qris-file').files.length){$('qris-message').textContent=readPayments().settings.qris?'QRIS sudah tersimpan. Pilih gambar baru jika ingin menggantinya.':'Pilih gambar QRIS terlebih dahulu.';return;}
  const button=$('qris-form').querySelector('[type=submit]');
  uploadingQR=true;button.disabled=true;$('qris-file').disabled=true;$('qris-message').textContent='Mengunggah QRIS...';
  try{
@@ -45,7 +46,7 @@ async function uploadQR(){
   $('qris-message').textContent='QRIS berhasil tersimpan dan langsung tampil di halaman pembayaran untuk semua perangkat.';
   $('qris-file').value='';render();
  }catch(err){$('qris-message').textContent=err.message;}
- finally{uploadingQR=false;button.disabled=false;$('qris-file').disabled=false;}
+ finally{uploadingQR=false;button.disabled=!$('qris-file').files.length;$('qris-file').disabled=false;}
 }
 $('qris-form').onsubmit=e=>{e.preventDefault();uploadQR();};
 $('qris-file').onchange=()=>{if($('qris-file').files.length)uploadQR();};
