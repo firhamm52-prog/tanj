@@ -12,6 +12,9 @@ local; they are not published with the website.
 - Paid orders expose a courier and tracking-number form. The admin-only RPC
   rejects unpaid/stale updates; customer RLS still limits order visibility.
   Customer sees courier/tracking in their payment details and can copy the number.
+  A matching official tracking link opens a new tab for J&T, JNE or Lion Parcel;
+  customer pastes the copied number there. Unknown couriers keep the copy control
+  without guessing a destination or linking to an arbitrary admin-supplied URL.
   This is a manually entered tracking number, not a carrier API integration.
 - Available product recommendations appear below product details and checkout,
   excluding the selected/cart products. Clicking opens that product without
