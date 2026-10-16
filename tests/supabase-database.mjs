@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 const db=new PGlite();
 try{
  await db.exec(`create role anon; create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
- for(const file of ['202610160001_accounts.sql','202610160002_orders.sql','202610160003_catalog.sql','202610160004_review_tracking.sql'])await db.exec(await readFile('supabase/migrations/'+file,'utf8'));
+ for(const file of ['202610160001_accounts.sql','202610160002_orders.sql','202610160003_catalog.sql','202610160004_review_tracking.sql','202610160005_payment_confirmation_guard.sql'])await db.exec(await readFile('supabase/migrations/'+file,'utf8'));
  const buyer='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222',admin='33333333-3333-4333-8333-333333333333';
  await db.query(`insert into auth.users(id,email)values($1,'buyer@example.com'),($2,'other@example.com'),($3,'admin@example.com')`,[buyer,other,admin]);await db.query('insert into public.tb_m_admin values($1)',[admin]);
  async function as(id){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');}
@@ -27,8 +27,11 @@ try{
  const second=(await db.query('select public.tanj_create_order($1,$2,$3) as data',['55555555-5555-4555-8555-555555555555',input,[{id:'base-0-1',qty:1}]])).rows[0].data;
  await as(admin);await assert.rejects(db.query("select public.tanj_save_tracking($1,1,'JNE','TEST123')",[second.id]));
  await assert.rejects(db.query("select public.tanj_decide_payment($1,1,'approve',false)",[second.id]));
- const simple=(await db.query("select public.tanj_decide_payment($1,1,'approve',true) as data",[second.id])).rows[0].data;assert.equal(simple.status,'PAID');assert.ok(simple.review.reviewedAt);assert.equal(simple.review.reference,undefined);assert.equal(simple.review.paidAt,undefined);
- const tracked=(await db.query("select public.tanj_save_tracking($1,2,'JNE','TEST123') as data",[second.id])).rows[0].data;assert.equal(tracked.tracking.number,'TEST123');
+ await assert.rejects(db.query("select public.tanj_decide_payment($1,1,'approve',true)",[second.id]),/Customer belum/);
+ await assert.rejects(db.query("select public.tanj_update_order($1,1,'approve',$2)",[second.id,{checked:true,amount:second.total,reference:'ref2',paidAt:new Date().toISOString(),note:'ok'}]),/Customer belum/);
+ await as(buyer);await db.query("select public.tanj_update_order($1,1,'confirm')",[second.id]);await as(admin);
+ const simple=(await db.query("select public.tanj_decide_payment($1,2,'approve',true) as data",[second.id])).rows[0].data;assert.equal(simple.status,'PAID');assert.ok(simple.review.reviewedAt);assert.equal(simple.review.reference,undefined);assert.equal(simple.review.paidAt,undefined);
+ const tracked=(await db.query("select public.tanj_save_tracking($1,3,'JNE','TEST123') as data",[second.id])).rows[0].data;assert.equal(tracked.tracking.number,'TEST123');
  await assert.rejects(db.query("select public.tanj_save_tracking($1,2,'JNE','STALE')",[second.id]));
  await as(buyer);const visible=(await db.query('select data from public.tb_t_order where id=$1',[second.id])).rows[0].data;assert.equal(visible.tracking.number,'TEST123');
  await db.exec('reset role;set role anon');await assert.rejects(db.query('select * from public.tb_m_account'));await assert.rejects(db.query('select * from public.tb_t_order'));
