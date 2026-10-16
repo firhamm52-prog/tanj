@@ -19,4 +19,4 @@ const relogin=document.createElement('button');relogin.type='button';relogin.cla
 window.addEventListener('tanj-customer-authenticated',render);
 window.addEventListener('tanj-customer-change',()=>{if(!document.getElementById('account-modal').hidden)render();});
 
-if(usesCloudAdmin){const field=$('auth-form').elements.id;field.type='email';field.autocomplete='username';field.placeholder='tanj.indonesia@gmail.com';field.closest('label').firstChild.textContent='Email admin';}
+if(usesCloudAdmin){const field=$('auth-form').elements.id;field.type='email';field.autocomplete='username';field.removeAttribute('placeholder');field.closest('label').firstChild.textContent='Email admin';}
