@@ -1,7 +1,7 @@
-import {cloudEnabled} from '../web/supabase-payments.js?v=supabase-2';
+import {cloudEnabled} from '../web/supabase-payments.js?v=supabase-3';
 import {emailConfig} from '../web/email-config.js?v=email-live-1';
-import {readPayments,refreshPayments,subscribePayments,orderStatus,paymentLabels,reviewPayment,savePaymentQR,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=supabase-2';
-import {isAdmin} from '../web/admin-session.js?v=supabase-2';
+import {readPayments,refreshPayments,subscribePayments,orderStatus,paymentLabels,reviewPayment,savePaymentQR,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=supabase-3';
+import {isAdmin} from '../web/admin-session.js?v=supabase-3';
 const $=id=>document.getElementById(id);
 if(!isAdmin())location.replace('../#admin-login');
 $('email-delivery-state').textContent=emailConfig.enabled&&emailConfig.serviceId&&emailConfig.templateId&&emailConfig.publicKey?'EmailJS dikonfigurasi. Lakukan uji Order dan periksa Email History serta Inbox/Spam admin dan customer.':'Belum aktif: akun EmailJS TANJ belum dihubungkan. Buat layanan pengirim, template, dan Public Key melalui panduan di bawah.';

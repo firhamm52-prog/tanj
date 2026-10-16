@@ -1,4 +1,4 @@
-import {cloudEnabled,cloudReady,requestPasswordReset,finishPasswordReset,needsPasswordRecovery} from './supabase-customer.js?v=supabase-2';
+import {cloudEnabled,cloudReady,requestPasswordReset,finishPasswordReset,needsPasswordRecovery} from './supabase-customer.js?v=supabase-3';
 let dialog;
 export async function sendReset(email,output,button){
  if(button)button.disabled=true;output.textContent='Meminta email pemulihan...';

@@ -1,5 +1,6 @@
-import {customerSession} from './customer-account.js?v=supabase-2';
-import {cloudEnabled,cloudPayments,refreshPayments,paymentRPC,createCloudPayment} from './supabase-payments.js?v=supabase-2';
+import {customerSession} from './customer-account.js?v=supabase-3';
+import {normalizePaymentReview} from '../shared/payment-review.js';
+import {cloudEnabled,cloudPayments,refreshPayments,paymentRPC,createCloudPayment} from './supabase-payments.js?v=supabase-3';
 export {refreshPayments};
 import {validateShippingDestination} from './shipping.js?v=districts-1';
 export const PAYMENT_KEY='tanj-manual-payments-demo-v1';
@@ -41,6 +42,7 @@ export async function buyerUpdate(id,action,payload){
  });
 }
 export async function reviewPayment(id,version,action,input){
+ if(action==='approve')input=normalizePaymentReview(input);
  if(cloudEnabled)return paymentRPC('tanj_update_order',{order_id:id,expected_version:version,action,payload:input});
  return mutate(state=>{const order=state.orders.find(o=>o.id===id);if(!order||order.version!==version||order.status==='PAID')throw Error('Status pesanan sudah berubah. Periksa ulang data terbaru.');const admin=state.settings.admin;
   if(action==='approve'){

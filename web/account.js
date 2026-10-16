@@ -1,5 +1,5 @@
-import {account,isAdmin,logout,loginAdmin,usesCloudAdmin} from './admin-session.js?v=supabase-2';
-import {sendReset} from './password-recovery.js?v=supabase-2';
+import {account,isAdmin,logout,loginAdmin,usesCloudAdmin} from './admin-session.js?v=supabase-3';
+import {sendReset} from './password-recovery.js?v=supabase-3';
 const $=id=>document.getElementById(id);let lastFocus;
 function render(){const signed=isAdmin();$('admin-view-switch').hidden=!signed;$('login').hidden=signed;$('admin-account-signed').hidden=!signed;$('account-title').textContent=signed?'Account admin':'Login admin';if(signed)$('admin-account-name').textContent='Login sebagai '+account().id+'. Sesi aktif. Logout untuk masuk ulang dengan password.';else prepare();}
 function showAccount(){render();lastFocus=document.activeElement;for(const id of ['bag-modal','product-modal','search-modal']){const overlay=$(id);if(overlay)overlay.hidden=true;}document.querySelector('#customer-account[open]')?.close();$('account-modal').hidden=false;document.body.style.overflow='hidden';$('account-close').focus();}
