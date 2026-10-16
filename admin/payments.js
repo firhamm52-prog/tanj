@@ -1,4 +1,4 @@
-import {readPayments,subscribePayments,orderStatus,paymentLabels,reviewPayment,savePaymentQR,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=document-revisions-1';
+import {readPayments,subscribePayments,orderStatus,paymentLabels,reviewPayment,savePaymentQR,money,escapeHTML as esc} from '../web/manual-payment-store.js?v=checkout-2';
 import {isAdmin} from '../web/admin-session.js?v=login-form-3';
 const $=id=>document.getElementById(id);
 if(!isAdmin())location.replace('../#admin-login');

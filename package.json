@@ -12,7 +12,9 @@
     "admin:reset-password": "node scripts/reset-password.mjs",
     "test": "node --test tests/api.test.mjs",
     "test:ui": "node tests/browser.mjs",
-    "test:payments": "node tests/manual-payments.mjs"
+    "test:payments": "node tests/manual-payments.mjs",
+    "test:checkout": "node tests/checkout-experience.mjs",
+    "test:commerce": "node scripts/test-commerce.mjs"
   },
   "devDependencies": {
     "playwright": "^1.58.0"
