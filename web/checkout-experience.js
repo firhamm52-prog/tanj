@@ -1,4 +1,4 @@
-import {customerSession,requireCustomer,addresses,saveAddress,deleteAddress} from './customer-account.js?v=account-email-1';
+import {customerSession,requireCustomer,addresses,saveAddress,deleteAddress} from './customer-account.js?v=payment-resume-2';
 import {getShippingEstimate,validateShippingDestination} from './shipping.js?v=districts-1';
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

@@ -1,4 +1,4 @@
-import {customerSession} from './customer-account.js?v=account-email-1';
+import {customerSession} from './customer-account.js?v=payment-resume-2';
 import {validateShippingDestination} from './shipping.js?v=districts-1';
 export const PAYMENT_KEY='tanj-manual-payments-demo-v1';
 export const paymentLabels={WAITING_PAYMENT:'Menunggu pembayaran',CHECKING:'Menunggu verifikasi',NEEDS_HELP:'Perlu bantuan admin',REVIEW_DUE:'Menunggu pembayaran',PAID:'Payment berhasil',REJECTED:'Pembayaran ditolak',CANCELLED:'Dibatalkan'};

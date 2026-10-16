@@ -44,7 +44,7 @@ function render(){
  dialog.querySelector('#customer-auth-toggle').onclick=()=>{register=!register;render();};
  dialog.querySelector('form').onsubmit=async e=>{
   e.preventDefault();const button=e.currentTarget.querySelector('[type=submit]');button.disabled=true;
-  try{await authenticateCustomer(Object.fromEntries(new FormData(e.currentTarget)),register);const next=pending;pending=null;dialog.close();next?.();}
+  try{await authenticateCustomer(Object.fromEntries(new FormData(e.currentTarget)),register);const next=pending;pending=null;dialog.close();next?.();window.dispatchEvent(new Event('tanj-customer-authenticated'));}
   catch(err){dialog.querySelector('#customer-auth-error').textContent=err.message;}
   finally{button.disabled=false;}
  };
