@@ -257,6 +257,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     }
   };
   async function choose(kind) {
+    let selectionQuote = quote;
     if (kind === 'shipping') {
       const config = await shippingConfiguration();
       liveShipping = config.enabled;
@@ -273,12 +274,11 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
           if (signature !== shippingSignature())
             throw Error('Tas atau alamat berubah. Cek ongkir kembali.');
           if (!result.options.length) throw Error('Belum ada kurir tersedia untuk alamat ini.');
-          quote = { ...result, signature };
+          selectionQuote = { ...result, signature };
           $('manual-checkout-error').textContent = result.quoteId
             ? ''
             : 'Tarif tersedia. Pemesanan pengiriman belum siap. Hubungi admin TANJ.';
         } catch (error) {
-          quote = null;
           $('manual-checkout-error').textContent = error.message;
           render().catch(() => {});
           return;
@@ -294,9 +294,13 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
       kind === 'shipping' ? 'Metode pengiriman' : 'Metode pembayaran',
     );
     const shippingMode = kind === 'shipping',
-      options = shippingMode ? (liveShipping ? quote.options : deliveryMethods) : paymentMethods,
+      options = shippingMode
+        ? liveShipping
+          ? selectionQuote.options
+          : deliveryMethods
+        : paymentMethods,
       selected = shippingMode ? shipping : payment;
-    dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup pilihan">&times;</button><p class="checkout-eyebrow">TANJ / CHECKOUT</p><h2>${shippingMode ? 'Metode pengiriman' : 'Metode pembayaran'}</h2><p>${shippingMode ? (liveShipping ? 'Pilih layanan pengiriman. Tarif berdasarkan kode pos dan perkiraan berat paket.' : 'Tarif uji mengikuti master kota untuk 1 kg. Layanan dan jadwal kurir akan dikonfirmasi admin.') : 'QRIS manual tersedia. Metode gateway berikut disiapkan dan belum menerima transaksi.'}</p><form>${options.map((o) => `<label class="checkout-method ${!shippingMode && !o.enabled ? 'unavailable' : ''}"><input type="radio" name="method" value="${esc(o.id)}" ${selected.id === o.id ? 'checked' : ''} ${!shippingMode && !o.enabled ? 'disabled' : ''}><span><strong>${esc(o.name)}</strong><small>${shippingMode ? esc(o.service) + ' - ' + (liveShipping ? esc(o.duration) : 'tarif wilayah') : esc(o.detail || 'Belum aktif — menunggu integrasi gateway')}</small></span>${shippingMode ? `<strong>${selectedAddress ? money(liveShipping ? o.fee : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee) : 'Pilih alamat'}</strong>` : ''}</label>`).join('')}<button type="submit" class="shop-primary">Konfirmasi</button></form>`;
+    dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup pilihan">&times;</button><p class="checkout-eyebrow">TANJ / CHECKOUT</p><h2>${shippingMode ? 'Metode pengiriman' : 'Metode pembayaran'}</h2><p>${shippingMode ? (liveShipping ? 'Pilih layanan pengiriman. Tarif berdasarkan kode pos dan perkiraan berat paket.' : 'Tarif uji mengikuti master kota untuk 1 kg. Layanan dan jadwal kurir akan dikonfirmasi admin.') : 'QRIS manual tersedia. Metode gateway berikut disiapkan dan belum menerima transaksi.'}</p><form>${options.map((o) => `<label class="checkout-method ${!shippingMode && !o.enabled ? 'unavailable' : ''}"><input type="radio" name="method" value="${esc(o.id)}" required ${selected.id === o.id ? 'checked' : ''} ${!shippingMode && !o.enabled ? 'disabled' : ''}><span><strong>${esc(o.name)}</strong><small>${shippingMode ? esc(o.service) + ' - ' + (liveShipping ? esc(o.duration) : 'tarif wilayah') : esc(o.detail || 'Belum aktif — menunggu integrasi gateway')}</small></span>${shippingMode ? `<strong>${selectedAddress ? money(liveShipping ? o.fee : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee) : 'Pilih alamat'}</strong>` : ''}</label>`).join('')}<button type="submit" class="shop-primary">Konfirmasi</button></form>`;
     document.body.append(dialog);
     dialog.showModal();
     dialog.querySelector('.customer-close').onclick = () => dialog.close();
@@ -308,8 +312,10 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
       e.preventDefault();
       const choice = options.find((o) => o.id === new FormData(e.currentTarget).get('method'));
       if (!choice || (!shippingMode && !choice.enabled)) return;
-      if (shippingMode) shipping = choice;
-      else payment = choice;
+      if (shippingMode) {
+        shipping = choice;
+        if (liveShipping) quote = selectionQuote;
+      } else payment = choice;
       render();
       dialog.close();
     };
@@ -323,6 +329,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     )
       quote = null;
     const liveChoice = liveShipping && quote?.options.find((o) => o.id === shipping.id);
+    const shippingLabel = liveShipping ? liveChoice?.name || 'Belum dipilih' : shipping.name;
 
     if (selectedAddress)
       $('address-summary').innerHTML =
@@ -338,7 +345,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
         ? liveChoice?.fee || 0
         : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee;
     $('checkout-price-summary').innerHTML =
-      `<p><span>Subtotal · ${getItems().reduce((n, i) => n + i.qty, 0)} barang</span><strong>${money(getSubtotal())}</strong></p><p><span>Ongkir · ${esc(shipping.name)}</span><strong>${selectedAddress ? (liveShipping && !liveChoice ? 'Pilih kurir' : money(fee)) : 'Pilih alamat'}</strong></p><p class="checkout-grand-total"><span>Total sebelum kode unik</span><strong>${liveShipping && !liveChoice ? 'Pilih kurir untuk total' : money(getSubtotal() + fee)}</strong></p><small>Kode unik dihitung saat Order dan tercantum pada tagihan.</small>`;
+      `<p><span>Subtotal · ${getItems().reduce((n, i) => n + i.qty, 0)} barang</span><strong>${money(getSubtotal())}</strong></p><p><span>Ongkir · ${esc(shippingLabel)}</span><strong>${selectedAddress ? (liveShipping && !liveChoice ? 'Pilih kurir' : money(fee)) : 'Pilih alamat'}</strong></p><p class="checkout-grand-total"><span>Total sebelum kode unik</span><strong>${liveShipping && !liveChoice ? 'Pilih kurir untuk total' : money(getSubtotal() + fee)}</strong></p><small>Kode unik dihitung saat Order dan tercantum pada tagihan.</small>`;
     const catalog = await getCatalog();
     $('checkout-selected-items').innerHTML = getItems()
       .map((line) => {

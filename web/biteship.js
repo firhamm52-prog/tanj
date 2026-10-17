@@ -8,6 +8,8 @@ const base = useEdge ? supabaseConfig.url + '/functions/v1/shipping' : '/api/shi
 const publicHeaders = useEdge ? { apikey: supabaseConfig.publishableKey } : {};
 let configuration;
 export async function shippingConfiguration() {
+  if (!supabaseConfig.enabled && window.TANJ_CONFIG?.mode !== 'api')
+    return { enabled: false, orderReady: false };
   if (!configuration)
     configuration = fetch(base + '/config', {
       headers: publicHeaders,

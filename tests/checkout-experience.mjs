@@ -244,9 +244,9 @@ try {
     route.fulfill({
       contentType: 'text/javascript',
       body: `export async function shippingConfiguration(){return {enabled:true};}
-      export async function shippingRates(){return {quoteId:null,expiresAt:new Date(Date.now()+600000).toISOString(),options:[
-        {id:'biteship:jne:reg',name:'JNE',service:'REG',fee:14000,duration:'2 - 3 hari'},
-        {id:'biteship:jnt:ez',name:'J&T',service:'EZ',fee:16000,duration:'1 - 2 hari'}]};}`,
+      let rateCalls = 0; export async function shippingRates(){const extra = rateCalls++ ? 2000 : 0; return {quoteId:null,expiresAt:new Date(Date.now()+600000).toISOString(),options:[
+        {id:'biteship:jne:reg',name:'JNE',service:'REG',fee:14000+extra,duration:'2 - 3 hari'},
+        {id:'biteship:jnt:ez',name:'J&T',service:'EZ',fee:16000+extra,duration:'1 - 2 hari'}]};}`,
     }),
   );
   await page.evaluate(async () => {
@@ -277,6 +277,13 @@ try {
   await ratesDialog.getByRole('button', { name: 'Konfirmasi', exact: true }).click();
   assert.match(await page.locator('#shipping-choice').innerText(), /J&T/);
   assert.match(await page.locator('#checkout-price-summary').innerText(), /16.000/);
+  await page.locator('#shipping-choice').click();
+  await page
+    .getByRole('dialog', { name: 'Metode pengiriman', exact: true })
+    .locator('.customer-close')
+    .click();
+  assert.match(await page.locator('#checkout-price-summary').innerText(), /16.000/);
+  assert.doesNotMatch(await page.locator('#checkout-price-summary').innerText(), /18.000/);
   await page.locator('#checkout-order').click();
   await page.locator('#manual-checkout-error').filter({ hasText: 'Hubungi admin TANJ' }).waitFor();
   await page.locator('#checkout-back').click();

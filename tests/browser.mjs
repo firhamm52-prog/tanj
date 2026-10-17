@@ -48,8 +48,14 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   const base = 'http://127.0.0.1:4320/tanj';
   await page.goto(base + '/admin/');
+  // Demo accounts must be configured explicitly; production has no default account.
+  await page.evaluate(async () => {
+    const m = await import('../web/admin-session.js?v=improve-2');
+    const salt = Array.from(crypto.getRandomValues(new Uint8Array(16)));
+    m.saveAccount({ id: 'admin@tanj.test', salt, hash: await m.digest('demo-password-123', salt) });
+  });
   await page.locator('[name=email]').fill('admin@tanj.test');
-  await page.locator('[name=password]').fill('demo123');
+  await page.locator('[name=password]').fill('demo-password-123');
   await page.locator('#login-form button').click();
   await page.locator('#app:not([hidden])').waitFor();
   await page.screenshot({ path: 'test-results/admin-desktop.png', fullPage: true });
@@ -154,6 +160,7 @@ try {
   }
   // A fresh browser sees original seed, not another visitor's demo edits.
   const fresh = await browser.newContext();
+  await isolateEmail(fresh);
   const other = await fresh.newPage();
   await other.goto(base + '/');
   await other.locator('#collection .card').first().waitFor();

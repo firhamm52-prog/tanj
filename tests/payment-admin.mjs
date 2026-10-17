@@ -107,7 +107,9 @@ try {
   assert.equal(whatsapp.pathname, '/6281200000000');
   assert.match(whatsapp.searchParams.get('text'), /TANJ-TEST/);
   assert.match(whatsapp.searchParams.get('text'), /Menunggu verifikasi/);
-  assert.match(whatsapp.searchParams.get('text'), /\/tanj\/#pesanan\?order=TANJ-TEST/);
+  const paymentUrl = new URL(whatsapp.searchParams.get('text').match(/https?:\/\/\S+/)[0]);
+  assert.equal(paymentUrl.pathname, '/tanj/');
+  assert.equal(paymentUrl.searchParams.get('order'), 'TANJ-TEST');
   assert.equal(await page.locator('#customer-whatsapp-send').getAttribute('target'), '_blank');
   await page.locator('#reject').click();
   assert.equal(await page.locator('#review-form textarea').count(), 0);

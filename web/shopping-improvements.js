@@ -1,6 +1,12 @@
 import { mountScreenHistory } from './screen-history.js';
 import { sitePreferences } from './site-preferences.js';
-export function mountShoppingImprovements({ getCatalog, getItems, openProduct, productModal }) {
+export function mountShoppingImprovements({
+  getCatalog,
+  getHijabs = () => [],
+  getItems,
+  openProduct,
+  productModal,
+}) {
   mountScreenHistory({ getCatalog, openProduct });
   const bagPanel = document.querySelector('#bag-modal .bag-panel');
   const expand = document.createElement('button');
@@ -67,42 +73,88 @@ export function mountShoppingImprovements({ getCatalog, getItems, openProduct, p
   contact.href = 'https://wa.me/' + sitePreferences().whatsapp;
   window.addEventListener('tanj-site-preferences', updateCart);
   function draw(section, excluded) {
-    const products = getCatalog()
-      .filter(
-        (p) => p.status !== 'draft' && p.inStock !== false && p.stock > 0 && !excluded.has(p.id),
-      )
-      .slice(0, 4);
+    const available = (p) =>
+      p.status !== 'draft' && p.inStock !== false && p.stock > 0 && !excluded.has(p.id);
+    const clothes = getCatalog().filter(available);
+    const hijabs = getHijabs()
+      .filter(available)
+      .map((p) => ({ ...p, isHijab: true }));
+    const featured = hijabs.find((p) => p.collection === 'georgia' && p.color === 'cream');
+    const remaining = hijabs.filter((p) => p !== featured);
+    const products = [];
+    if (featured) products.push(featured);
+    while (products.length < 4 && (clothes.length || remaining.length)) {
+      if (clothes.length) products.push(clothes.shift());
+      if (products.length < 4 && remaining.length) products.push(remaining.shift());
+    }
     section.hidden = !products.length;
     const grid = section.querySelector('.recommended-products');
     grid.replaceChildren();
+    grid.classList.remove('recommendation-marquee');
+    grid.style.setProperty('--recommendation-count', String(products.length || 1));
     for (const item of products) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'recommended-product';
       button.dataset.recommendedId = item.id;
-      const img = document.createElement('img');
-      img.src = item.model || item.product;
-      img.alt = item.name;
-      img.loading = 'lazy';
+      const isVideo = item === featured;
+      const img = document.createElement(isVideo ? 'video' : 'img');
+      if (isVideo) {
+        img.src = 'assets/hijab-georgia-cream.mp4';
+        img.poster = item.image;
+        img.autoplay = true;
+        img.muted = true;
+        img.defaultMuted = true;
+        img.loop = true;
+        img.playsInline = true;
+        img.preload = 'metadata';
+        img.setAttribute('aria-label', item.name);
+      } else {
+        img.src = item.image || item.model || item.product;
+        img.alt = item.name;
+        img.loading = 'lazy';
+      }
       const title = document.createElement('strong');
       title.textContent = item.name;
       const detail = document.createElement('small');
-      detail.textContent =
-        (item.colorName || '') +
-        ' · ' +
+      detail.textContent = [
+        item.colorName || (item.isHijab ? item.color : ''),
         Number(item.price).toLocaleString('id-ID', {
           style: 'currency',
           currency: 'IDR',
           maximumFractionDigits: 0,
-        });
+        }),
+      ]
+        .filter(Boolean)
+        .join(' · ');
       button.append(img, title, detail);
       button.onclick = () => {
+        if (item.isHijab) {
+          const link = document.querySelector(
+            `[data-hijab-category="${item.collection}"][data-hijab-color="${item.color}"] a`,
+          );
+          link?.click();
+          return;
+        }
         const bag = document.getElementById('bag-modal');
         bag.hidden = true;
         openProduct(item);
         productModal.querySelector('.product-panel').scrollTop = 0;
       };
       grid.append(button);
+    }
+    if (section !== suggestions && products.length > 1) {
+      const track = document.createElement('div');
+      track.className = 'recommendation-track';
+      track.append(...grid.children);
+      const copy = track.cloneNode(true);
+      copy.setAttribute('aria-hidden', 'true');
+      copy.querySelectorAll('button').forEach((button, index) => {
+        button.tabIndex = -1;
+        button.onclick = track.children[index].onclick;
+      });
+      grid.classList.add('recommendation-marquee');
+      grid.append(track, copy);
     }
   }
   const updateProduct = () => {

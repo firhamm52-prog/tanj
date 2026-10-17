@@ -231,8 +231,13 @@ try {
   await page.screenshot({ path: 'test-results/manual-payment-mobile.png', fullPage: true });
   const admin = await context.newPage();
   await admin.goto(url + 'admin/#payments');
+  await admin.evaluate(async () => {
+    const m = await import('../web/admin-session.js?v=improve-2');
+    const salt = Array.from(crypto.getRandomValues(new Uint8Array(16)));
+    m.saveAccount({ id: 'admin@tanj.test', salt, hash: await m.digest('demo-password-123', salt) });
+  });
   await admin.locator('[name=email]').fill('admin@tanj.test');
-  await admin.locator('[name=password]').fill('demo123');
+  await admin.locator('[name=password]').fill('demo-password-123');
   await admin.locator('#login-form button').click();
   await admin.locator('#manual-admin-list').waitFor();
   await admin.locator('[data-select-order="' + first.id + '"]').click();
@@ -248,6 +253,19 @@ try {
       .fill('Nominal, waktu, dan referensi transaksi contoh sudah dicocokkan.');
     await admin.locator('dialog[open] button[type=submit]').click();
   }
+  await review(first, 'DEMO-REF-001');
+  await admin.waitForFunction(
+    () =>
+      !document.querySelector('dialog.manual-dialog[open]') ||
+      document.getElementById('manual-review-error')?.textContent,
+  );
+  assert.match(
+    await admin.locator('#manual-review-error').textContent(),
+    /Customer belum mengonfirmasi/,
+  );
+  await admin.locator('#manual-review-close').click();
+  await page.locator('#manual-confirm').click();
+  await page.locator('#manual-payment h3').filter({ hasText: 'Menunggu verifikasi' }).waitFor();
   await review(first, 'DEMO-REF-001');
   await admin.locator('dialog.manual-dialog').waitFor({ state: 'hidden' });
   await page.locator('#manual-payment h3').filter({ hasText: 'Payment berhasil' }).waitFor();
@@ -326,6 +344,8 @@ try {
   });
   await page.locator('#manual-payment h3').filter({ hasText: 'Menunggu pembayaran' }).waitFor();
   await admin.locator('[data-select-order="' + third.id + '"]').waitFor();
+  await page.locator('#manual-confirm').click();
+  await page.locator('#manual-payment h3').filter({ hasText: 'Menunggu verifikasi' }).waitFor();
   await review(third, 'DEMO-LATE-003');
   await page.locator('#manual-payment h3').filter({ hasText: 'Payment berhasil' }).waitFor();
   await admin.setViewportSize({ width: 1280, height: 900 });
@@ -477,6 +497,7 @@ try {
   assert.deepEqual(apiRequests, [], 'Static demo must never call nonexistent payment APIs');
   assert.deepEqual(errors, []);
   const fresh = await browser.newContext();
+  await isolateEmail(fresh);
   const other = await fresh.newPage();
   await other.goto(url + '#pesanan');
   await other.locator('#customer-account[open]').waitFor();
@@ -492,7 +513,7 @@ try {
   await admin.locator('#manual-admin-list').filter({ hasText: 'Tidak ada pesanan' }).waitFor();
   assert.deepEqual((await ledger()).orders, []);
   console.log(
-    'PASS: static checkout, no-proof/no-confirmation approval, optional confirmation and image, wrong amount, duplicate reference, late payment, stale review, exact unique suffix, persistence, isolated browsers, storage errors, responsive layout, reset, no API calls or browser exceptions.',
+    'PASS: static checkout, no-proof approval after required confirmation, optional image, wrong amount, duplicate reference, late payment, stale review, exact unique suffix, persistence, isolated browsers, storage errors, responsive layout, reset, no API calls or browser exceptions.',
   );
 } finally {
   await browser?.close();

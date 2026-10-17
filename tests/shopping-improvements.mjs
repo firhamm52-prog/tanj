@@ -71,7 +71,30 @@ try {
     await page.screenshot({
       path: `test-results/shopping-${viewport.width}-${viewport.height}.png`,
     });
-    const recommended = page.locator('#product-recommendations [data-recommended-id]').first(),
+    const track = page.locator('#product-recommendations .recommendation-track').first();
+    assert.equal(
+      await track.locator('button').first().getAttribute('data-recommended-id'),
+      'hijab-georgia-cream',
+    );
+    assert.equal(
+      await track
+        .locator('video')
+        .evaluate((v) => v.autoplay && v.muted && v.loop && v.playsInline),
+      true,
+    );
+    assert.equal(await track.evaluate((el) => getComputedStyle(el).animationDuration), '5s');
+    assert.equal(
+      await page
+        .locator('#product-recommendations video')
+        .evaluateAll((videos) => videos.every((v) => v.muted && v.defaultMuted)),
+      true,
+    );
+    assert.ok((await track.locator('[data-recommended-id^="base-"]').count()) > 0);
+    // Pause the moving row so the browser can click a clothing recommendation reliably.
+    await page.addStyleTag({
+      content: '.recommendation-track { animation-play-state: paused !important; }',
+    });
+    const recommended = track.locator('[data-recommended-id^="base-"]').first(),
       id = await recommended.getAttribute('data-recommended-id');
     await recommended.click();
     await page.waitForFunction(
