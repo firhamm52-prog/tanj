@@ -101,6 +101,11 @@ test('database trusts only stored quotes, binds address/cart/owner, preserves to
       grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
     for (const f of (await readdir('supabase/migrations')).filter((f) => f.endsWith('.sql')).sort())
       await db.exec(await readFile('supabase/migrations/' + f, 'utf8'));
+    await db.exec('set role service_role');
+    const published = (await db.query('select public.tanj_cms_storefront() as data')).rows[0].data;
+    assert.ok(published.products.length > 0);
+    await assert.rejects(db.query('select public.tanj_cms_admin()'), /permission denied/);
+    await db.exec('reset role');
     const buyer = '11111111-1111-4111-8111-111111111111',
       other = '22222222-2222-4222-8222-222222222222';
     await db.query(
