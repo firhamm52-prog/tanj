@@ -37,14 +37,12 @@ test('payment link survives hash removal and removes expired-session or auth par
   assert.equal(isPaymentLink(url.href), true);
   assert.equal(paymentOrderId('https://example.com/tanj/#pesanan?order=OLD'), 'OLD');
 });
-test('confirmation email uses signed verification URL and the Order button styling', async () => {
+test('confirmation email mentions TANJ, retains signed verification URL and uses plain HTML', async () => {
   const html = await readFile('supabase/templates/confirmation.html', 'utf8');
-  assert.match(html, /TANJ INDONESIA/);
-  assert.match(html, /href="\{\{ \.ConfirmationURL \}\}"/);
-  assert.match(html, /Verification your email/);
-  assert.match(html, /padding: 16px 26px/);
-  assert.match(html, /background: #302b26/);
-  assert.match(html, /border-radius: 5px/);
+  assert.match(html, /Konfirmasi email akun TANJ/);
+  assert.ok(html.includes('href="{{ .ConfirmationURL }}"'));
+  assert.match(html, /Konfirmasi email saya/);
+  assert.ok(!html.includes('style='));
 });
 test('email template escapes customer content, preserves exact total, and links to the selected order', () => {
   const result = buildOrderEmail(order, { baseUrl: 'https://example.com/tanj/' });

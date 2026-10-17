@@ -10,26 +10,15 @@ const html = await readFile(
   'utf8',
 );
 const payload = {
-  mailer_subjects_confirmation: 'Verifikasi email kamu — TANJ INDONESIA',
+  mailer_subjects_confirmation: 'Konfirmasi email akun TANJ',
   mailer_templates_confirmation_content: html,
 };
-const smtp = {
-  smtp_host: process.env.TANJ_SMTP_HOST,
-  smtp_port: process.env.TANJ_SMTP_PORT,
-  smtp_user: process.env.TANJ_SMTP_USER,
-  smtp_pass: process.env.TANJ_SMTP_PASSWORD,
-  smtp_admin_email: process.env.TANJ_SMTP_SENDER_EMAIL,
-};
-const hasSMTP = Object.values(smtp).some(Boolean);
-if (hasSMTP && !Object.values(smtp).every(Boolean))
-  throw Error('Lengkapi seluruh TANJ_SMTP_* di .env sebelum menerapkan konfigurasi SMTP.');
-if (hasSMTP) Object.assign(payload, smtp, { smtp_sender_name: 'TANJ INDONESIA' });
 if (!process.argv.includes('--apply')) {
   console.log(
     JSON.stringify({
       mode: 'preview',
       templateReady: true,
-      smtpIncluded: hasSMTP,
+      smtpIncluded: false,
       managementAccessAvailable: Boolean(process.env.SUPABASE_ACCESS_TOKEN),
     }),
   );
@@ -48,5 +37,5 @@ if (!process.argv.includes('--apply')) {
   });
   if (!response.ok)
     throw Error('Konfigurasi email belum diterapkan. Status Management API: ' + response.status);
-  console.log(JSON.stringify({ templateApplied: true, customSenderApplied: hasSMTP }));
+  console.log(JSON.stringify({ templateApplied: true, customSenderApplied: false }));
 }

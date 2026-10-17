@@ -1,23 +1,20 @@
-# Email verifikasi TANJ INDONESIA
+# Email konfirmasi akun TANJ
 
-Template siap pakai: `supabase/templates/confirmation.html`.
+Gunakan tampilan HTML sederhana bawaan tanpa desain khusus atau perubahan nama pengirim.
 
-Di proyek Supabase, buka **Authentication → Email → Templates → Confirm signup** (pada beberapa tampilan: **Authentication → Email Templates**).
+Di Supabase buka **Authentication ? Email ? Templates ? Confirm signup**:
 
-- Subject: `Verifikasi email kamu — TANJ INDONESIA`
-- Body HTML: seluruh isi file template di atas.
-- Button: **Verification your email**, dengan warna, padding dan radius yang sama seperti tombol **Cek cara membayar** pada email Order.
-- Pertahankan `{{ .ConfirmationURL }}` sebagai tautan tombol. Tautan tersebut melakukan verifikasi resmi; jangan menggantinya dengan URL homepage biasa.
+- Subject: `Konfirmasi email akun TANJ`
+- Body HTML: salin seluruh isi `supabase/templates/confirmation.html`.
+- Simpan perubahan. Pertahankan `{{ .ConfirmationURL }}` agar tautan verifikasi resmi tetap berfungsi.
 
-Nama pengirim bukan bagian HTML. Untuk mengganti **Supabase Auth** menjadi **TANJ INDONESIA**, aktifkan **Custom SMTP** pada halaman Email di Authentication:
+Pengirim tetap bawaan Supabase. Pengaturan SMTP ditunda sesuai pilihan pemilik TANJ.
 
-- Sender name: `TANJ INDONESIA`
-- Sender email: alamat pengirim yang diizinkan penyedia SMTP.
-- Host, port, username dan password: dari penyedia SMTP. Simpan password di dashboard/secret, bukan repository atau chat.
+Untuk proyek Free yang dibuat mulai 3 Juni 2026 dan masih memakai SMTP bawaan, Supabase membatasi perubahan template. Jika kolom terkunci atau penyimpanan ditolak, teks ini belum bisa diaktifkan hingga memakai SMTP sendiri atau paket yang mendukung. Mengubah judul atau satu kalimat juga termasuk perubahan template.
 
-GitHub Pages hanya memublikasikan template sebagai file sumber; push ke GitHub tidak menerapkan pengaturan email di Supabase. Secret key database juga tidak memberi izin mengubah konfigurasi Auth. Pengaturan ini harus disimpan oleh pemilik proyek di dashboard atau melalui Management API dengan access token akun.
+Push GitHub tidak mengubah konfigurasi Auth Supabase. Saat ini akses Management API akun belum tersedia di laptop. Pemilik proyek dapat menyimpan melalui dashboard; alternatif otomatis memerlukan `SUPABASE_ACCESS_TOKEN` di `.env`, lalu jalankan `node scripts/configure-auth-email.mjs --apply`. Pratinjau tanpa perubahan: `node scripts/configure-auth-email.mjs`. Script hanya mengubah subject dan isi konfirmasi; tidak mengubah SMTP, pengirim, atau kewajiban verifikasi email.
 
-Alternatif otomatis: simpan `SUPABASE_ACCESS_TOKEN` akun Supabase di `.env`. Pratinjau dengan `node scripts/configure-auth-email.mjs`, lalu terapkan template dengan `node scripts/configure-auth-email.mjs --apply`. Script tidak mencetak token atau konfigurasi rahasia. Untuk memasang SMTP sekaligus, isi `TANJ_SMTP_HOST`, `TANJ_SMTP_PORT`, `TANJ_SMTP_USER`, `TANJ_SMTP_PASSWORD`, dan `TANJ_SMTP_SENDER_EMAIL` sebelum menjalankan script. Tanpa SMTP, script hanya menerapkan isi/subject email dan tidak mengklaim nama pengirim sudah berubah.
+Referensi: https://supabase.com/changelog/46599-changes-to-email-template-customisation-on-free-tier
 
 ## Perilaku tautan pembayaran
 
