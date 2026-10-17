@@ -219,7 +219,7 @@ try {
       .locator('.payment-social-links')
       .getByRole('link', { name: 'Instagram TANJ', exact: true })
       .getAttribute('href'),
-    'https://www.instagram.com/tanjofficial/',
+    'https://www.instagram.com/tanj.idn?mdxt=MXJ1OTlhOHQzMG9leA==',
   );
   await page
     .context()

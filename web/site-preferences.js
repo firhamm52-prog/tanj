@@ -3,6 +3,9 @@ let current = { ...defaultSiteSettings };
 export const sitePreferences = () => ({ ...current });
 export function applySitePreferences(settings) {
   current = { ...defaultSiteSettings, ...settings };
+  // Older published CMS settings still contain the original placeholder account.
+  if (/^https:\/\/(www\.)?instagram\.com\/tanjofficial\/?(?:[?#].*)?$/i.test(current.instagram))
+    current.instagram = defaultSiteSettings.instagram;
   const put = (selector, text) => {
     const el = document.querySelector(selector);
     if (el) el.textContent = text;

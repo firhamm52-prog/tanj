@@ -3,7 +3,7 @@ export const defaultSiteSettings = Object.freeze({
   storyTitle: 'Grace in\nevery detail.',
   storyText:
     'Siluet yang mengalir, warna yang menenangkan. Temani setiap langkah dengan anggun, dalam caramu sendiri.',
-  instagram: 'https://www.instagram.com/tanjofficial/',
+  instagram: 'https://www.instagram.com/tanj.idn?mdxt=MXJ1OTlhOHQzMG9leA==',
   tiktok: 'https://www.tiktok.com/@tanj.co.id',
   whatsapp: '6281363661703',
   email: 'tanj.indonesia@gmail.com',

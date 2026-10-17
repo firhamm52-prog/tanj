@@ -46,6 +46,22 @@ try {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(url);
+  await page.locator('#manual-orders').waitFor({ state: 'attached' });
+  assert.equal(await page.locator('#customer-account[open]').count(), 0);
+  await page.evaluate(async () => {
+    const { applySitePreferences } = await import('./web/site-preferences.js');
+    applySitePreferences({ instagram: 'https://www.instagram.com/tanjofficial/' });
+  });
+  assert.equal(
+    await page.locator('a[href*="instagram.com"]').first().getAttribute('href'),
+    'https://www.instagram.com/tanj.idn?mdxt=MXJ1OTlhOHQzMG9leA==',
+  );
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('pageshow'));
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  assert.equal(await page.locator('#customer-account[open]').count(), 0);
   await page.locator('.product-preview').first().click();
   await page.locator('#product-modal').click({ position: { x: 2, y: 2 } });
   assert.equal(await page.locator('#product-modal').isVisible(), true);
@@ -185,6 +201,13 @@ try {
   await page.locator('#customer-account .customer-close').click();
   await page.goto(email.url);
   await page.reload();
+  await page.locator('#manual-orders').waitFor({ state: 'attached' });
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('focus'));
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  assert.equal(await page.locator('#customer-account[open]').count(), 0);
+  await page.locator('[data-account-open]').first().click();
   await page.locator('#customer-account[open]').waitFor();
   assert.equal(await page.locator('#customer-auth [name=repeat]').count(), 0);
   await page.locator('#customer-auth [name=email]').fill('buyer@example.com');

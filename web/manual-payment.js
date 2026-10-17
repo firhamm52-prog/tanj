@@ -500,11 +500,10 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
   const checkout = mountCheckoutExperience({ form, locations, getItems, getSubtotal, getCatalog });
   window.addEventListener('tanj-restore-order-screen', async (e) => {
     try {
+      await ensureCustomerSession();
       if (!customerSession() && !isAdmin()) {
-        requireCustomer(() => {
-          selected = e.detail.id || null;
-          showPanel();
-        });
+        // Restoring browser history is not a request to sign in.
+        $('bag-modal').hidden = true;
         return;
       }
       selected = e.detail.id || null;
@@ -548,6 +547,10 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
     routingOrder = true;
     try {
       await ensureCustomerSession();
+      // Page load, focus and visibility changes must never open a login prompt.
+      // The account / purchase buttons handle sign-in explicitly; after login
+      // the authenticated event below resumes a linked order.
+      if (!customerSession() && !isAdmin()) return;
       requested = paymentOrderId(location.href);
       const targetOrder = requested;
       const resume = async () => {
