@@ -1,6 +1,10 @@
 import { createServer } from 'node:http';
 import { config } from './config.mjs';
 import { ValidationError } from '../shared/validation.js';
+export async function optionalJSON(response) {
+  const text = await response.text();
+  return text.trim() ? JSON.parse(text) : null;
+}
 export function json(res, status, data) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',

@@ -1,9 +1,33 @@
 import { readFile, stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { config, production, root } from './config.mjs';
-import { serve, service, json, body, error } from './http.mjs';
+import { serve, service, json, body, error, optionalJSON } from './http.mjs';
 import { openDatabase } from './db.mjs';
 import { storefront } from '../shared/seed.js';
+import { supabaseConfig } from '../web/supabase-config.js';
+import { createRates, shippingItems, shippingQuote } from './biteship.mjs';
+const shippingKey = process.env.BITESHIP_API_KEY?.trim();
+const shippingServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+const rates = createRates({
+  apiKey: shippingKey,
+  origin: process.env.BITESHIP_ORIGIN_POSTAL_CODE || '13110',
+  couriers: process.env.BITESHIP_COURIERS || 'jne,jnt,tiki,lion',
+});
+const shippingLimits = new Map();
+async function shippingCloud(path, options = {}, key = supabaseConfig.publishableKey) {
+  const response = await fetch(supabaseConfig.url + path, {
+    ...options,
+    headers: {
+      apikey: key,
+      ...(key.startsWith('eyJ') ? { Authorization: 'Bearer ' + key } : {}),
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) error(503, 'Layanan ongkir belum siap. Hubungi admin TANJ.');
+  return optionalJSON(response);
+}
 const db = openDatabase('publication');
 const state = async () => {
   const [catalog, content] = await Promise.all([
@@ -46,6 +70,81 @@ serve(
           ),
         );
         return json(res, 200, { status: 'ok', services });
+      }
+      if (path === '/api/shipping/config' && req.method === 'GET')
+        return json(res, 200, {
+          enabled: Boolean(shippingKey),
+          orderReady: Boolean(shippingServiceKey),
+          origin: process.env.BITESHIP_ORIGIN_POSTAL_CODE || '13110',
+        });
+      if (path === '/api/shipping/rates' && req.method === 'POST') {
+        const token = String(req.headers.authorization || '').replace(/^Bearer /, '');
+        if (!token || token.length > 8192) error(401, 'Login untuk cek ongkir.');
+        const auth = await fetch(supabaseConfig.url + '/auth/v1/user', {
+          headers: { apikey: supabaseConfig.publishableKey, Authorization: 'Bearer ' + token },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!auth.ok) error(401, 'Sesi berakhir. Login kembali.');
+        const owner = (await auth.json()).id;
+        const previous = shippingLimits.get(owner);
+        if (previous && previous.until > Date.now() && previous.count >= 20)
+          error(429, 'Terlalu banyak cek ongkir. Coba lagi satu menit lagi.');
+        if (shippingLimits.size > 1000)
+          for (const [id, limit] of shippingLimits)
+            if (limit.until < Date.now()) shippingLimits.delete(id);
+        shippingLimits.set(owner, {
+          until: previous?.until > Date.now() ? previous.until : Date.now() + 60000,
+          count: previous?.until > Date.now() ? previous.count + 1 : 1,
+        });
+        const input = await body(req);
+        const destination = input.destination;
+        if (
+          !destination ||
+          !/^\d{5}$/.test(String(destination.zip)) ||
+          !['provinceId', 'cityId', 'districtId'].every(
+            (k) => typeof destination[k] === 'string' && destination[k].length < 40,
+          )
+        )
+          error(422, 'Pilih alamat pengiriman yang lengkap.');
+        const catalog = await shippingCloud('/rest/v1/rpc/tanj_cms_storefront', {
+          method: 'POST',
+          body: '{}',
+        });
+        const products = [
+          ...catalog.products,
+          ...(catalog.hijabs || []).map((p) => ({ ...p, isHijab: true })),
+        ];
+        const weight = {
+          clothing: Number(process.env.BITESHIP_CLOTHING_WEIGHT_GRAMS || 700),
+          hijab: Number(process.env.BITESHIP_HIJAB_WEIGHT_GRAMS || 300),
+        };
+        if (!Object.values(weight).every((w) => Number.isInteger(w) && w > 0 && w <= 50000))
+          error(503, 'Konfigurasi berat barang belum valid.');
+        const items = shippingItems(input.lines, products, weight);
+        const options = await rates(destination.zip, items);
+        const quote = shippingQuote(
+          owner,
+          {
+            zip: String(destination.zip),
+            provinceId: destination.provinceId,
+            cityId: destination.cityId,
+            districtId: destination.districtId,
+          },
+          input.lines,
+          options,
+        );
+        if (shippingServiceKey && options.length)
+          await shippingCloud(
+            '/rest/v1/tb_t_shipping_quote',
+            { method: 'POST', body: JSON.stringify(quote), headers: { Prefer: 'return=minimal' } },
+            shippingServiceKey,
+          );
+        return json(res, 200, {
+          options,
+          quoteId: shippingServiceKey ? quote.id : null,
+          expiresAt: quote.expires_at,
+          weightGrams: items.reduce((n, i) => n + i.weight * i.quantity, 0),
+        });
       }
       if (path === '/api/storefront' && req.method === 'GET')
         return json(

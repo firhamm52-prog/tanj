@@ -3,6 +3,7 @@ assets/
 data/
 test-results/
 web/vendor/
+supabase/dashboard/
 web/shipping-areas/
 web/shipping-master.js
 package-lock.json

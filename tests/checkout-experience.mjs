@@ -239,6 +239,55 @@ try {
     return order.customer.email;
   });
   assert.equal(boundEmail, 'other@example.com');
+  // Exercise live-rate checkout with a stub: no provider calls or paid requests.
+  await context.route('**/web/biteship.js', (route) =>
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: `export async function shippingConfiguration(){return {enabled:true};}
+      export async function shippingRates(){return {quoteId:null,expiresAt:new Date(Date.now()+600000).toISOString(),options:[
+        {id:'biteship:jne:reg',name:'JNE',service:'REG',fee:14000,duration:'2 - 3 hari'},
+        {id:'biteship:jnt:ez',name:'J&T',service:'EZ',fee:16000,duration:'1 - 2 hari'}]};}`,
+    }),
+  );
+  await page.evaluate(async () => {
+    const m = await import('./web/customer-account.js?v=owner-ui-3');
+    await m.saveAddress({
+      name: 'Pembeli lain',
+      phone: '081234567890',
+      address: 'Alamat Biteship',
+      provinceId: '36',
+      cityId: '36.71',
+      districtId: '36.71.07',
+      district: 'Testing',
+      city: 'Tangerang',
+      province: 'Banten',
+      zip: '15115',
+    });
+  });
+  await page.goto(url);
+  if (await page.locator('#bag-modal').isVisible())
+    await page.locator('#bag-modal [data-utility-close]').click();
+  await page.locator('.product-preview').first().click();
+  await page.locator('#product-buy-now').click();
+  await page.locator('#address-summary').filter({ hasText: 'Alamat Biteship' }).waitFor();
+  assert.match(await page.locator('#shipping-choice').innerText(), /Cek ongkir/);
+  await page.locator('#shipping-choice').click();
+  const ratesDialog = page.getByRole('dialog', { name: 'Metode pengiriman', exact: true });
+  await ratesDialog.locator('[value="biteship:jnt:ez"]').check();
+  await ratesDialog.getByRole('button', { name: 'Konfirmasi', exact: true }).click();
+  assert.match(await page.locator('#shipping-choice').innerText(), /J&T/);
+  assert.match(await page.locator('#checkout-price-summary').innerText(), /16.000/);
+  await page.locator('#checkout-order').click();
+  await page.locator('#manual-checkout-error').filter({ hasText: 'Hubungi admin TANJ' }).waitFor();
+  await page.locator('#checkout-back').click();
+  await page.locator('#bag-items button[aria-label^="Tambah jumlah"]').first().click();
+  await page.locator('#bag-next').click();
+  await page.locator('#shipping-choice').filter({ hasText: 'Cek ongkir' }).waitFor();
+  assert.match(
+    await page.locator('#checkout-price-summary').innerText(),
+    /Pilih kurir untuk total/,
+  );
+  assert.deepEqual(errors, []);
   console.log(
     'PASS: customer registration/login validation, login gate, Order Sekarang, address create/edit/persistence/isolation, account-bound recipient despite modified input, shipping choice, disabled gateway methods, Order, email preview/deep link, payment ownership, responsive layout.',
   );
