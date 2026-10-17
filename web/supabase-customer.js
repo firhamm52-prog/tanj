@@ -1,4 +1,3 @@
-import { startIdleSession } from './idle-session.js';
 import { supabaseConfig } from './supabase-config.js?v=improve-2';
 import { getShippingEstimate } from './shipping.js?v=districts-1';
 export const cloudEnabled = supabaseConfig.enabled;
@@ -94,6 +93,17 @@ export const cloudReady = (async () => {
 // Keep rejected initialization observable by UI actions without an unhandled rejection.
 cloudReady.catch(() => {});
 export const cloudSession = () => user;
+export async function cloudEnsureSession() {
+  await cloudReady;
+  if (!cloudEnabled) return;
+  const { data, error } = await client.auth.getSession();
+  check(error);
+  if (user?.id !== data.session?.user?.id) {
+    await accept(data.session);
+    await loadRole();
+  }
+  return user;
+}
 export async function cloudClient() {
   await cloudReady;
   return client;
@@ -210,7 +220,5 @@ export async function finishPasswordReset(password, repeat) {
   await cloudLogout();
 }
 
-if (cloudEnabled)
-  cloudReady
-    .then(() => startIdleSession({ getUser: cloudSession, logout: cloudLogout }))
-    .catch(() => {});
+// Customer sessions follow Supabase expiry/refresh and explicit logout. Reading
+// an email or opening another tab must not trigger the old 30-minute idle logout.

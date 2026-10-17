@@ -1,3 +1,4 @@
+import { isPaymentLink } from '../shared/payment-link.js';
 // Store screen references only; Back/Forward must never replay shopping actions.
 export function mountScreenHistory({ getCatalog, openProduct }) {
   const $ = (id) => document.getElementById(id);
@@ -77,7 +78,7 @@ export function mountScreenHistory({ getCatalog, openProduct }) {
       }
     }
   }
-  const saved = history.state?.tanjScreen;
+  const saved = isPaymentLink(location.href) ? null : history.state?.tanjScreen;
   history.replaceState({ ...history.state, tanjScreen: saved || last }, '');
   new MutationObserver(capture).observe(document.body, {
     subtree: true,
@@ -86,7 +87,7 @@ export function mountScreenHistory({ getCatalog, openProduct }) {
   });
   window.addEventListener('popstate', (e) => {
     // A fresh email/hash link belongs to the existing authenticated order router.
-    if (!e.state?.tanjScreen && location.hash.startsWith('#pesanan')) return;
+    if (!e.state?.tanjScreen && isPaymentLink(location.href)) return;
     void restore(e.state?.tanjScreen || { screen: 'page' });
   });
   window.addEventListener('hashchange', () => {

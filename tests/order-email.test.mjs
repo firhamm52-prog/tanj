@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildOrderEmail, orderPaymentUrl } from '../shared/order-email.js';
 import { sendOrderEmails } from '../services/order-notifications.mjs';
+import { paymentOrderId, isPaymentLink } from '../shared/payment-link.js';
+import { readFile } from 'node:fs/promises';
 const order = {
   id: 'TANJ-Sand-Cream-TEST',
   customer: {
@@ -21,6 +23,29 @@ const order = {
   total: 697123,
   payment: { name: 'QRIS manual' },
 };
+test('payment link survives hash removal and removes expired-session or auth parameters', () => {
+  const link = orderPaymentUrl(
+    'https://example.com/tanj/?session=expired&access_token=do-not-copy#old',
+    order.id,
+  );
+  const url = new URL(link);
+  assert.equal(url.searchParams.get('session'), null);
+  assert.equal(url.searchParams.get('access_token'), null);
+  assert.equal(paymentOrderId(link), order.id);
+  url.hash = '';
+  assert.equal(paymentOrderId(url.href), order.id);
+  assert.equal(isPaymentLink(url.href), true);
+  assert.equal(paymentOrderId('https://example.com/tanj/#pesanan?order=OLD'), 'OLD');
+});
+test('confirmation email uses signed verification URL and the Order button styling', async () => {
+  const html = await readFile('supabase/templates/confirmation.html', 'utf8');
+  assert.match(html, /TANJ INDONESIA/);
+  assert.match(html, /href="\{\{ \.ConfirmationURL \}\}"/);
+  assert.match(html, /Verification your email/);
+  assert.match(html, /padding: 16px 26px/);
+  assert.match(html, /background: #302b26/);
+  assert.match(html, /border-radius: 5px/);
+});
 test('email template escapes customer content, preserves exact total, and links to the selected order', () => {
   const result = buildOrderEmail(order, { baseUrl: 'https://example.com/tanj/' });
   assert.equal(result.to, 'customer@example.com');

@@ -7,6 +7,8 @@ const money = (value) => 'Rp' + Number(value || 0).toLocaleString('id-ID');
 export function orderPaymentUrl(baseUrl, orderId) {
   const url = new URL(baseUrl);
   if (!['http:', 'https:'].includes(url.protocol)) throw Error('URL website tidak valid.');
+  url.search = '';
+  url.searchParams.set('order', orderId);
   url.hash = 'pesanan?order=' + encodeURIComponent(orderId);
   return url.href;
 }

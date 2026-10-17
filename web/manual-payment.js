@@ -1,8 +1,13 @@
+import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js';
 import { cloudEnabled } from './supabase-payments.js?v=improve-2';
 import { cropQrisArtwork } from './qris-crop.js';
 import { mountPaymentSocialLinks } from './payment-social-links.js';
 import { shipmentTracking } from '../shared/shipment-tracking.js';
-import { customerSession, requireCustomer } from './customer-account.js?v=owner-ui-3';
+import {
+  customerSession,
+  requireCustomer,
+  ensureCustomerSession,
+} from './customer-account.js?v=owner-ui-3';
 import { isAdmin } from './admin-session.js?v=improve-2';
 import { mountCheckoutExperience } from './checkout-experience.js?v=owner-ui-3';
 import { buildOrderEmail } from '../shared/order-email.js';
@@ -195,7 +200,7 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
   history.textContent = 'Pesanan saya';
   $('bag-cart-view').prepend(history);
   let selected = null;
-  let requested = new URLSearchParams(location.hash.split('?')[1] || '').get('order');
+  let requested = paymentOrderId(location.href);
   if (requested) selected = requested;
   const visibleOrders = (state) =>
     state.orders.filter(
@@ -536,28 +541,49 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
     if (!panel.hidden) render();
   });
   setInterval(tick, 30000);
-  function routeOrder() {
-    if (!location.hash.startsWith('#pesanan')) return;
-    requested = new URLSearchParams(location.hash.split('?')[1] || '').get('order');
-    const resume = async () => {
-      selected = requested || null;
-      await showPanel();
-      if (requested && !visibleOrders(readPayments()).some((o) => o.id === requested)) {
-        $('manual-payment-error').textContent =
-          'Pesanan dari link ini belum tersedia untuk akun di browser ini. Pastikan akun sesuai dengan pemilik pesanan. Pesanan lama versi browser belum otomatis dipindahkan. Hubungi admin TANJ dengan nomor pesanan ' +
-          requested +
-          '.';
+  let routingOrder = false;
+  async function routeOrder() {
+    if (!isPaymentLink(location.href)) return;
+    if (routingOrder) return;
+    routingOrder = true;
+    try {
+      await ensureCustomerSession();
+      requested = paymentOrderId(location.href);
+      const targetOrder = requested;
+      const resume = async () => {
+        selected = targetOrder || null;
+        await showPanel();
+        if (requested && !visibleOrders(readPayments()).some((o) => o.id === requested)) {
+          $('manual-payment-error').textContent =
+            'Pesanan dari link ini belum tersedia untuk akun di browser ini. Pastikan akun sesuai dengan pemilik pesanan. Pesanan lama versi browser belum otomatis dipindahkan. Hubungi admin TANJ dengan nomor pesanan ' +
+            requested +
+            '.';
+        }
+      };
+      if (isAdmin()) {
+        resume();
+        return;
       }
-    };
-    if (isAdmin()) {
-      resume();
-      return;
+      requireCustomer(() => {
+        void resume().catch(showError);
+      });
+    } catch (error) {
+      showError(error);
+    } finally {
+      routingOrder = false;
     }
-    requireCustomer(resume);
   }
+  const revisitOrder = () => {
+    if (isPaymentLink(location.href) && (panel.hidden || !customerSession())) void routeOrder();
+  };
+  window.addEventListener('pageshow', revisitOrder);
+  window.addEventListener('focus', revisitOrder);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) revisitOrder();
+  });
   window.addEventListener('hashchange', routeOrder);
   window.addEventListener('tanj-customer-authenticated', () => {
-    if (location.hash.startsWith('#pesanan')) routeOrder();
+    if (isPaymentLink(location.href)) routeOrder();
   });
-  if (location.hash.startsWith('#pesanan')) requestAnimationFrame(routeOrder);
+  if (isPaymentLink(location.href)) requestAnimationFrame(routeOrder);
 }

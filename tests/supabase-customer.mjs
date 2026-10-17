@@ -270,6 +270,27 @@ try {
     }),
     user.id,
   );
+  // Email clicks open new tabs on mobile and desktop; persisted sessions must be reused.
+  const beforeEmailClicks = loginRequests;
+  for (const [deviceContext, viewport] of [
+    [phone.context, { width: 390, height: 844 }],
+    [laptop.context, { width: 1440, height: 900 }],
+  ]) {
+    const emailTab = await deviceContext.newPage();
+    await emailTab.setViewportSize(viewport);
+    await emailTab.goto(url + '?order=' + encodeURIComponent(order.id));
+    await emailTab.locator('.manual-id').filter({ hasText: order.id }).waitFor();
+    assert.equal(await emailTab.locator('#customer-account[open]').count(), 0);
+    await emailTab.evaluate(
+      (id) => localStorage.setItem('tanj-last-activity-' + id, String(Date.now() - 3600000)),
+      user.id,
+    );
+    await emailTab.reload();
+    await emailTab.locator('.manual-id').filter({ hasText: order.id }).waitFor();
+    assert.equal(await emailTab.locator('#customer-account[open]').count(), 0);
+    await emailTab.close();
+  }
+  assert.equal(loginRequests, beforeEmailClicks);
   await phone.page.evaluate(async () => {
     const m = await import('./web/customer-account.js?v=owner-ui-3');
     await m.customerLogout();
@@ -279,6 +300,17 @@ try {
       (await import('./web/customer-account.js?v=owner-ui-3')).customerSession(),
     ),
     null,
+  );
+  // A browser without a session logs in once and resumes the original payment link.
+  await phone.page.goto(url + '?order=' + encodeURIComponent(order.id));
+  await phone.page.locator('#customer-account[open]').waitFor();
+  await phone.page.locator('#customer-auth [name=email]').fill(user.email);
+  await phone.page.locator('#customer-auth [name=password]').fill('cloud-password-123');
+  await phone.page.locator('#customer-auth [type=submit]').click();
+  await phone.page.locator('.manual-id').filter({ hasText: order.id }).waitFor();
+  assert.equal(await phone.page.locator('#customer-account[open]').count(), 0);
+  await phone.page.evaluate(async () =>
+    (await import('./web/customer-account.js?v=owner-ui-3')).customerLogout(),
   );
   for (const email of ['duplicate@example.com', 'hidden@example.com', 'existing@example.com']) {
     const message = await phone.page.evaluate(async (email) => {

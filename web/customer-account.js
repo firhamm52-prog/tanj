@@ -3,6 +3,7 @@ import { digest, isAdmin } from './admin-session.js?v=improve-2';
 import {
   cloudEnabled,
   cloudReady,
+  cloudEnsureSession,
   cloudSession,
   cloudAuthenticate,
   cloudLogout,
@@ -12,6 +13,10 @@ import {
   cloudDeleteAddress,
 } from './supabase-customer.js?v=improve-2';
 export const customerReady = cloudReady;
+export async function ensureCustomerSession() {
+  if (cloudEnabled) await cloudEnsureSession();
+  return customerSession();
+}
 // Keep fixed overlays outside gallery sections that use layout/paint containment.
 for (const id of ['bag-modal', 'product-modal', 'account-modal', 'search-modal']) {
   const overlay = document.getElementById(id);
@@ -218,10 +223,15 @@ export function showCustomerAccount(next = null) {
 }
 export function requireCustomer(next) {
   if (cloudEnabled) {
-    customerReady
+    ensureCustomerSession()
       .then(() => {
-        if (customerSession()) next();
-        else showCustomerAccount(next);
+        if (customerSession()) {
+          if (dialog?.open && pending) {
+            pending = null;
+            dialog.close();
+          }
+          next();
+        } else showCustomerAccount(next);
       })
       .catch((err) => {
         showCustomerAccount(next);
