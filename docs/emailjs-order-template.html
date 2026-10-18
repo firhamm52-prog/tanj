@@ -1,111 +1,137 @@
-<!doctype html>
-<html lang="id">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-  </head>
-  <body
-    style="
-      margin: 0;
-      background: #f3efe7;
-      color: #302b26;
-      font:
-        14px Arial,
-        sans-serif;
-    "
-  >
-    <main style="max-width: 580px; margin: 24px auto; background: #fffdf8; padding: 32px">
-      <p
+<div
+  style="background: #f3efe7; padding: 24px 12px; font-family: Arial, sans-serif; color: #302b26"
+>
+  <div style="max-width: 580px; margin: auto; background: #fffdf8; padding: 32px">
+    <p
+      style="
+        font-family: Georgia, serif;
+        font-size: 32px;
+        letter-spacing: 7px;
+        text-align: center;
+        margin: 10px 0 36px;
+      "
+    >
+      TANJ
+    </p>
+    <p>Hai {{customer_name}},</p>
+    {{#has_tracking}}
+    <p style="line-height: 1.8">
+      Terima kasih sudah berbelanja di TANJ. Pesanan <strong>{{order_id}}</strong> sudah memiliki
+      nomor resi.
+    </p>
+    <div style="background: #eee7db; padding: 24px; margin: 26px 0">
+      <p>Kurir: <strong>{{tracking_courier}}</strong></p>
+      <p>Nomor resi: <strong>{{tracking_number}}</strong></p>
+    </div>
+    <p style="text-align: center">
+      <a
+        href="{{order_url}}"
         style="
-          font:
-            30px Georgia,
-            serif;
-          letter-spacing: 7px;
-          text-align: center;
-          margin: 10px 0 40px;
+          display: inline-block;
+          background: #302b26;
+          color: #fff;
+          padding: 16px 26px;
+          text-decoration: none;
+          border-radius: 5px;
         "
+        >Lihat Resi &amp; Lacak Pengiriman</a
       >
-        TANJ
-      </p>
-      <p>Hai {{customer_name}},</p>
-      <p style="line-height: 1.8">
-        Pesanan <strong>{{order_id}}</strong> telah dibuat dan menunggu pembayaran. Salinan detail
-        pesanan ini ditujukan kepada admin TANJ dan pemesan.
-      </p>
-      <div style="padding: 24px; background: #eee7db; margin: 26px 0">
-        Total pembayaran: <strong>{{order_total}}</strong>
-      </div>
-      <p style="text-align: center; margin: 30px 0">
-        <a
-          href="{{payment_url}}"
-          style="
-            display: inline-block;
-            padding: 16px 26px;
-            background: #302b26;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-          "
-          >Cek cara membayar</a
-        >
-      </p>
-      <p style="color: #968774; font-size: 12px; line-height: 1.8">
-        Selesaikan pembayaran sebelum {{payment_deadline}}. Login dengan akun pemesan untuk melihat
-        detail pesanan.
-      </p>
-      <h3 style="font-size: 15px">Ringkasan pesanan</h3>
-      <pre
+    </p>
+    <p style="font-size: 12px; line-height: 1.8">
+      Login dengan akun pemesan jika diminta. Di halaman pesanan, lihat bagian Nomor resi, salin
+      nomor resi, lalu tekan Lacak di situs resmi kurir.
+    </p>
+    {{/has_tracking}} {{^has_tracking}}
+    <p style="line-height: 1.8">
+      Terima kasih sudah berbelanja di TANJ. Pesanan <strong>{{order_id}}</strong> sudah kami terima
+      dan sedang menunggu pembayaran.
+    </p>
+    <div style="background: #eee7db; padding: 24px; margin: 26px 0">
+      <p style="font-size: 12px; margin: 0 0 10px">TOTAL PEMBAYARAN</p>
+      <strong style="font-size: 26px">{{order_total}}</strong>
+    </div>
+    <p style="text-align: center">
+      <a
+        href="{{payment_url}}"
         style="
-          white-space: pre-wrap;
-          font:
-            13px/1.9 Arial,
-            sans-serif;
-          padding: 18px;
-          background: #f7f3ed;
+          display: inline-block;
+          background: #302b26;
+          color: #fff;
+          padding: 16px 26px;
+          text-decoration: none;
+          border-radius: 5px;
         "
+        >Cek Cara Membayar</a
       >
-{{order_items}}</pre>
-      <table style="width: 100%; font-size: 13px; line-height: 2">
-        <tr>
-          <td>Subtotal</td>
-          <td style="text-align: right">{{order_subtotal}}</td>
-        </tr>
-        <tr>
-          <td>Ongkir</td>
-          <td style="text-align: right">{{shipping_fee}}</td>
-        </tr>
-        <tr>
-          <td>Kode unik</td>
-          <td style="text-align: right">{{unique_code}}</td>
-        </tr>
-        <tr>
-          <td><strong>Total pembayaran</strong></td>
-          <td style="text-align: right"><strong>{{order_total}}</strong></td>
-        </tr>
-      </table>
-      <h3 style="font-size: 15px; margin-top: 28px">Detail pengiriman</h3>
-      <p style="line-height: 1.9">
-        {{customer_name}} · {{customer_phone}}<br />{{customer_email}}<br />{{shipping_address}}
-      </p>
-      <p style="line-height: 1.9">
-        Pengiriman: {{shipping_method}}<br />Pembayaran: {{payment_method}}
-      </p>
-      <p
-        style="
-          font-size: 12px;
-          line-height: 1.8;
-          color: #968774;
-          border-top: 1px solid #e6ded3;
-          padding-top: 22px;
-        "
+    </p>
+    <p style="font-size: 12px; text-align: center">
+      Selesaikan pembayaran sebelum {{payment_deadline}}. Login dengan akun pemesan untuk melihat
+      detail.
+    </p>
+    {{/has_tracking}}
+    <h3 style="font-size: 16px; margin-top: 32px">Ringkasan Pesanan</h3>
+    <div
+      style="
+        white-space: pre-wrap;
+        background: #f7f3ed;
+        padding: 18px;
+        font-size: 13px;
+        line-height: 1.9;
+      "
+    >
+      {{order_items}}
+    </div>
+    <table style="width: 100%; font-size: 13px; line-height: 2.2; margin-top: 18px">
+      <tr>
+        <td>Subtotal produk</td>
+        <td style="text-align: right">{{order_subtotal}}</td>
+      </tr>
+      <tr>
+        <td>Ongkir</td>
+        <td style="text-align: right">{{shipping_fee}}</td>
+      </tr>
+      <tr>
+        <td>Kode unik</td>
+        <td style="text-align: right">{{unique_code}}</td>
+      </tr>
+      <tr>
+        <td style="border-top: 1px solid #e6ded3; padding-top: 12px">
+          <strong>Total pembayaran</strong>
+        </td>
+        <td style="text-align: right; border-top: 1px solid #e6ded3; padding-top: 12px">
+          <strong>{{order_total}}</strong>
+        </td>
+      </tr>
+    </table>
+    <h3 style="font-size: 16px; margin-top: 32px">Detail Pengiriman</h3>
+    <p style="font-size: 13px; line-height: 1.9">
+      <strong>{{customer_name}}</strong
+      ><br />{{customer_phone}}<br />{{customer_email}}<br />{{shipping_address}}
+    </p>
+    <p style="font-size: 13px; line-height: 1.9">
+      Pengiriman: {{shipping_method}}<br />Pembayaran: {{payment_method}}
+    </p>
+    {{^has_tracking}}
+    <p
+      style="
+        font-size: 12px;
+        line-height: 1.8;
+        color: #847563;
+        border-top: 1px solid #e6ded3;
+        padding-top: 22px;
+        margin-top: 28px;
+      "
+    >
+      Email ini adalah konfirmasi pesanan, bukan bukti pembayaran berhasil. Pembayaran akan
+      diverifikasi oleh admin TANJ.
+    </p>
+    {{/has_tracking}}
+    <p style="font-size: 12px; line-height: 1.9; text-align: center">
+      Butuh bantuan?<br /><a href="mailto:tanj.indonesia@gmail.com" style="color: #75624e"
+        >tanj.indonesia@gmail.com</a
+      ><br /><a href="https://wa.me/6281363661703" style="color: #75624e"
+        >WhatsApp +6281363661703</a
       >
-        Email ini merupakan pemberitahuan pesanan, bukan bukti pembayaran berhasil. Admin
-        memverifikasi dana secara terpisah.<br />Butuh bantuan?
-        <a href="mailto:tanj.indonesia@gmail.com" style="color: #75624e"
-          >tanj.indonesia@gmail.com</a
-        >
-        · +6281363661703
-      </p>
-    </main>
-  </body>
-</html>
+    </p>
+  </div>
+</div>

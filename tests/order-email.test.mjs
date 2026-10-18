@@ -35,6 +35,17 @@ test('paid customer email thanks the buyer without payment instructions', () => 
   );
   assert.equal(email.url, '');
 });
+test('tracking email includes order details and opens the selected order', () => {
+  const email = buildOrderEmail(
+    { ...order, status: 'PAID', tracking: { courier: 'Lion Parcel', number: 'LP123' } },
+    { baseUrl: 'https://example.com/tanj/' },
+  );
+  assert.match(email.text, /LP123/);
+  assert.match(email.text, /TANJ Sand/);
+  assert.match(email.html, /Lihat Resi &amp; Lacak Pengiriman/);
+  assert.equal(paymentOrderId(email.url), order.id);
+  assert.doesNotMatch(email.text, /Cek cara membayar|Batas pembayaran/);
+});
 test('payment link survives hash removal and removes expired-session or auth parameters', () => {
   const link = orderPaymentUrl(
     'https://example.com/tanj/?session=expired&access_token=do-not-copy#old',

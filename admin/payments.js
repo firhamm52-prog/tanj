@@ -1,6 +1,7 @@
 import { cloudEnabled } from '../web/supabase-payments.js?v=improve-2';
 import { customerWhatsAppLink } from '../shared/customer-whatsapp.js';
 import { emailConfig } from '../web/email-config.js?v=email-live-1';
+import { notifyPayment } from '../web/payment-notifications.js?v=email-live-1';
 import {
   readPayments,
   refreshPayments,
@@ -177,6 +178,11 @@ function trackingForm(o) {
       await saveTracking(o.id, o.version, form.elements.courier.value, form.elements.number.value);
       reviewing = false;
       render();
+      try {
+        await notifyPayment(readPayments().orders.find((order) => order.id === o.id));
+      } catch (error) {
+        $('review-error').textContent = 'Nomor resi sudah tersimpan. ' + error.message;
+      }
     } catch (error) {
       form.querySelector('#tracking-error').textContent = error.message;
       button.disabled = false;

@@ -1,6 +1,7 @@
 import { orderPaymentUrl } from '../shared/order-email.js';
 const RECEIPTS = 'tanj-email-receipts-v1';
 const money = (value) => 'Rp' + Number(value).toLocaleString('id-ID');
+const hasTracking = (order) => order?.status === 'PAID' && Boolean(order.tracking?.number?.trim());
 export function emailTemplateParams(order, baseUrl) {
   const email = String(order?.customer?.email || '').trim();
   if (!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(email) || email.length > 120)
@@ -15,6 +16,10 @@ export function emailTemplateParams(order, baseUrl) {
     throw Error('Detail pesanan belum valid untuk pengiriman email.');
   const customer = order.customer;
   return {
+    has_tracking: hasTracking(order),
+    tracking_number: hasTracking(order) ? order.tracking.number : '',
+    tracking_courier: hasTracking(order) ? order.tracking.courier : '',
+    order_url: orderPaymentUrl(baseUrl, order.id),
     order_id: order.id,
     customer_name: String(customer.name || ''),
     customer_email: email,
@@ -66,12 +71,15 @@ export function createEmailDelivery({
     if (!configured())
       throw Error('Email otomatis belum aktif. Hubungi admin untuk salinan pesanan.');
     const params = emailTemplateParams(order, baseUrl);
-    const templateId = order.status === 'PAID' ? config.paidTemplateId : config.templateId;
-    if (!templateId)
+    const templateId = config.templateId;
+    if (order.status === 'PAID' && !hasTracking(order))
+      throw Error('Email kedua dikirim hanya setelah nomor resi tersedia.');
+    if (hasTracking(order) && !config.trackingEmailEnabled)
       throw Error(
-        'Pembayaran tersimpan. Template email terima kasih belum dihubungkan di EmailJS.',
+        'Resi tersimpan. Template EmailJS perlu diperbarui sebelum email resi diaktifkan.',
       );
-    const key = [config.serviceId, templateId, order.id].join(':');
+    const key =
+      [config.serviceId, templateId, order.id].join(':') + (params.has_tracking ? ':tracking' : '');
     let receipts;
     try {
       receipts = JSON.parse(storage.getItem(RECEIPTS) || '{}');
@@ -145,7 +153,7 @@ export function createEmailDelivery({
     return { sent: true, accepted: true, receiptSaved: true };
   }
   return function notify(order) {
-    const key = String(order?.id || '') + (order?.status === 'PAID' ? ':paid' : '');
+    const key = String(order?.id || '') + (hasTracking(order) ? ':tracking' : '');
     if (pending.has(key)) return pending.get(key);
     const task = queue.catch(() => {}).then(() => runExclusive(() => send(order)));
     pending.set(key, task);

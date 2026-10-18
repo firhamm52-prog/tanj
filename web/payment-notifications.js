@@ -6,7 +6,7 @@ const browserDelivery = createEmailDelivery({
     getItem: (key) => localStorage.getItem(key),
     setItem: (key, value) => localStorage.setItem(key, value),
   },
-  baseUrl: location.origin + location.pathname,
+  baseUrl: new URL('../', import.meta.url).href,
   runExclusive: (fn) =>
     navigator.locks ? navigator.locks.request('tanj-email-delivery', fn) : fn(),
 });

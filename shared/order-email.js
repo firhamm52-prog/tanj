@@ -13,6 +13,34 @@ export function orderPaymentUrl(baseUrl, orderId) {
   return url.href;
 }
 export function buildOrderEmail(order, { baseUrl, audience = 'customer' } = {}) {
+  if (order.status === 'PAID' && order.tracking?.number) {
+    const url = orderPaymentUrl(baseUrl, order.id);
+    const subject = 'TANJ — Nomor resi pesanan ' + order.id;
+    const text = [
+      `Hai ${order.customer.name}, terima kasih sudah berbelanja di TANJ.`,
+      `Pesanan: ${order.id}`,
+      `Kurir: ${order.tracking.courier}`,
+      `Nomor resi: ${order.tracking.number}`,
+      ...order.items.map(
+        (item) => `${item.name} / ${item.color} x ${item.qty}: ${money(item.qty * item.price)}`,
+      ),
+      `Subtotal: ${money(order.subtotal)}`,
+      `Ongkir: ${money(order.shipping.fee)}`,
+      `Kode unik: ${money(order.adjustment)}`,
+      `Total: ${money(order.total)}`,
+      `Penerima: ${order.customer.name} / ${order.customer.phone}`,
+      `Alamat: ${[order.customer.address, order.customer.district, order.customer.city, order.customer.province, order.customer.zip].filter(Boolean).join(', ')}`,
+      `Lihat Resi & Lacak Pengiriman: ${url}`,
+      'Login dengan akun pemesan jika diminta. Di bagian Nomor resi, salin resi lalu buka tautan situs resmi kurir.',
+    ].join('\n');
+    return {
+      subject,
+      to: audience === 'admin' ? 'tanj.indonesia@gmail.com' : order.customer.email,
+      text,
+      url,
+      html: `<!doctype html><html lang="id"><meta charset="utf-8"><title>${esc(subject)}</title><body><h1>TANJ</h1><p>${esc(text).replaceAll('\n', '<br>')}</p><a href="${esc(url)}">Lihat Resi &amp; Lacak Pengiriman</a></body></html>`,
+    };
+  }
   if (order.status === 'PAID') {
     const subject = 'TANJ — Pembayaran diterima ' + order.id;
     const text = `Hai ${order.customer.name},\nTerima kasih sudah berbelanja di TANJ. Pembayaran pesanan ${order.id} sebesar ${money(order.total)} sudah kami terima. Pesanan kamu akan kami siapkan untuk pengiriman.\nButuh bantuan? tanj.indonesia@gmail.com`;

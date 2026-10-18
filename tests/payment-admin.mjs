@@ -41,6 +41,19 @@ try {
   browser = await chromium.launch({ channel: 'chrome', headless: true });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await isolateEmail(page.context());
+  const sent = [];
+  await page
+    .context()
+    .route('**/web/email-config.js?*', (route) =>
+      route.fulfill({
+        contentType: 'text/javascript',
+        body: 'export const emailConfig={enabled:true,serviceId:"service_test",templateId:"template_order",publicKey:"public_test",trackingEmailEnabled:true};',
+      }),
+    );
+  await page.context().route('https://api.emailjs.com/**', async (route) => {
+    sent.push(route.request().postDataJSON());
+    await route.fulfill({ status: 200, body: 'OK' });
+  });
   await page.goto(url + 'admin/payments.html');
   await page
     .locator('#login-title')
@@ -78,6 +91,7 @@ try {
             id: 'TANJ-TEST',
             customer: {
               name: 'Pembeli',
+              email: 'buyer@example.com',
               phone: '081200000000',
               address: 'Alamat contoh',
               district: 'Karawaci',
@@ -145,6 +159,15 @@ try {
   await page.locator('#tracking-form [name=courier]').fill('JNE');
   await page.locator('#tracking-form [name=number]').fill('JNE-TEST-123');
   await page.locator('#tracking-form [type=submit]').click();
+  await page.waitForFunction(() =>
+    Object.values(JSON.parse(localStorage.getItem('tanj-email-receipts-v1') || '{}')).some(
+      (receipt) => receipt?.status === 'accepted',
+    ),
+  );
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].template_params.tracking_number, 'JNE-TEST-123');
+  assert.equal(sent[0].template_params.has_tracking, true);
+  assert.equal(new URL(sent[0].template_params.order_url).pathname, '/tanj/');
   await page.waitForFunction(
     () =>
       JSON.parse(localStorage.getItem('tanj-manual-payments-demo-v1')).orders.find(
@@ -243,6 +266,9 @@ try {
   );
   assert.equal(await page.locator('#tracking-link').getAttribute('target'), '_blank');
   assert.match(await page.locator('#tracking-link').getAttribute('rel'), /noopener/);
+  await page.goto(sent[0].template_params.order_url);
+  await page.locator('.order-tracking').waitFor();
+  assert.match(await page.locator('.order-tracking').textContent(), /JNE-TEST-123/);
   for (const [courier, href] of [
     ['J&T Express', 'https://www.jet.co.id/track'],
     ['Lion Parcel', 'https://lionparcel.com/track'],

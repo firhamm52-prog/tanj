@@ -55,20 +55,27 @@ test('disabled email requires account setup and never makes a network request', 
   await assert.rejects(() => t.notify(sample()), /belum aktif/);
   assert.equal(t.calls.length, 0);
 });
-test('paid receipt uses its own template and never reuses the payment instructions', async () => {
-  const t = setup({ config: { ...config, paidTemplateId: 'template_thanks' } });
+test('tracking email is separate from Order, requires a resi, and sends once', async () => {
+  const t = setup({ config: { ...config, trackingEmailEnabled: true } });
+  const shipped = {
+    ...sample(),
+    status: 'PAID',
+    tracking: { courier: 'Lion Parcel', number: 'LP123' },
+  };
   await t.notify(sample());
-  await t.notify({ ...sample(), status: 'PAID' });
-  await t.notify({ ...sample(), status: 'PAID' });
+  await assert.rejects(() => t.notify({ ...sample(), status: 'PAID' }), /hanya setelah nomor resi/);
+  await Promise.all([t.notify(shipped), t.notify(shipped)]);
+  await t.notify({ ...shipped, tracking: { ...shipped.tracking, number: 'LP456' } });
   assert.equal(t.calls.length, 2);
   const receipt = JSON.parse(t.calls[1].body);
-  assert.equal(receipt.template_id, 'template_thanks');
+  assert.equal(receipt.template_id, config.templateId);
+  assert.equal(receipt.template_params.has_tracking, true);
+  assert.equal(receipt.template_params.tracking_number, 'LP123');
+  assert.match(receipt.template_params.order_url, /example.com\/tanj\/\?order=/);
+  assert.equal(JSON.parse(t.calls[0].body).template_params.has_tracking, false);
   assert.equal(receipt.template_params.payment_url, '');
   const missing = setup();
-  await assert.rejects(
-    () => missing.notify({ ...sample(), status: 'PAID' }),
-    /Template email terima kasih/,
-  );
+  await assert.rejects(() => missing.notify(shipped), /Template EmailJS perlu diperbarui/);
   assert.equal(missing.calls.length, 0);
 });
 test('provider receives exact template parameters; concurrent and repeated Order notifications are deduplicated locally', async () => {
