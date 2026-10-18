@@ -1,5 +1,5 @@
-import { emailConfig } from './email-config.js?v=email-live-1';
-import { createEmailDelivery } from './emailjs-delivery.js?v=email-live-1';
+import { emailConfig } from './email-config.js?v=tracking-email-2';
+import { createEmailDelivery } from './emailjs-delivery.js?v=tracking-email-2';
 const browserDelivery = createEmailDelivery({
   config: emailConfig,
   storage: {

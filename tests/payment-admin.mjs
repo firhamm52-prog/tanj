@@ -42,14 +42,12 @@ try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await isolateEmail(page.context());
   const sent = [];
-  await page
-    .context()
-    .route('**/web/email-config.js?*', (route) =>
-      route.fulfill({
-        contentType: 'text/javascript',
-        body: 'export const emailConfig={enabled:true,serviceId:"service_test",templateId:"template_order",publicKey:"public_test",trackingEmailEnabled:true};',
-      }),
-    );
+  await page.context().route('**/web/email-config.js?*', (route) =>
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: 'export const emailConfig={enabled:true,serviceId:"service_test",templateId:"template_order",publicKey:"public_test",trackingEmailEnabled:true};',
+    }),
+  );
   await page.context().route('https://api.emailjs.com/**', async (route) => {
     sent.push(route.request().postDataJSON());
     await route.fulfill({ status: 200, body: 'OK' });
@@ -168,6 +166,13 @@ try {
   assert.equal(sent[0].template_params.tracking_number, 'JNE-TEST-123');
   assert.equal(sent[0].template_params.has_tracking, true);
   assert.equal(new URL(sent[0].template_params.order_url).pathname, '/tanj/');
+  await page
+    .locator('#tracking-email-status')
+    .filter({ hasText: 'diterima layanan email' })
+    .waitFor();
+  await page.locator('#retry-tracking-email').click();
+  await page.locator('#tracking-email-status').filter({ hasText: 'sebelumnya' }).waitFor();
+  assert.equal(sent.length, 1);
   await page.waitForFunction(
     () =>
       JSON.parse(localStorage.getItem('tanj-manual-payments-demo-v1')).orders.find(

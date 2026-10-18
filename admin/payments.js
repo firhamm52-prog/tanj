@@ -1,7 +1,7 @@
 import { cloudEnabled } from '../web/supabase-payments.js?v=improve-2';
 import { customerWhatsAppLink } from '../shared/customer-whatsapp.js';
-import { emailConfig } from '../web/email-config.js?v=email-live-1';
-import { notifyPayment } from '../web/payment-notifications.js?v=email-live-1';
+import { emailConfig } from '../web/email-config.js?v=tracking-email-2';
+import { notifyPayment } from '../web/payment-notifications.js?v=tracking-email-2';
 import {
   readPayments,
   refreshPayments,
@@ -163,6 +163,19 @@ function trackingForm(o) {
   form.innerHTML = `<h3>Pengiriman</h3><label>Kurir<input name="courier" maxlength="80" required></label><label>Nomor resi<input name="number" maxlength="80" required placeholder="Masukkan nomor resi pengiriman"></label><p id="tracking-error" role="status"></p><div class="actions"><button class="primary" type="submit">Simpan nomor resi</button><button type="button" id="tracking-cancel">Batal</button></div>`;
   form.elements.courier.value = o.tracking?.courier || o.shipping.methodName || '';
   form.elements.number.value = o.tracking?.number || '';
+  if (o.tracking?.number) {
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.id = 'retry-tracking-email';
+    retry.textContent = 'Coba kirim email resi';
+    retry.onclick = async () => {
+      retry.disabled = true;
+      await sendTrackingEmail(o);
+      retry.disabled = false;
+      reviewing = false;
+    };
+    form.querySelector('.actions').append(retry);
+  }
   form.addEventListener('focusin', () => {
     reviewing = true;
   });
@@ -175,20 +188,35 @@ function trackingForm(o) {
     const button = e.submitter;
     button.disabled = true;
     try {
-      await saveTracking(o.id, o.version, form.elements.courier.value, form.elements.number.value);
+      const saved = await saveTracking(
+        o.id,
+        o.version,
+        form.elements.courier.value,
+        form.elements.number.value,
+      );
       reviewing = false;
       render();
-      try {
-        await notifyPayment(readPayments().orders.find((order) => order.id === o.id));
-      } catch (error) {
-        $('review-error').textContent = 'Nomor resi sudah tersimpan. ' + error.message;
-      }
+      await sendTrackingEmail(saved);
     } catch (error) {
       form.querySelector('#tracking-error').textContent = error.message;
       button.disabled = false;
     }
   };
   $('detail').insertBefore(form, $('detail').querySelector('h3'));
+}
+async function sendTrackingEmail(order) {
+  const status = $('tracking-email-status');
+  status.textContent = 'Nomor resi tersimpan. Mengirim email resi...';
+  try {
+    const result = await notifyPayment(order);
+    status.textContent = result.alreadySent
+      ? 'Email resi pesanan ' +
+        order.id +
+        ' sudah diterima layanan email sebelumnya. Periksa Inbox/Spam customer.'
+      : 'Email resi pesanan ' + order.id + ' diterima layanan email. Periksa Inbox/Spam customer.';
+  } catch (error) {
+    status.textContent = 'Nomor resi tetap tersimpan. Email resi belum berhasil: ' + error.message;
+  }
 }
 $('search').oninput = (e) => {
   query = e.target.value.toLowerCase();
