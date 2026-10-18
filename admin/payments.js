@@ -1,7 +1,7 @@
 import { cloudEnabled } from '../web/supabase-payments.js?v=improve-2';
 import { customerWhatsAppLink } from '../shared/customer-whatsapp.js';
-import { emailConfig } from '../web/email-config.js?v=tracking-email-2';
-import { notifyPayment } from '../web/payment-notifications.js?v=tracking-email-2';
+import { emailConfig } from '../web/email-config.js?v=tracking-email-3';
+import { notifyPayment } from '../web/payment-notifications.js?v=tracking-email-3';
 import {
   readPayments,
   refreshPayments,

@@ -1,15 +1,18 @@
-# Dua email TANJ: Order dan nomor resi
+# Dua template email TANJ
 
-1. Buka dashboard EmailJS, Email Templates, edit template_9x2zs4s.
-2. Ganti seluruh HTML dengan emailjs-order-template.html di folder ini.
-3. Subject: TANJ ? {{#has_tracking}}Nomor resi pesanan{{/has_tracking}}{{^has_tracking}}Menunggu pembayaran{{/has_tracking}} {{order_id}}
-4. Pertahankan penerima To/Cc yang sudah berjalan, lalu Save.
-5. Setelah tersimpan, beri tahu pengembang untuk mengaktifkan trackingEmailEnabled di web/email-config.js dan deploy.
+| Email                               | Template ID      | HTML                             | Subject                                 |
+| ----------------------------------- | ---------------- | -------------------------------- | --------------------------------------- |
+| Order berhasil disimpan             | template_9x2zs4s | emailjs-order-only-template.html | TANJ ? Menunggu pembayaran {{order_id}} |
+| Admin berhasil menyimpan nomor resi | template_nc0i08l | emailjs-tracking-template.html   | TANJ ? Pembayaran Berhasil {{order_id}} |
 
-Email pertama dikirim setelah Order tersimpan: detail pesanan dan Cek Cara Membayar.
-Email kedua dikirim setelah admin menyimpan nomor resi pada pesanan PAID: detail pesanan, kurir, nomor resi, dan tautan Lihat Resi & Lacak Pengiriman.
-Tautan membuka pesanan customer di website utama, termasuk bila email dikirim dari halaman admin. Customer login jika sesinya habis, lalu dapat menyalin resi dan membuka situs resmi kurir.
-Konfirmasi customer dan persetujuan pembayaran admin tidak mengirim email.
-Pengiriman ulang setelah layanan menerima email dicegah per pesanan dan jenis email di browser yang sama; ini belum merupakan deduplikasi lintas perangkat.
+Tempel seluruh HTML masing-masing file ke template EmailJS yang sesuai, kemudian Save.
+Email resi menggunakan To Email: {{customer_email}}, From Name: TANJ Indonesia,
+From Email default layanan Gmail TANJ, Reply-To: tanj.indonesia@gmail.com.
 
-Email kedua belum aktif sampai template dashboard diperbarui. Jangan memakai template dashboard lama untuk email resi.
+Konfirmasi customer dan persetujuan pembayaran admin tidak mengirim email tambahan.
+Tombol email resi membuka pesanan customer di website utama, tempat customer dapat
+menyalin resi dan membuka situs resmi kurir. Customer login jika sesinya sudah habis.
+
+Kode memilih templateId untuk Order dan trackingTemplateId untuk resi. Pengiriman
+ulang email yang telah diterima layanan dicegah per pesanan dan jenis email di browser
+sama. Ini belum merupakan deduplikasi lintas perangkat.

@@ -45,7 +45,7 @@ try {
   await page.context().route('**/web/email-config.js?*', (route) =>
     route.fulfill({
       contentType: 'text/javascript',
-      body: 'export const emailConfig={enabled:true,serviceId:"service_test",templateId:"template_order",publicKey:"public_test",trackingEmailEnabled:true};',
+      body: 'export const emailConfig={enabled:true,serviceId:"service_test",templateId:"template_order",trackingTemplateId:"template_tracking",publicKey:"public_test",trackingEmailEnabled:true};',
     }),
   );
   await page.context().route('https://api.emailjs.com/**', async (route) => {
@@ -165,6 +165,7 @@ try {
   assert.equal(sent.length, 1);
   assert.equal(sent[0].template_params.tracking_number, 'JNE-TEST-123');
   assert.equal(sent[0].template_params.has_tracking, true);
+  assert.equal(sent[0].template_id, 'template_tracking');
   assert.equal(new URL(sent[0].template_params.order_url).pathname, '/tanj/');
   await page
     .locator('#tracking-email-status')

@@ -15,7 +15,7 @@ export function orderPaymentUrl(baseUrl, orderId) {
 export function buildOrderEmail(order, { baseUrl, audience = 'customer' } = {}) {
   if (order.status === 'PAID' && order.tracking?.number) {
     const url = orderPaymentUrl(baseUrl, order.id);
-    const subject = 'TANJ — Nomor resi pesanan ' + order.id;
+    const subject = 'TANJ — Pembayaran Berhasil ' + order.id;
     const text = [
       `Hai ${order.customer.name}, terima kasih sudah berbelanja di TANJ.`,
       `Pesanan: ${order.id}`,

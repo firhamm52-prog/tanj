@@ -71,7 +71,8 @@ export function createEmailDelivery({
     if (!configured())
       throw Error('Email otomatis belum aktif. Hubungi admin untuk salinan pesanan.');
     const params = emailTemplateParams(order, baseUrl);
-    const templateId = config.templateId;
+    const templateId = hasTracking(order) ? config.trackingTemplateId : config.templateId;
+    if (!templateId?.trim()) throw Error('Template email resi belum dikonfigurasi.');
     if (order.status === 'PAID' && !hasTracking(order))
       throw Error('Email kedua dikirim hanya setelah nomor resi tersedia.');
     if (hasTracking(order) && !config.trackingEmailEnabled)

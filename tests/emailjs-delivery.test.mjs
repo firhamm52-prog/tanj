@@ -5,6 +5,7 @@ const config = {
   enabled: true,
   serviceId: 'service_test',
   templateId: 'template_order',
+  trackingTemplateId: 'template_tracking',
   publicKey: 'public_test',
 };
 const sample = () => ({
@@ -68,7 +69,7 @@ test('tracking email is separate from Order, requires a resi, and sends once', a
   await t.notify({ ...shipped, tracking: { ...shipped.tracking, number: 'LP456' } });
   assert.equal(t.calls.length, 2);
   const receipt = JSON.parse(t.calls[1].body);
-  assert.equal(receipt.template_id, config.templateId);
+  assert.equal(receipt.template_id, config.trackingTemplateId);
   assert.equal(receipt.template_params.has_tracking, true);
   assert.equal(receipt.template_params.tracking_number, 'LP123');
   assert.match(receipt.template_params.order_url, /example.com\/tanj\/\?order=/);
