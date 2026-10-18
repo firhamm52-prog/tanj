@@ -85,7 +85,7 @@ try {
   await page.locator('#customer-auth [name=repeat]').fill('buyer-password-123');
   await page.locator('#customer-auth [type=submit]').click();
   await page.locator('#bag-checkout-view').waitFor({ state: 'visible' });
-  assert.equal(await page.locator('#checkout-order').textContent(), 'Order');
+  assert.equal(await page.locator('#checkout-order').textContent(), 'Buat pesanan');
   await page.locator('#bag-modal').click({ position: { x: 2, y: 2 } });
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#bag-checkout-view').isVisible(), true);

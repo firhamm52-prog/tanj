@@ -16,6 +16,12 @@ const esc = (value) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
 const money = (value) => 'Rp' + Number(value).toLocaleString('id-ID');
+// Shorten the courier's YES product name without promising a delivery date.
+const serviceLabel = (service) =>
+  /^(?:yakin\s+(?:besok|esok)\s+sampai)(?:\s*\(yes\))?$/i.test(String(service).trim())
+    ? 'YES'
+    : service;
+const durationLabel = (duration) => String(duration || '').replace(/\bdays?\b/gi, 'hari');
 export const deliveryMethods = [
   { id: 'jt-regular', name: 'J&T', service: 'Reguler' },
   { id: 'jne-regular', name: 'JNE', service: 'Reguler' },
@@ -65,7 +71,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
   addressDialog.id = 'address-dialog';
   addressDialog.setAttribute('aria-labelledby', 'address-dialog-title');
   addressDialog.innerHTML =
-    '<button type="button" class="customer-close" aria-label="Tutup alamat">&times;</button><p class="checkout-eyebrow">TANJ / DELIVERY</p><h2 id="address-dialog-title">Alamat pengiriman</h2><div id="address-list"></div><form id="address-editor"><div id="address-fields"></div><p id="address-error" role="alert"></p><div class="checkout-dialog-actions"><button type="submit" class="shop-primary">Simpan alamat</button><button type="button" class="customer-text" id="address-editor-back">Kembali ke daftar alamat</button></div></form><button type="button" class="shop-primary" id="address-create">+ Buat Baru</button>';
+    '<button type="button" class="customer-close" aria-label="Tutup alamat">&times;</button><p class="checkout-eyebrow">TANJ / PENGIRIMAN</p><h2 id="address-dialog-title">Alamat pengiriman</h2><div id="address-list"></div><form id="address-editor"><div id="address-fields"></div><p id="address-error" role="alert"></p><div class="checkout-dialog-actions"><button type="submit" class="shop-primary">Simpan alamat</button><button type="button" class="customer-text" id="address-editor-back">Kembali ke daftar alamat</button></div></form><button type="button" class="shop-primary" id="address-create">+ Buat Baru</button>';
   document.body.append(addressDialog);
   const fields = $('address-fields');
   for (const id of ['checkout-name', 'checkout-phone', 'checkout-email']) {
@@ -90,13 +96,13 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
   const summary = document.createElement('section');
   summary.className = 'checkout-order-summary';
   summary.innerHTML =
-    '<p class="checkout-eyebrow">YOUR SELECTION</p><div id="checkout-selected-items"></div><div id="checkout-price-summary"></div>';
+    '<p class="checkout-eyebrow">RINGKASAN PESANAN</p><div id="checkout-selected-items"></div><div id="checkout-price-summary"></div>';
   surface.after(summary);
   const note = $('checkout-note');
   summary.append(form.querySelector('label[for="checkout-note"]'), note);
   for (const el of [...form.children]) if (el !== surface && el !== summary) summary.append(el);
   const submit = form.querySelector('[type=submit]');
-  submit.textContent = 'Order';
+  submit.textContent = 'Buat pesanan';
   submit.id = 'checkout-order';
   const rateNote = $('manual-checkout-error')?.previousElementSibling;
   if (rateNote)
@@ -108,7 +114,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
   form.classList.add('checkout-grid');
   form.noValidate = true;
   $('checkout-back').textContent = '← Kembali ke tas';
-  $('bag-checkout-view').querySelector('h3').textContent = 'Selesaikan pesananmu.';
+  $('bag-checkout-view').querySelector('h3').textContent = 'Lengkapi pesanan';
   $('address-summary').onclick = $('address-change').onclick = () =>
     requireCustomer(() => openAddresses());
   addressDialog.querySelector('.customer-close').onclick = () => addressDialog.close();
@@ -301,7 +307,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
           : deliveryMethods
         : paymentMethods,
       selected = shippingMode ? shipping : payment;
-    dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup pilihan">&times;</button><p class="checkout-eyebrow">TANJ / CHECKOUT</p><h2>${shippingMode ? 'Metode pengiriman' : 'Metode pembayaran'}</h2><p>${shippingMode ? (liveShipping ? 'Pilih layanan pengiriman. Tarif berdasarkan kode pos dan perkiraan berat paket.' : 'Tarif uji mengikuti master kota untuk 1 kg. Layanan dan jadwal kurir akan dikonfirmasi admin.') : 'QRIS manual tersedia. Metode gateway berikut disiapkan dan belum menerima transaksi.'}</p><form>${options.map((o) => `<label class="checkout-method ${!shippingMode && !o.enabled ? 'unavailable' : ''}"><input type="radio" name="method" value="${esc(o.id)}" required ${selected.id === o.id ? 'checked' : ''} ${!shippingMode && !o.enabled ? 'disabled' : ''}><span><strong>${esc(o.name)}</strong><small>${shippingMode ? esc(o.service) + ' - ' + (liveShipping ? esc(o.duration) : 'tarif wilayah') : esc(o.detail || 'Belum aktif — menunggu integrasi gateway')}</small></span>${shippingMode ? `<strong>${selectedAddress ? money(liveShipping ? o.fee : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee) : 'Pilih alamat'}</strong>` : ''}</label>`).join('')}<button type="submit" class="shop-primary">Konfirmasi</button></form>`;
+    dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup pilihan">&times;</button><p class="checkout-eyebrow">TANJ / CHECKOUT</p><h2>${shippingMode ? 'Metode pengiriman' : 'Metode pembayaran'}</h2><p>${shippingMode ? (liveShipping ? 'Pilih layanan pengiriman. Tarif berdasarkan kode pos dan perkiraan berat paket.' : 'Ongkir dihitung untuk paket 1 kg. Hubungi admin untuk memastikan layanan pengiriman.') : 'Bayar dengan QRIS. Metode pembayaran lainnya belum tersedia.'}</p><form>${options.map((o) => `<label class="checkout-method ${!shippingMode && !o.enabled ? 'unavailable' : ''}"><input type="radio" name="method" value="${esc(o.id)}" required ${selected.id === o.id ? 'checked' : ''} ${!shippingMode && !o.enabled ? 'disabled' : ''}><span><strong>${esc(o.name)}</strong><small>${shippingMode ? esc(serviceLabel(o.service)) + ' - ' + (liveShipping ? esc(durationLabel(o.duration)) : 'tarif wilayah') : esc(o.detail || 'Belum tersedia')}</small></span>${shippingMode ? `<strong>${selectedAddress ? money(liveShipping ? o.fee : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee) : 'Pilih alamat'}</strong>` : ''}</label>`).join('')}<button type="submit" class="shop-primary">Konfirmasi</button></form>`;
     document.body.append(dialog);
     dialog.showModal();
     dialog.querySelector('.customer-close').onclick = () => dialog.close();
@@ -337,7 +343,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
         `<span><strong>${esc(selectedAddress.name)}</strong><small>${esc(selectedAddress.phone)} · ${esc(selectedAddress.email)}</small><small>${esc(selectedAddress.address)}, ${esc(selectedAddress.district)}, ${esc(selectedAddress.city)} ${esc(selectedAddress.zip)}</small></span><span>→</span>`;
     else $('address-summary').innerHTML = '+ Tambahkan alamat pengiriman <span>→</span>';
     $('shipping-choice').innerHTML =
-      `<span class="method-mark">${esc(liveShipping && !liveChoice ? 'Pilih kurir' : shipping.name)}</span><span><strong>${esc(liveShipping && !liveChoice ? 'Cek ongkir' : shipping.service)}</strong><small>${liveShipping ? (liveChoice ? esc(shipping.duration) + ' - ' + money(shipping.fee) : 'Sesuai alamat dan berat barang') : 'Tarif wilayah - 1 kg'}</small></span><span>&rarr;</span>`;
+      `<span class="method-mark">${esc(liveShipping && !liveChoice ? 'Pilih kurir' : shipping.name)}</span><span><strong>${esc(liveShipping && !liveChoice ? 'Cek ongkir' : serviceLabel(shipping.service))}</strong><small>${liveShipping ? (liveChoice ? esc(durationLabel(shipping.duration)) + ' - ' + money(shipping.fee) : 'Sesuai alamat dan berat barang') : 'Tarif wilayah - 1 kg'}</small></span><span>&rarr;</span>`;
     $('payment-choice').innerHTML =
       `<span class="method-mark">QRIS</span><span><strong>${esc(payment.name)}</strong><small>${esc(payment.detail)}</small></span><span>→</span>`;
     let fee = 0;
@@ -348,7 +354,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     const catalog = await getCatalog();
     const discount = shippingSubsidy(getItems(), catalog, fee);
     $('checkout-price-summary').innerHTML =
-      `<p><span>Subtotal · ${getItems().reduce((n, i) => n + i.qty, 0)} barang</span><strong>${money(getSubtotal())}</strong></p><p><span>Ongkir · ${esc(shippingLabel)}</span><strong>${selectedAddress ? (liveShipping && !liveChoice ? 'Pilih kurir' : money(fee)) : 'Pilih alamat'}</strong></p><p class="checkout-grand-total"><span>Total sebelum kode unik</span><strong>${liveShipping && !liveChoice ? 'Pilih kurir untuk total' : money(getSubtotal() + fee)}</strong></p><small>Kode unik dihitung saat Order dan tercantum pada tagihan.</small>`;
+      `<p><span>Subtotal · ${getItems().reduce((n, i) => n + i.qty, 0)} barang</span><strong>${money(getSubtotal())}</strong></p><p><span>Ongkir · ${esc(shippingLabel)}</span><strong>${selectedAddress ? (liveShipping && !liveChoice ? 'Pilih kurir' : money(fee)) : 'Pilih alamat'}</strong></p><p class="checkout-grand-total"><span>Total sebelum kode unik</span><strong>${liveShipping && !liveChoice ? 'Pilih kurir untuk total' : money(getSubtotal() + fee)}</strong></p><small>Kode unik akan ditambahkan setelah pesanan dibuat.</small>`;
     const total = $('checkout-price-summary').querySelector('.checkout-grand-total strong');
     if (selectedAddress && !(liveShipping && !liveChoice)) {
       total.textContent = money(getSubtotal() + discount.fee);
@@ -363,7 +369,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     }
     const promo = document.createElement('small');
     promo.textContent =
-      'Subsidi ongkir hingga Rp20.000 untuk minimal 2 baju. Hijab tidak dihitung untuk syarat promo.';
+      'Beli minimal 2 baju, dapat potongan ongkir hingga Rp20.000. Hijab tidak termasuk promo.';
     $('checkout-price-summary').append(promo);
     $('checkout-selected-items').innerHTML = getItems()
       .map((line) => {
