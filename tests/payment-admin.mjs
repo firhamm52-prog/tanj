@@ -167,10 +167,9 @@ try {
   assert.equal(sent[0].template_params.has_tracking, true);
   assert.equal(sent[0].template_id, 'template_tracking');
   assert.equal(new URL(sent[0].template_params.order_url).pathname, '/tanj/');
-  await page
-    .locator('#tracking-email-status')
-    .filter({ hasText: 'diterima layanan email' })
-    .waitFor();
+  await page.waitForFunction(
+    () => document.getElementById('tracking-email-status').textContent === '',
+  );
   assert.equal(await page.locator('#retry-tracking-email').count(), 0);
   assert.equal(sent.length, 1);
   await page.locator('#tracking-form [type=submit]').click();

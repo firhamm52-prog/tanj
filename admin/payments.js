@@ -196,15 +196,10 @@ function trackingForm(o) {
 }
 async function sendTrackingEmail(order, resend = false) {
   const status = $('tracking-email-status');
-  status.textContent = 'Mengirim email resi melalui ' + emailConfig.trackingTemplateId + '...';
+  status.textContent = 'Mengirim email resi...';
   try {
-    const result = await notifyPayment(order, { resend });
-    status.textContent = result.alreadySent
-      ? 'Email resi pesanan ' +
-        order.id +
-        ' sudah diterima layanan email sebelumnya. Periksa Inbox/Spam customer.'
-      : 'Email resi pesanan ' + order.id + ' diterima layanan email. Periksa Inbox/Spam customer.';
-    status.textContent += ' Template: ' + emailConfig.trackingTemplateId + '.';
+    await notifyPayment(order, { resend });
+    status.textContent = '';
   } catch (error) {
     status.textContent = 'Nomor resi tetap tersimpan. Email resi belum berhasil: ' + error.message;
   }
