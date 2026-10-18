@@ -10,10 +10,11 @@ import {
   paymentLabels,
   decidePayment,
   saveTracking,
+  completeOrder,
   savePaymentQR,
   money,
   escapeHTML as esc,
-} from '../web/manual-payment-store.js?v=owner-ui-3';
+} from '../web/manual-payment-store.js?v=order-completion-1';
 import { isAdmin } from '../web/admin-session.js?v=improve-2';
 const $ = (id) => document.getElementById(id);
 if (!isAdmin()) location.replace('../#admin-login');
@@ -30,11 +31,13 @@ const filters = {
   CHECKING: 'Menunggu verifikasi',
   WAITING_PAYMENT: 'Menunggu pembayaran',
   PAID: 'Payment berhasil',
+  COMPLETED: 'Selesai',
   REJECTED: 'Pembayaran ditolak',
   CANCELLED: 'Dibatalkan',
   all: 'Semua',
 };
 function group(order) {
+  if (order.status === 'PAID' && order.completedAt) return 'COMPLETED';
   const status = orderStatus(order);
   return status === 'REVIEW_DUE'
     ? 'WAITING_PAYMENT'
@@ -119,7 +122,39 @@ function detail(o) {
     }${!['PAID', 'CANCELLED'].includes(o.status) ? '<div class="actions"><button class="primary" id="approve">Approve pembayaran</button><button class="reject" id="reject">Reject</button></div><div id="review-form"></div>' : ''}<h3>Riwayat</h3><ol>${o.logs.map((l) => `<li>${new Date(l.at).toLocaleString('id-ID')} &middot; ${esc(l.note)}</li>`).join('')}</ol>`;
   $('approve')?.addEventListener('click', () => review(o, 'approve'));
   $('reject')?.addEventListener('click', () => review(o, 'reject'));
-  if (o.status === 'PAID') trackingForm(o);
+  if (o.status === 'PAID' && !o.completedAt) trackingForm(o);
+  if (o.completedAt) {
+    const note = document.createElement('p');
+    note.textContent =
+      'Selesai — diterima customer. Dikonfirmasi admin pada ' +
+      new Date(o.completedAt).toLocaleString('id-ID');
+    $('detail').prepend(note);
+  } else if (o.status === 'PAID' && o.tracking?.number) {
+    const complete = document.createElement('button');
+    complete.type = 'button';
+    complete.id = 'complete-order';
+    complete.className = 'primary';
+    complete.textContent = 'Tandai sudah diterima customer';
+    complete.onclick = async () => {
+      if (
+        !window.confirm('Pesanan ini sudah diterima customer? Pesanan akan dipindahkan ke Selesai.')
+      )
+        return;
+      complete.disabled = true;
+      reviewing = true;
+      try {
+        await completeOrder(o.id, o.version);
+        filter = 'COMPLETED';
+        reviewing = false;
+        render();
+      } catch (error) {
+        reviewing = false;
+        complete.disabled = false;
+        $('review-error').textContent = error.message;
+      }
+    };
+    $('detail').append(complete);
+  }
   customerWhatsApp(o);
 }
 function review(o, action) {

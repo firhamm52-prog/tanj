@@ -395,3 +395,26 @@ export async function saveTracking(id, version, courier, number) {
     return order;
   });
 }
+export async function completeOrder(id, version) {
+  if (cloudEnabled)
+    return paymentRPC('tanj_complete_order', { order_id: id, expected_version: version });
+  return mutate((state) => {
+    const order = state.orders.find((o) => o.id === id);
+    if (
+      !order ||
+      order.version !== version ||
+      order.status !== 'PAID' ||
+      !order.tracking?.number ||
+      order.completedAt
+    )
+      throw Error('Pesanan harus sudah dibayar dan memiliki resi. Muat ulang pesanan.');
+    order.completedAt = Date.now();
+    log(
+      order,
+      'PAID',
+      state.settings.admin,
+      'Pesanan selesai: diterima customer, dikonfirmasi admin.',
+    );
+    return order;
+  });
+}

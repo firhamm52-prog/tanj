@@ -15,6 +15,7 @@ try {
     '202610160006_signup_email_check.sql',
     '202610170007_shared_cms.sql',
     '202610180008_hijab_checkout.sql',
+    '202610180009_order_completion.sql',
   ]) {
     if (file === '202610170007_shared_cms.sql')
       await db.exec("update public.tb_m_product set price=444000,stock=7 where id='base-0-2'");
@@ -186,6 +187,34 @@ try {
       .rows[0].active,
     true,
   );
+  await as(buyer);
+  await assert.rejects(
+    rpc('tanj_complete_order', [hijabOrder.id, hijabOrder.version]),
+    /Akses admin/,
+  );
+  await as(owner);
+  await assert.rejects(
+    rpc('tanj_complete_order', [hijabOrder.id, hijabOrder.version]),
+    /sudah dibayar/,
+  );
+  await db.exec('reset role');
+  await db.query(
+    "update public.tb_t_order set data=jsonb_set(data, '{status}', '\"CHECKING\"'::jsonb) where id=$1",
+    [hijabOrder.id],
+  );
+  await db.query(
+    'update public.tb_t_order set data=data||\'{"status":"PAID","tracking":{"number":"TEST123","courier":"JNE"}}\'::jsonb where id=$1',
+    [hijabOrder.id],
+  );
+  await as(owner);
+  await assert.rejects(rpc('tanj_complete_order', [hijabOrder.id, 999]), /Muat ulang/);
+  const completed = await rpc('tanj_complete_order', [hijabOrder.id, hijabOrder.version]);
+  assert.equal(completed.status, 'PAID');
+  assert.ok(completed.completedAt);
+  assert.equal(completed.version, hijabOrder.version + 1);
+  assert.equal(completed.tracking.number, 'TEST123');
+  await assert.rejects(rpc('tanj_complete_order', [completed.id, completed.version]), /Muat ulang/);
+  assert.equal((await rpc('tanj_cms_storefront')).hijabs[1].stock, checkoutHijab.stock - 1);
   console.log(
     'PASS: shared CMS admin-only writes, draft isolation, atomic publish, live stock, concurrent stock protection, trusted checkout price and qty limit, safe media, preserved QRIS and orders.',
   );
