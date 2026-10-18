@@ -121,7 +121,7 @@ export function createShippingHandler({ env, fetcher = fetch }) {
         body: '{}',
       });
       const weight = {
-        clothing: Number(env('BITESHIP_CLOTHING_WEIGHT_GRAMS') || 700),
+        clothing: Number(env('BITESHIP_CLOTHING_WEIGHT_GRAMS') || 1000),
         hijab: Number(env('BITESHIP_HIJAB_WEIGHT_GRAMS') || 300),
       };
       if (!Object.values(weight).every((w) => Number.isInteger(w) && w > 0 && w <= 50000))

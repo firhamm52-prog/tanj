@@ -82,7 +82,7 @@ test('Edge uses authenticated owner, server catalog and weights, saves minimal r
       assert.equal(body.destination_postal_code, 11450);
       assert.equal(
         body.items.reduce((n, i) => n + i.weight * i.quantity, 0),
-        1700,
+        2300,
       );
       assert.equal(body.items[0].value, 687000);
       return Response.json({
@@ -116,7 +116,7 @@ test('Edge uses authenticated owner, server catalog and weights, saves minimal r
   const response = await handler(request('rates', payload));
   assert.equal(response.status, 200);
   const data = await response.json();
-  assert.equal(data.weightGrams, 1700);
+  assert.equal(data.weightGrams, 2300);
   assert.equal(data.options[0].fee, 18000);
   assert.equal(data.quoteId, stored.id);
   assert.equal(stored.account_id, owner);

@@ -8,6 +8,7 @@ import {
 } from './customer-account.js?v=owner-ui-3';
 import { getShippingEstimate, validateShippingDestination } from './shipping.js?v=districts-1';
 import { shippingConfiguration, shippingRates } from './biteship.js';
+import { shippingSubsidy } from '../shared/shipping-subsidy.js';
 const $ = (id) => document.getElementById(id);
 const esc = (value) =>
   String(value ?? '').replace(
@@ -344,9 +345,26 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
       fee = liveShipping
         ? liveChoice?.fee || 0
         : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee;
+    const catalog = await getCatalog();
+    const discount = shippingSubsidy(getItems(), catalog, fee);
     $('checkout-price-summary').innerHTML =
       `<p><span>Subtotal · ${getItems().reduce((n, i) => n + i.qty, 0)} barang</span><strong>${money(getSubtotal())}</strong></p><p><span>Ongkir · ${esc(shippingLabel)}</span><strong>${selectedAddress ? (liveShipping && !liveChoice ? 'Pilih kurir' : money(fee)) : 'Pilih alamat'}</strong></p><p class="checkout-grand-total"><span>Total sebelum kode unik</span><strong>${liveShipping && !liveChoice ? 'Pilih kurir untuk total' : money(getSubtotal() + fee)}</strong></p><small>Kode unik dihitung saat Order dan tercantum pada tagihan.</small>`;
-    const catalog = await getCatalog();
+    const total = $('checkout-price-summary').querySelector('.checkout-grand-total strong');
+    if (selectedAddress && !(liveShipping && !liveChoice)) {
+      total.textContent = money(getSubtotal() + discount.fee);
+      if (discount.subsidy) {
+        const row = document.createElement('p');
+        row.innerHTML =
+          '<span>Subsidi ongkir TANJ · minimal 2 baju</span><strong>−' +
+          money(discount.subsidy) +
+          '</strong>';
+        total.parentElement.before(row);
+      }
+    }
+    const promo = document.createElement('small');
+    promo.textContent =
+      'Subsidi ongkir hingga Rp20.000 untuk minimal 2 baju. Hijab tidak dihitung untuk syarat promo.';
+    $('checkout-price-summary').append(promo);
     $('checkout-selected-items').innerHTML = getItems()
       .map((line) => {
         const item = catalog.find((i) => i.id === line.id);

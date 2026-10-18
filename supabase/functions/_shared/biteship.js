@@ -1,4 +1,4 @@
-export function shippingItems(lines, catalog, { clothing = 700, hijab = 300 } = {}) {
+export function shippingItems(lines, catalog, { clothing = 1000, hijab = 300 } = {}) {
   if (!Array.isArray(lines) || !lines.length || lines.length > 40)
     throw Object.assign(Error('Tas belanja tidak valid.'), { status: 422 });
   const seen = new Set();

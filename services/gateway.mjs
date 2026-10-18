@@ -115,7 +115,7 @@ serve(
           ...(catalog.hijabs || []).map((p) => ({ ...p, isHijab: true })),
         ];
         const weight = {
-          clothing: Number(process.env.BITESHIP_CLOTHING_WEIGHT_GRAMS || 700),
+          clothing: Number(process.env.BITESHIP_CLOTHING_WEIGHT_GRAMS || 1000),
           hijab: Number(process.env.BITESHIP_HIJAB_WEIGHT_GRAMS || 300),
         };
         if (!Object.values(weight).every((w) => Number.isInteger(w) && w > 0 && w <= 50000))

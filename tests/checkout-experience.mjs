@@ -316,6 +316,23 @@ try {
     /Pilih kurir untuk total/,
   );
   // A login survives closing a tab, but its fixed deadline never slides on activity.
+  await page.locator('#shipping-choice').click();
+  await page
+    .getByRole('dialog', { name: 'Metode pengiriman', exact: true })
+    .locator('[value="biteship:jnt:ez"]')
+    .check();
+  await page
+    .getByRole('dialog', { name: 'Metode pengiriman', exact: true })
+    .getByRole('button', { name: 'Konfirmasi', exact: true })
+    .click();
+  await page
+    .locator('#checkout-price-summary')
+    .filter({ hasText: 'Subsidi ongkir TANJ' })
+    .waitFor();
+  assert.equal(
+    await page.locator('#checkout-price-summary .checkout-grand-total strong').textContent(),
+    await page.locator('#checkout-price-summary > p').first().locator('strong').textContent(),
+  );
   const expiry = await page.evaluate(async () => {
     const m = await import('./web/customer-account.js?v=owner-ui-3');
     await m.authenticateCustomer(

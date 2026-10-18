@@ -56,6 +56,17 @@ test('disabled email requires account setup and never makes a network request', 
   await assert.rejects(() => t.notify(sample()), /belum aktif/);
   assert.equal(t.calls.length, 0);
 });
+test('email preserves gross courier cost and reports subsidy with net customer fee', () => {
+  const order = sample();
+  const params = emailTemplateParams(
+    { ...order, shipping: { ...order.shipping, originalFee: 35000, subsidy: 20000, fee: 15000 } },
+    'https://example.com/tanj/',
+  );
+  assert.equal(params.has_shipping_discount, true);
+  assert.equal(params.shipping_fee, 'Rp15.000');
+  assert.equal(params.original_shipping_fee, 'Rp35.000');
+  assert.equal(params.shipping_discount, 'Rp20.000');
+});
 test('tracking email is separate from Order, requires a resi, and sends once', async () => {
   const t = setup({ config: { ...config, trackingEmailEnabled: true } });
   const shipped = {

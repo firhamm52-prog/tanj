@@ -1,7 +1,7 @@
 import { cloudEnabled } from '../web/supabase-payments.js?v=improve-2';
 import { customerWhatsAppLink } from '../shared/customer-whatsapp.js';
 import { emailConfig } from '../web/email-config.js?v=tracking-email-6';
-import { notifyPayment } from '../web/payment-notifications.js?v=tracking-email-6';
+import { notifyPayment } from '../web/payment-notifications.js?v=shipping-subsidy-1';
 import {
   readPayments,
   refreshPayments,
@@ -108,7 +108,7 @@ function detail(o) {
     return;
   }
   $('detail').innerHTML =
-    `<p>DETAIL ORDER</p><h2>${esc(o.id)}</h2><p>${esc(paymentLabels[orderStatus(o)])}</p><div class="amount">${money(o.total)}</div><p>Subtotal ${money(o.subtotal)} + ongkir ${money(o.shipping.fee)} + kode ${money(o.adjustment)}</p><p>${esc(o.customer.name)} &middot; ${esc(o.customer.phone)}<br>${esc(o.customer.address)}, ${esc(o.customer.district)}, ${esc(o.customer.city)} ${esc(o.customer.zip)}</p><ul>${o.items.map((i) => `<li>${esc(i.name)} / ${esc(i.color)} &times; ${i.qty}</li>`).join('')}</ul><h3>Bukti pembayaran</h3>${
+    `<p>DETAIL ORDER</p><h2>${esc(o.id)}</h2><p>${esc(paymentLabels[orderStatus(o)])}</p><div class="amount">${money(o.total)}</div><p>Subtotal ${money(o.subtotal)} + ongkir ${money(o.shipping.fee)} + kode ${money(o.adjustment)}</p><p>${esc(o.customer.name)} &middot; ${esc(o.customer.phone)}<br>${esc(o.customer.address)}, ${esc(o.customer.district)}, ${esc(o.customer.city)} ${esc(o.customer.zip)}</p><ul>${o.items.map((i) => `<li>${esc(i.name)} / ${esc(i.color)} &times; ${i.qty}</li>`).join('')}</ul>${o.shipping.subsidy ? `<p>Ongkir kurir ${money(o.shipping.originalFee)} / subsidi TANJ ${money(o.shipping.subsidy)} / ongkir dibayar customer ${money(o.shipping.fee)}</p>` : ''}<h3>Bukti pembayaran</h3>${
       o.proofs.length
         ? o.proofs
             .slice()

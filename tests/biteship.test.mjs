@@ -25,7 +25,7 @@ test('server chooses weight/value from catalog and rejects forged or duplicate c
   );
   assert.equal(
     items.reduce((n, i) => n + i.weight * i.quantity, 0),
-    1700,
+    2300,
   );
   assert.equal(items[0].value, 687000);
   assert.throws(() => shippingItems([{ id: 'dress', qty: 10 }], catalog));
@@ -190,6 +190,59 @@ test('database trusts only stored quotes, binds address/cart/owner, preserves to
       ]),
       /kedaluwarsa/,
     );
+    for (const [cart, fee, expected] of [
+      [[{ id: 'base-0-0', qty: 2 }], 35000, 20000],
+      [[{ id: 'base-0-0', qty: 2 }], 15000, 15000],
+      [
+        [
+          { id: 'base-0-0', qty: 1 },
+          { id: 'hijab-selcuk-brown', qty: 2 },
+        ],
+        35000,
+        0,
+      ],
+      [[{ id: 'hijab-selcuk-brown', qty: 2 }], 35000, 0],
+      [
+        [
+          { id: 'base-0-0', qty: 2 },
+          { id: 'hijab-selcuk-brown', qty: 1 },
+        ],
+        35000,
+        20000,
+      ],
+    ]) {
+      await db.exec('reset role');
+      const promoQuote = shippingQuote(buyer, destination, cart, [{ ...option, fee }]);
+      await db.query(
+        'insert into public.tb_t_shipping_quote(id,account_id,destination,lines,options,expires_at) values($1,$2,$3,$4,$5,$6)',
+        [
+          promoQuote.id,
+          buyer,
+          destination,
+          promoQuote.lines,
+          promoQuote.options,
+          promoQuote.expires_at,
+        ],
+      );
+      await as(buyer);
+      const req = crypto.randomUUID();
+      const args = [
+        req,
+        { ...customer, shippingQuoteId: promoQuote.id, shippingSubsidy: 999999 },
+        cart,
+      ];
+      const discounted = (await db.query('select public.tanj_create_order($1,$2,$3) as data', args))
+        .rows[0].data;
+      assert.equal(discounted.shipping.originalFee, fee);
+      assert.equal(discounted.shipping.subsidy, expected);
+      assert.equal(discounted.shipping.fee, fee - expected);
+      assert.equal(discounted.total, discounted.subtotal + fee - expected + discounted.adjustment);
+      assert.equal(discounted.total % 1000, discounted.code);
+      assert.deepEqual(
+        (await db.query('select public.tanj_create_order($1,$2,$3) as data', args)).rows[0].data,
+        discounted,
+      );
+    }
   } finally {
     await db.close();
   }
