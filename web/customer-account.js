@@ -31,8 +31,8 @@ const read = (key, fallback) => {
 export function customerSession() {
   if (cloudEnabled) return cloudSession();
   try {
-    const session = JSON.parse(sessionStorage.getItem(SESSION) || 'null');
-    if (!session || session.expires <= Date.now()) return null;
+    const session = JSON.parse(localStorage.getItem(SESSION) || 'null');
+    if (!session || !Number.isFinite(session.expires) || session.expires <= Date.now()) return null;
     const user = read(USERS, []).find((u) => u.id === session.id && u.hash === session.hash);
     return user ? { id: user.id, name: user.name, email: user.email } : null;
   } catch {
@@ -41,7 +41,7 @@ export function customerSession() {
 }
 export function customerLogout() {
   if (cloudEnabled) return cloudLogout();
-  sessionStorage.removeItem(SESSION);
+  localStorage.removeItem(SESSION);
   window.dispatchEvent(new Event('tanj-customer-change'));
 }
 export async function authenticateCustomer({ name, email, password, repeat }, register = false) {
@@ -81,9 +81,9 @@ export async function authenticateCustomer({ name, email, password, repeat }, re
     localStorage.setItem(USERS, JSON.stringify([...latest, user]));
   } else if (!user || user.hash !== (await digest(password, user.salt)))
     throw Error('Email atau password salah.');
-  sessionStorage.setItem(
+  localStorage.setItem(
     SESSION,
-    JSON.stringify({ id: user.id, hash: user.hash, expires: Date.now() + 8 * 60 * 60 * 1000 }),
+    JSON.stringify({ id: user.id, hash: user.hash, expires: Date.now() + 60 * 60 * 1000 }),
   );
   window.dispatchEvent(new Event('tanj-customer-change'));
   return customerSession();

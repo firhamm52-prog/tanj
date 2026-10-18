@@ -39,7 +39,7 @@ export function emailTemplateParams(order, baseUrl) {
     payment_method: order.payment?.name || 'QRIS manual',
     payment_deadline:
       new Date(order.deadline).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB',
-    payment_url: orderPaymentUrl(baseUrl, order.id),
+    payment_url: order.status === 'PAID' ? '' : orderPaymentUrl(baseUrl, order.id),
   };
 }
 export function createEmailDelivery({
@@ -66,7 +66,12 @@ export function createEmailDelivery({
     if (!configured())
       throw Error('Email otomatis belum aktif. Hubungi admin untuk salinan pesanan.');
     const params = emailTemplateParams(order, baseUrl);
-    const key = [config.serviceId, config.templateId, order.id].join(':');
+    const templateId = order.status === 'PAID' ? config.paidTemplateId : config.templateId;
+    if (!templateId)
+      throw Error(
+        'Pembayaran tersimpan. Template email terima kasih belum dihubungkan di EmailJS.',
+      );
+    const key = [config.serviceId, templateId, order.id].join(':');
     let receipts;
     try {
       receipts = JSON.parse(storage.getItem(RECEIPTS) || '{}');
@@ -102,7 +107,7 @@ export function createEmailDelivery({
         signal: AbortSignal.timeout(12000),
         body: JSON.stringify({
           service_id: config.serviceId.trim(),
-          template_id: config.templateId.trim(),
+          template_id: templateId.trim(),
           user_id: config.publicKey.trim(),
           template_params: params,
         }),
@@ -140,7 +145,7 @@ export function createEmailDelivery({
     return { sent: true, accepted: true, receiptSaved: true };
   }
   return function notify(order) {
-    const key = String(order?.id || '');
+    const key = String(order?.id || '') + (order?.status === 'PAID' ? ':paid' : '');
     if (pending.has(key)) return pending.get(key);
     const task = queue.catch(() => {}).then(() => runExclusive(() => send(order)));
     pending.set(key, task);

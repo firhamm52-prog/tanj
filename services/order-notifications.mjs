@@ -17,7 +17,7 @@ export async function sendOrderEmails(order, { baseUrl, sendMail } = {}) {
       try {
         const result = await sendMail({
           ...email,
-          idempotencyKey: `tanj-order-${order.id}-${audience}`,
+          idempotencyKey: `tanj-order-${order.id}-${audience}${order.status === 'PAID' ? '-paid' : ''}`,
         });
         if (!result?.id) throw Error('Penyedia email belum menerima pengiriman.');
         return { audience, accepted: true, messageId: result.id };

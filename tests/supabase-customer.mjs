@@ -445,6 +445,19 @@ try {
   });
   await owner.page.locator('#customer-admin').waitFor({ state: 'visible' });
   assert.equal(await owner.page.locator('#customer-account small').count(), 0);
+  await owner.page.evaluate(async () => {
+    const m = await import('./web/customer-account.js?v=owner-ui-3');
+    const user = m.customerSession();
+    const key = 'tanj-customer-until-' + user.id;
+    const deadline = Number(localStorage.getItem(key));
+    if (deadline > Date.now() + 60 * 60 * 1000 || deadline < Date.now() + 59 * 60 * 1000)
+      throw Error('Customer session must last 60 minutes');
+    await m.ensureCustomerSession();
+    if (Number(localStorage.getItem(key)) !== deadline) throw Error('Session must not slide');
+    localStorage.setItem(key, String(Date.now() - 1));
+    if (m.customerSession() !== null) throw Error('Expired customer must be signed out');
+    if (await m.ensureCustomerSession()) throw Error('Expired session must not be restored');
+  });
   console.log(
     'PASS: official SDK with mocked backend: account flows, role-protected CMS, blank admin email, owner-only admin entry, removed legacy copy, logout and recovery. No real email or account created.',
   );

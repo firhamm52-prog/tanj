@@ -48,14 +48,24 @@ export async function refreshAddresses() {
   check(error);
   if (version === revision && id === user?.id) list = data.map(address);
 }
+const sessionKey = (id) => 'tanj-customer-until-' + id;
+const sessionExpired = (id) => {
+  const deadline = Number(localStorage.getItem(sessionKey(id)));
+  return !Number.isFinite(deadline) || deadline <= Date.now();
+};
 async function accept(session) {
+  if (session?.user) {
+    const key = sessionKey(session.user.id);
+    if (!localStorage.getItem(key)) localStorage.setItem(key, String(Date.now() + 60 * 60 * 1000));
+    if (sessionExpired(session.user.id)) session = null;
+  }
   revision++;
   user = profile(session?.user);
   list = [];
   admin = false;
   change();
 }
-export const cloudIsAdmin = () => admin;
+export const cloudIsAdmin = () => admin && Boolean(cloudSession());
 async function loadRole() {
   if (!user) {
     admin = false;
@@ -92,7 +102,7 @@ export const cloudReady = (async () => {
 });
 // Keep rejected initialization observable by UI actions without an unhandled rejection.
 cloudReady.catch(() => {});
-export const cloudSession = () => user;
+export const cloudSession = () => (user && !sessionExpired(user.id) ? user : null);
 export async function cloudEnsureSession() {
   await cloudReady;
   if (!cloudEnabled) return;
@@ -102,10 +112,13 @@ export async function cloudEnsureSession() {
     await accept(data.session);
     await loadRole();
   }
-  return user;
+  if (data.session?.user && sessionExpired(data.session.user.id)) {
+    await cloudLogout();
+  }
+  return cloudSession();
 }
 export async function cloudClient() {
-  await cloudReady;
+  await cloudEnsureSession();
   return client;
 }
 export const cloudAddresses = () => list.slice();
@@ -149,6 +162,7 @@ export async function cloudAuthenticate({ name, email, password }, register) {
     check(error);
   }
   if (!data.session) return { needsConfirmation: true };
+  localStorage.setItem(sessionKey(data.session.user.id), String(Date.now() + 60 * 60 * 1000));
   localStorage.setItem('tanj-last-activity-' + data.session.user.id, String(Date.now()));
   await accept(data.session);
   await loadRole();

@@ -23,6 +23,18 @@ const order = {
   total: 697123,
   payment: { name: 'QRIS manual' },
 };
+test('paid customer email thanks the buyer without payment instructions', () => {
+  const email = buildOrderEmail(
+    { ...order, status: 'PAID' },
+    { baseUrl: 'https://example.com/tanj/' },
+  );
+  assert.match(email.text, /Terima kasih sudah berbelanja di TANJ/);
+  assert.doesNotMatch(
+    email.html + email.text,
+    /Cek cara membayar|menunggu pembayaran|Batas pembayaran/,
+  );
+  assert.equal(email.url, '');
+});
 test('payment link survives hash removal and removes expired-session or auth parameters', () => {
   const link = orderPaymentUrl(
     'https://example.com/tanj/?session=expired&access_token=do-not-copy#old',

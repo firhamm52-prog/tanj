@@ -206,8 +206,6 @@ try {
     window.dispatchEvent(new Event('focus'));
     document.dispatchEvent(new Event('visibilitychange'));
   });
-  assert.equal(await page.locator('#customer-account[open]').count(), 0);
-  await page.locator('[data-account-open]').first().click();
   await page.locator('#customer-account[open]').waitFor();
   assert.equal(await page.locator('#customer-auth [name=repeat]').count(), 0);
   await page.locator('#customer-auth [name=email]').fill('buyer@example.com');
@@ -317,6 +315,44 @@ try {
     await page.locator('#checkout-price-summary').innerText(),
     /Pilih kurir untuk total/,
   );
+  // A login survives closing a tab, but its fixed deadline never slides on activity.
+  const expiry = await page.evaluate(async () => {
+    const m = await import('./web/customer-account.js?v=owner-ui-3');
+    await m.authenticateCustomer(
+      {
+        name: 'Session test',
+        email: 'session@example.com',
+        password: 'session-password-123',
+        repeat: 'session-password-123',
+      },
+      true,
+    );
+    return JSON.parse(localStorage.getItem('tanj-customer-session-v1')).expires;
+  });
+  assert.ok(expiry <= Date.now() + 60 * 60 * 1000);
+  assert.ok(expiry > Date.now() + 59 * 60 * 1000);
+  const reopened = await context.newPage();
+  await reopened.goto(url);
+  await reopened.locator('#manual-orders').waitFor({ state: 'attached' });
+  assert.equal(
+    await reopened.evaluate(
+      async () => (await import('./web/customer-account.js?v=owner-ui-3')).customerSession()?.email,
+    ),
+    'session@example.com',
+  );
+  await reopened.evaluate(() => {
+    const key = 'tanj-customer-session-v1';
+    const session = JSON.parse(localStorage.getItem(key));
+    session.expires = Date.now() - 1;
+    localStorage.setItem(key, JSON.stringify(session));
+  });
+  assert.equal(
+    await reopened.evaluate(async () =>
+      (await import('./web/customer-account.js?v=owner-ui-3')).customerSession(),
+    ),
+    null,
+  );
+  await reopened.close();
   assert.deepEqual(errors, []);
   console.log(
     'PASS: customer registration/login validation, login gate, Order Sekarang, address create/edit/persistence/isolation, account-bound recipient despite modified input, shipping choice, disabled gateway methods, Order, email preview/deep link, payment ownership, responsive layout.',

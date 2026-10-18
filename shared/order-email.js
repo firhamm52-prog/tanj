@@ -13,6 +13,17 @@ export function orderPaymentUrl(baseUrl, orderId) {
   return url.href;
 }
 export function buildOrderEmail(order, { baseUrl, audience = 'customer' } = {}) {
+  if (order.status === 'PAID') {
+    const subject = 'TANJ — Pembayaran diterima ' + order.id;
+    const text = `Hai ${order.customer.name},\nTerima kasih sudah berbelanja di TANJ. Pembayaran pesanan ${order.id} sebesar ${money(order.total)} sudah kami terima. Pesanan kamu akan kami siapkan untuk pengiriman.\nButuh bantuan? tanj.indonesia@gmail.com`;
+    return {
+      subject,
+      to: audience === 'admin' ? 'tanj.indonesia@gmail.com' : order.customer.email,
+      text,
+      html: `<!doctype html><html lang="id"><meta charset="utf-8"><title>${esc(subject)}</title><body><h1>TANJ</h1><p>${esc(text).replaceAll('\n', '<br>')}</p></body></html>`,
+      url: '',
+    };
+  }
   const url = orderPaymentUrl(baseUrl, order.id),
     customer = order.customer;
   const title = 'TANJ — Menunggu pembayaran ' + order.id;

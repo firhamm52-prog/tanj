@@ -541,16 +541,14 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
   });
   setInterval(tick, 30000);
   let routingOrder = false;
-  async function routeOrder() {
+  async function routeOrder(promptLogin = false) {
     if (!isPaymentLink(location.href)) return;
     if (routingOrder) return;
     routingOrder = true;
     try {
       await ensureCustomerSession();
-      // Page load, focus and visibility changes must never open a login prompt.
-      // The account / purchase buttons handle sign-in explicitly; after login
-      // the authenticated event below resumes a linked order.
-      if (!customerSession() && !isAdmin()) return;
+      // Only opening a payment link may prompt; revisiting the tab must not.
+      if (!customerSession() && !isAdmin() && !promptLogin) return;
       requested = paymentOrderId(location.href);
       const targetOrder = requested;
       const resume = async () => {
@@ -584,9 +582,9 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) revisitOrder();
   });
-  window.addEventListener('hashchange', routeOrder);
+  window.addEventListener('hashchange', () => routeOrder(true));
   window.addEventListener('tanj-customer-authenticated', () => {
     if (isPaymentLink(location.href)) routeOrder();
   });
-  if (isPaymentLink(location.href)) requestAnimationFrame(routeOrder);
+  if (isPaymentLink(location.href)) requestAnimationFrame(() => routeOrder(true));
 }

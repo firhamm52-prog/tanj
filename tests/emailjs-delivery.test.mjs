@@ -55,6 +55,22 @@ test('disabled email requires account setup and never makes a network request', 
   await assert.rejects(() => t.notify(sample()), /belum aktif/);
   assert.equal(t.calls.length, 0);
 });
+test('paid receipt uses its own template and never reuses the payment instructions', async () => {
+  const t = setup({ config: { ...config, paidTemplateId: 'template_thanks' } });
+  await t.notify(sample());
+  await t.notify({ ...sample(), status: 'PAID' });
+  await t.notify({ ...sample(), status: 'PAID' });
+  assert.equal(t.calls.length, 2);
+  const receipt = JSON.parse(t.calls[1].body);
+  assert.equal(receipt.template_id, 'template_thanks');
+  assert.equal(receipt.template_params.payment_url, '');
+  const missing = setup();
+  await assert.rejects(
+    () => missing.notify({ ...sample(), status: 'PAID' }),
+    /Template email terima kasih/,
+  );
+  assert.equal(missing.calls.length, 0);
+});
 test('provider receives exact template parameters; concurrent and repeated Order notifications are deduplicated locally', async () => {
   const t = setup(),
     order = sample();

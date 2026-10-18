@@ -4,5 +4,6 @@ export const emailConfig = Object.freeze({
   enabled: true,
   serviceId: 'service_awd6ej5',
   templateId: 'template_9x2zs4s',
+  paidTemplateId: '',
   publicKey: 'DIT4KJEdzTgcSpzgw',
 });
