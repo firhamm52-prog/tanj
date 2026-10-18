@@ -14,6 +14,7 @@ try {
     '202610160005_payment_confirmation_guard.sql',
     '202610160006_signup_email_check.sql',
     '202610170007_shared_cms.sql',
+    '202610180008_hijab_checkout.sql',
   ]) {
     if (file === '202610170007_shared_cms.sql')
       await db.exec("update public.tb_m_product set price=444000,stock=7 where id='base-0-2'");
@@ -163,6 +164,27 @@ try {
     (await db.query('select active from public.tb_m_product where id=$1', [added.id])).rows[0]
       .active,
     false,
+  );
+  await as(buyer);
+  const checkoutHijab = (await rpc('tanj_cms_storefront')).hijabs[1];
+  const hijabOrder = await rpc('tanj_create_order', [
+    '88888888-8888-4888-8888-888888888888',
+    customer,
+    [
+      { id: checkoutHijab.id, qty: 1 },
+      { id: item.id, qty: 1 },
+    ],
+  ]);
+  assert.ok(hijabOrder);
+  assert.equal((await rpc('tanj_cms_storefront')).hijabs[1].stock, checkoutHijab.stock - 1);
+  await as(owner);
+  draft = await rpc('tanj_cms_admin');
+  await rpc('tanj_cms_publish', [draft.revision]);
+  assert.equal((await rpc('tanj_cms_storefront')).hijabs[1].stock, checkoutHijab.stock - 1);
+  assert.equal(
+    (await db.query('select active from public.tb_m_product where id=$1', [checkoutHijab.id]))
+      .rows[0].active,
+    true,
   );
   console.log(
     'PASS: shared CMS admin-only writes, draft isolation, atomic publish, live stock, concurrent stock protection, trusted checkout price and qty limit, safe media, preserved QRIS and orders.',

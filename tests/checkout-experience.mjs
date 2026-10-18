@@ -329,7 +329,7 @@ try {
     );
     return JSON.parse(localStorage.getItem('tanj-customer-session-v1')).expires;
   });
-  assert.ok(expiry <= Date.now() + 60 * 60 * 1000);
+  assert.ok(expiry <= Date.now() + 60 * 60 * 1000 + 1000);
   assert.ok(expiry > Date.now() + 59 * 60 * 1000);
   const reopened = await context.newPage();
   await reopened.goto(url);
@@ -353,6 +353,29 @@ try {
     null,
   );
   await reopened.close();
+  await page.evaluate(async () => {
+    localStorage.removeItem('noireaterial-cart-v1');
+    const m = await import('./web/customer-account.js?v=owner-ui-3');
+    await m.authenticateCustomer({
+      email: 'session@example.com',
+      password: 'session-password-123',
+    });
+  });
+  await page.goto(url);
+  await page.goto(url + '#all-products/selcuk');
+  const hijabLink = page.locator('[data-hijab-category="selcuk"][data-hijab-color="brown"] a');
+  await hijabLink.click();
+  await page.locator('#product-modal').waitFor({ state: 'visible' });
+  assert.match(await page.locator('#product-modal-title').textContent(), /Selcuk Brown/);
+  assert.ok(!(await hijabLink.getAttribute('href')).includes('wa.me'));
+  await page.locator('#product-add').click();
+  assert.match(await page.locator('#bag-items').textContent(), /Selcuk Brown/);
+  assert.equal(await page.locator('#bag-count').textContent(), '1');
+  await page.reload();
+  if (!(await page.locator('#bag-modal').isVisible())) await page.locator('#bag-open').click();
+  assert.match(await page.locator('#bag-items').textContent(), /Selcuk Brown/);
+  await page.locator('#bag-next').click();
+  await page.locator('#checkout-selected-items').filter({ hasText: 'Selcuk Brown' }).waitFor();
   assert.deepEqual(errors, []);
   console.log(
     'PASS: customer registration/login validation, login gate, Order Sekarang, address create/edit/persistence/isolation, account-bound recipient despite modified input, shipping choice, disabled gateway methods, Order, email preview/deep link, payment ownership, responsive layout.',

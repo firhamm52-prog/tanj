@@ -7,7 +7,7 @@ export function mountShoppingImprovements({
   openProduct,
   productModal,
 }) {
-  mountScreenHistory({ getCatalog, openProduct });
+  mountScreenHistory({ getCatalog: () => [...getCatalog(), ...getHijabs()], openProduct });
   const bagPanel = document.querySelector('#bag-modal .bag-panel');
   const expand = document.createElement('button');
   expand.type = 'button';
