@@ -103,19 +103,30 @@ export const cloudReady = (async () => {
 // Keep rejected initialization observable by UI actions without an unhandled rejection.
 cloudReady.catch(() => {});
 export const cloudSession = () => (user && !sessionExpired(user.id) ? user : null);
+let sessionCheck = null;
 export async function cloudEnsureSession() {
   await cloudReady;
   if (!cloudEnabled) return;
-  const { data, error } = await client.auth.getSession();
-  check(error);
-  if (user?.id !== data.session?.user?.id) {
-    await accept(data.session);
-    await loadRole();
+  if (sessionCheck) return sessionCheck;
+  sessionCheck = (async () => {
+    const { data, error } = await client.auth.getSession();
+    check(error);
+    // Reject expired sessions before accept() emits events that reload data.
+    if (data.session?.user && sessionExpired(data.session.user.id)) {
+      await cloudLogout();
+      return null;
+    }
+    if (user?.id !== data.session?.user?.id) {
+      await accept(data.session);
+      await loadRole();
+    }
+    return cloudSession();
+  })();
+  try {
+    return await sessionCheck;
+  } finally {
+    sessionCheck = null;
   }
-  if (data.session?.user && sessionExpired(data.session.user.id)) {
-    await cloudLogout();
-  }
-  return cloudSession();
 }
 export async function cloudClient() {
   await cloudEnsureSession();

@@ -456,7 +456,13 @@ try {
     if (Number(localStorage.getItem(key)) !== deadline) throw Error('Session must not slide');
     localStorage.setItem(key, String(Date.now() - 1));
     if (m.customerSession() !== null) throw Error('Expired customer must be signed out');
-    if (await m.ensureCustomerSession()) throw Error('Expired session must not be restored');
+    let changes = 0;
+    const count = () => changes++;
+    window.addEventListener('tanj-customer-change', count);
+    const sessions = await Promise.all(Array.from({ length: 10 }, () => m.ensureCustomerSession()));
+    window.removeEventListener('tanj-customer-change', count);
+    if (sessions.some(Boolean)) throw Error('Expired session must not be restored');
+    if (changes > 2) throw Error('Expired session must not trigger repeated refresh events');
   });
   console.log(
     'PASS: official SDK with mocked backend: account flows, role-protected CMS, blank admin email, owner-only admin entry, removed legacy copy, logout and recovery. No real email or account created.',

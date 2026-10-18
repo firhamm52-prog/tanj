@@ -4874,13 +4874,28 @@
               (entries) => {
                 entries.forEach(({ target, isIntersecting }) => {
                   if (isIntersecting) cmsPlayVideo(target);
+                  else target.pause();
                 });
               },
               { threshold: 0.05 },
             )
           : null;
       async function cmsPlayVideo(video) {
-        if (!video.isConnected || video.hidden) return;
+        const rect = video.getBoundingClientRect();
+        if (
+          !video.isConnected ||
+          video.hidden ||
+          document.hidden ||
+          !rect.width ||
+          !rect.height ||
+          rect.bottom <= 0 ||
+          rect.top >= innerHeight ||
+          rect.right <= 0 ||
+          rect.left >= innerWidth
+        ) {
+          video.pause();
+          return;
+        }
         try {
           await video.play();
           video.controls = false;
@@ -4902,7 +4917,7 @@
           video.playsInline = true;
           video.setAttribute('muted', '');
           video.setAttribute('playsinline', '');
-          video.preload = 'auto';
+          video.preload = 'metadata';
           video.src = src;
           video.hidden = false;
           video.addEventListener('canplay', () => cmsPlayVideo(video), { once: true });
@@ -4914,8 +4929,26 @@
         }
       }
       document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) document.querySelectorAll('.photo-track video').forEach(cmsPlayVideo);
+        document.querySelectorAll('video').forEach(cmsPlayVideo);
       });
+      document.addEventListener(
+        'play',
+        (event) => {
+          if (event.target.tagName === 'VIDEO') cmsPlayVideo(event.target);
+        },
+        true,
+      );
+      document.addEventListener(
+        'loadedmetadata',
+        (event) => {
+          if (event.target.tagName === 'VIDEO') {
+            cmsVideoObserver?.observe(event.target);
+            cmsPlayVideo(event.target);
+          }
+        },
+        true,
+      );
+      document.querySelectorAll('video').forEach((video) => cmsVideoObserver?.observe(video));
       document.addEventListener(
         'pointerdown',
         () =>
