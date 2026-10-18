@@ -171,13 +171,8 @@ try {
     .locator('#tracking-email-status')
     .filter({ hasText: 'diterima layanan email' })
     .waitFor();
-  await page.locator('#retry-tracking-email').click();
-  await page.locator('#retry-tracking-email').waitFor({ state: 'visible' });
-  await page.waitForFunction(
-    () => document.getElementById('retry-tracking-email').disabled === false,
-  );
-  assert.equal(sent.length, 2);
-  assert.equal(sent[1].template_id, 'template_tracking');
+  assert.equal(await page.locator('#retry-tracking-email').count(), 0);
+  assert.equal(sent.length, 1);
   await page.waitForFunction(
     () =>
       JSON.parse(localStorage.getItem('tanj-manual-payments-demo-v1')).orders.find(

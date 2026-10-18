@@ -1,7 +1,7 @@
 import { cloudEnabled } from '../web/supabase-payments.js?v=improve-2';
 import { customerWhatsAppLink } from '../shared/customer-whatsapp.js';
-import { emailConfig } from '../web/email-config.js?v=tracking-email-4';
-import { notifyPayment } from '../web/payment-notifications.js?v=tracking-email-4';
+import { emailConfig } from '../web/email-config.js?v=tracking-email-5';
+import { notifyPayment } from '../web/payment-notifications.js?v=tracking-email-5';
 import {
   readPayments,
   refreshPayments,
@@ -163,19 +163,6 @@ function trackingForm(o) {
   form.innerHTML = `<h3>Pengiriman</h3><label>Kurir<input name="courier" maxlength="80" required></label><label>Nomor resi<input name="number" maxlength="80" required placeholder="Masukkan nomor resi pengiriman"></label><p id="tracking-error" role="status"></p><div class="actions"><button class="primary" type="submit">Simpan nomor resi</button><button type="button" id="tracking-cancel">Batal</button></div>`;
   form.elements.courier.value = o.tracking?.courier || o.shipping.methodName || '';
   form.elements.number.value = o.tracking?.number || '';
-  if (o.tracking?.number) {
-    const retry = document.createElement('button');
-    retry.type = 'button';
-    retry.id = 'retry-tracking-email';
-    retry.textContent = 'Kirim ulang email resi';
-    retry.onclick = async () => {
-      retry.disabled = true;
-      await sendTrackingEmail(o, true);
-      retry.disabled = false;
-      reviewing = false;
-    };
-    form.querySelector('.actions').append(retry);
-  }
   form.addEventListener('focusin', () => {
     reviewing = true;
   });
