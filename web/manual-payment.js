@@ -517,13 +517,16 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
     });
   };
   $('bag-open').addEventListener('click', () => {
+    leaveOrderLink();
     panel.hidden = true;
   });
   $('bag-next').addEventListener('click', () => {
+    leaveOrderLink();
     panel.hidden = true;
     updateShipping();
   });
   $('product-add').addEventListener('click', () => {
+    leaveOrderLink();
     panel.hidden = true;
   });
   subscribePayments(() => {
@@ -533,18 +536,30 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
     if (!panel.hidden) render();
   });
   setInterval(tick, 30000);
-  let routingOrder = false;
+  let routingOrder = false,
+    orderRouteRevision = 0;
+  function leaveOrderLink() {
+    orderRouteRevision++;
+    requested = null;
+    const url = new URL(location.href);
+    url.searchParams.delete('order');
+    if (url.hash.startsWith('#pesanan')) url.hash = '';
+    if (url.href !== location.href) window.history.replaceState(window.history.state, '', url.href);
+  }
   async function routeOrder(promptLogin = false) {
     if (!isPaymentLink(location.href)) return;
     if (routingOrder) return;
     routingOrder = true;
+    const revision = orderRouteRevision;
     try {
       await ensureCustomerSession();
+      if (revision !== orderRouteRevision) return;
       // Only opening a payment link may prompt; revisiting the tab must not.
       if (!customerSession() && !isAdmin() && !promptLogin) return;
       requested = paymentOrderId(location.href);
       const targetOrder = requested;
       const resume = async () => {
+        if (revision !== orderRouteRevision) return;
         selected = targetOrder || null;
         await showPanel();
         if (requested && !visibleOrders(readPayments()).some((o) => o.id === requested)) {
@@ -567,15 +582,10 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
       routingOrder = false;
     }
   }
-  const revisitOrder = () => {
-    if (isPaymentLink(location.href) && (panel.hidden || !customerSession())) void routeOrder();
-  };
-  window.addEventListener('pageshow', revisitOrder);
-  window.addEventListener('focus', revisitOrder);
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) revisitOrder();
+  // App switching must preserve the current cart/checkout, not replay an old URL.
+  window.addEventListener('hashchange', () => {
+    if (location.hash.startsWith('#pesanan')) void routeOrder(true);
   });
-  window.addEventListener('hashchange', () => routeOrder(true));
   window.addEventListener('tanj-customer-authenticated', () => {
     if (isPaymentLink(location.href)) routeOrder();
   });

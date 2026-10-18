@@ -195,6 +195,44 @@ try {
   await page.locator('#manual-payment h3').filter({ hasText: 'Menunggu pembayaran' }).waitFor();
   assert.match(await page.locator('.manual-id').textContent(), new RegExp(order.id));
   await page.locator('#bag-modal [data-utility-close]').click();
+  // A stale order email URL must not replace a new mobile checkout on app return.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('.product-preview').first().click();
+  await page.locator('#product-plus').click();
+  await page.locator('#product-buy-now').click();
+  await page.locator('#bag-checkout-view').waitFor({ state: 'visible' });
+  await page.locator('#checkout-selected-items').filter({ hasText: '2 barang' }).waitFor();
+  await page.locator('#address-summary').filter({ hasText: 'Jalan Contoh' }).waitFor();
+  await page.locator('#checkout-note').fill('Pertahankan catatan saat pindah aplikasi');
+  const checkoutSnapshot = await page.locator('#checkout-price-summary').innerText();
+  const addressSnapshot = await page.locator('#address-summary').innerText();
+  const shippingSnapshot = await page.locator('#shipping-choice').innerText();
+  assert.equal(new URL(page.url()).searchParams.has('order'), false);
+  assert.ok(!new URL(page.url()).hash.startsWith('#pesanan'));
+  await page.evaluate(async () => {
+    // Also cover old bookmarks/history entries that still carry an order query.
+    const url = new URL(location.href);
+    url.searchParams.set('order', 'STALE-ORDER');
+    window.history.replaceState(window.history.state, '', url);
+    window.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('pageshow'));
+    document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+  assert.equal(await page.locator('#bag-checkout-view').isVisible(), true);
+  assert.equal(await page.locator('#manual-payment').isVisible(), false);
+  assert.equal(await page.locator('#checkout-price-summary').innerText(), checkoutSnapshot);
+  assert.equal(await page.locator('#address-summary').innerText(), addressSnapshot);
+  assert.equal(await page.locator('#shipping-choice').innerText(), shippingSnapshot);
+  assert.equal(
+    await page.locator('#checkout-note').inputValue(),
+    'Pertahankan catatan saat pindah aplikasi',
+  );
+  await page.evaluate(() => localStorage.removeItem('noireaterial-cart-v1'));
+  await page.goto(email.url);
+  await page.locator('.manual-id').filter({ hasText: order.id }).waitFor();
+  await page.locator('#bag-modal [data-utility-close]').click();
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.locator('[data-account-open]').first().click();
   await page.locator('#customer-logout').click();
