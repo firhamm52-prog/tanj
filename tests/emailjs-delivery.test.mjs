@@ -75,6 +75,11 @@ test('tracking email is separate from Order, requires a resi, and sends once', a
   assert.match(receipt.template_params.order_url, /example.com\/tanj\/\?order=/);
   assert.equal(JSON.parse(t.calls[0].body).template_params.has_tracking, false);
   assert.equal(receipt.template_params.payment_url, '');
+  await t.notify(shipped, { resend: true });
+  assert.equal(t.calls.length, 3);
+  assert.equal(JSON.parse(t.calls[2].body).template_id, config.trackingTemplateId);
+  await t.notify(shipped);
+  assert.equal(t.calls.length, 3);
   const missing = setup();
   await assert.rejects(() => missing.notify(shipped), /Template EmailJS perlu diperbarui/);
   assert.equal(missing.calls.length, 0);

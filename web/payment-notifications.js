@@ -1,5 +1,5 @@
-import { emailConfig } from './email-config.js?v=tracking-email-3';
-import { createEmailDelivery } from './emailjs-delivery.js?v=tracking-email-3';
+import { emailConfig } from './email-config.js?v=tracking-email-4';
+import { createEmailDelivery } from './emailjs-delivery.js?v=tracking-email-4';
 const browserDelivery = createEmailDelivery({
   config: emailConfig,
   storage: {
@@ -11,9 +11,9 @@ const browserDelivery = createEmailDelivery({
     navigator.locks ? navigator.locks.request('tanj-email-delivery', fn) : fn(),
 });
 // A shared backend can replace browser delivery later without changing the Order action.
-export async function notifyPayment(order) {
+export async function notifyPayment(order, { resend = false } = {}) {
   const endpoint = window.TANJ_CONFIG?.paymentNotificationEndpoint;
-  if (!endpoint) return browserDelivery(order);
+  if (!endpoint) return browserDelivery(order, { resend });
   const target = new URL(endpoint, location.href);
   if (target.origin !== location.origin)
     throw Error('Endpoint notifikasi harus berada pada domain TANJ yang sama.');

@@ -67,7 +67,7 @@ export function createEmailDelivery({
         config[key].trim() &&
         !/YOUR_|PLACEHOLDER/i.test(config[key]),
     );
-  async function send(order) {
+  async function send(order, resend = false) {
     if (!configured())
       throw Error('Email otomatis belum aktif. Hubungi admin untuk salinan pesanan.');
     const params = emailTemplateParams(order, baseUrl);
@@ -90,7 +90,7 @@ export function createEmailDelivery({
         'Catatan email tidak dapat dibaca. Periksa inbox admin sebelum mencoba kirim ulang.',
       );
     }
-    if (receipts[key]?.status === 'accepted')
+    if (receipts[key]?.status === 'accepted' && !(resend && hasTracking(order)))
       return { sent: true, accepted: true, alreadySent: true };
     // Web Locks and a shared timestamp also serialize separate tabs at the provider rate limit.
     const previous = Number(receipts._lastAttemptAt) || 0;
@@ -130,7 +130,7 @@ export function createEmailDelivery({
               ? 'Konfigurasi layanan email belum sesuai. Hubungi admin TANJ.'
               : 'Layanan email belum menerima pengiriman. Coba lagi nanti.';
         result = { status: 'failed', at: now() };
-        throw Error(message);
+        throw Error(message + ' (HTTP ' + response.status + ', template ' + templateId + ').');
       }
       result = { status: 'accepted', at: now() };
     } catch (err) {
@@ -153,10 +153,10 @@ export function createEmailDelivery({
     }
     return { sent: true, accepted: true, receiptSaved: true };
   }
-  return function notify(order) {
+  return function notify(order, { resend = false } = {}) {
     const key = String(order?.id || '') + (hasTracking(order) ? ':tracking' : '');
     if (pending.has(key)) return pending.get(key);
-    const task = queue.catch(() => {}).then(() => runExclusive(() => send(order)));
+    const task = queue.catch(() => {}).then(() => runExclusive(() => send(order, resend)));
     pending.set(key, task);
     queue = task;
     task.then(
