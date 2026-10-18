@@ -1,7 +1,7 @@
 import { cloudEnabled } from '../web/supabase-payments.js?v=improve-2';
 import { customerWhatsAppLink } from '../shared/customer-whatsapp.js';
-import { emailConfig } from '../web/email-config.js?v=tracking-email-5';
-import { notifyPayment } from '../web/payment-notifications.js?v=tracking-email-5';
+import { emailConfig } from '../web/email-config.js?v=tracking-email-6';
+import { notifyPayment } from '../web/payment-notifications.js?v=tracking-email-6';
 import {
   readPayments,
   refreshPayments,
@@ -174,6 +174,7 @@ function trackingForm(o) {
     e.preventDefault();
     const button = e.submitter;
     button.disabled = true;
+    reviewing = true;
     try {
       const saved = await saveTracking(
         o.id,
@@ -181,9 +182,11 @@ function trackingForm(o) {
         form.elements.courier.value,
         form.elements.number.value,
       );
+      // Saving is the explicit send action. Keep the form disabled until the
+      // email attempt finishes, including when this order was emailed before.
+      await sendTrackingEmail(saved, true);
       reviewing = false;
       render();
-      await sendTrackingEmail(saved);
     } catch (error) {
       form.querySelector('#tracking-error').textContent = error.message;
       button.disabled = false;

@@ -173,6 +173,12 @@ try {
     .waitFor();
   assert.equal(await page.locator('#retry-tracking-email').count(), 0);
   assert.equal(sent.length, 1);
+  await page.locator('#tracking-form [type=submit]').click();
+  await page.waitForFunction(
+    () => document.querySelector('#tracking-form [type=submit]').disabled === false,
+  );
+  assert.equal(sent.length, 2);
+  assert.equal(sent[1].template_id, 'template_tracking');
   await page.waitForFunction(
     () =>
       JSON.parse(localStorage.getItem('tanj-manual-payments-demo-v1')).orders.find(
