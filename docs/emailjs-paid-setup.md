@@ -1,12 +1,9 @@
-# Email setelah pembayaran diterima
+# Email TANJ hanya saat Order
 
-Di dashboard EmailJS, buat template khusus menggunakan `emailjs-paid-template.html`.
-Subject: `TANJ — Pembayaran diterima {{order_id}}`.
-To Email: `{{customer_email}}`. Gunakan layanan pengirim TANJ yang sudah terhubung.
-Isi `paidTemplateId` di `web/email-config.js` dengan ID template tersebut, lalu deploy.
+Email otomatis dikirim satu kali per pesanan setelah customer menekan Order dan pesanan berhasil disimpan.
+Konfirmasi pembayaran customer serta persetujuan admin tidak mengirim email lagi.
+Template email terima kasih terpisah dan paidTemplateId tidak diperlukan.
 
-Template pembayaran awal tetap digunakan hanya untuk pesanan yang belum dibayar.
-Saat admin menyetujui pembayaran, aplikasi menggunakan template terima kasih terpisah.
-Jika template terima kasih belum dikonfigurasi, pembayaran tetap tersimpan dan admin
-mendapat pesan bahwa email belum dikirim. Aplikasi tidak mengirim template instruksi
-pembayaran sebagai pengganti.
+Template di dashboard EmailJS tetap menentukan isi email yang diterima. Gunakan template Order yang sudah disimpan. File lokal emailjs-order-template.html tidak otomatis memperbarui dashboard EmailJS.
+
+Catatan pengiriman mencegah pengiriman ulang di browser yang sama setelah layanan menerima email. Ini bukan jaminan deduplikasi lintas perangkat; bila koneksi putus, periksa Inbox/Spam sebelum membuat pesanan baru.

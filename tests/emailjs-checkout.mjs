@@ -116,7 +116,6 @@ try {
   assert.equal(await page.getByText('Rincian pesanan & status', { exact: true }).count(), 0);
   await page.locator('#manual-confirm').click();
   await page.locator('#manual-payment h3').filter({ hasText: 'Menunggu verifikasi' }).waitFor();
-  await page.locator('#manual-payment-error').filter({ hasText: 'sudah diterima' }).waitFor();
   assert.equal(sent.length, 1);
   refuse = true;
   await checkout(false);

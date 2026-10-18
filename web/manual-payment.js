@@ -379,13 +379,6 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
           await buyerUpdate(order.id, 'confirm');
           render();
           focusTitle();
-          try {
-            await notifyPayment(order);
-            $('manual-payment-error').textContent =
-              'Notifikasi pesanan sudah diterima layanan email. Periksa Inbox/Spam.';
-          } catch (err) {
-            $('manual-payment-error').textContent = err.message;
-          }
         } catch (err) {
           showError(err);
           button.disabled = false;

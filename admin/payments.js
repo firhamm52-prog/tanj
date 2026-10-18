@@ -1,7 +1,6 @@
 import { cloudEnabled } from '../web/supabase-payments.js?v=improve-2';
 import { customerWhatsAppLink } from '../shared/customer-whatsapp.js';
 import { emailConfig } from '../web/email-config.js?v=email-live-1';
-import { notifyPayment } from '../web/payment-notifications.js?v=email-live-1';
 import {
   readPayments,
   refreshPayments,
@@ -151,14 +150,6 @@ function review(o, action) {
       reviewing = false;
       if (approval) filter = 'PAID';
       render();
-      if (approval) {
-        const paid = readPayments().orders.find((order) => order.id === o.id);
-        try {
-          await notifyPayment(paid);
-        } catch (error) {
-          $('review-error').textContent = 'Pembayaran sudah diterima. ' + error.message;
-        }
-      }
     } catch (err) {
       $('form-error').textContent = err.message;
       b.disabled = false;
