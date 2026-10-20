@@ -169,7 +169,7 @@ try {
   await admin.page.locator('[data-kind=products][data-action=edit]').first().click();
   await admin.page.locator('#edit-form [name=price]').fill('777000');
   await admin.page.locator('#edit-form [name=stock]').fill('5');
-  await admin.page.locator('#edit-form [type=submit]').click();
+  await admin.page.locator('#edit-form [type=submit]:not([name=publish])').click();
   await admin.page.locator('#editor').waitFor({ state: 'hidden' });
   await customer.page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await customer.page.locator('.card-stock').first().filter({ hasText: 'Stok: 5' }).waitFor();
@@ -179,6 +179,18 @@ try {
   await admin.page.locator('#toast').filter({ hasText: 'Website berhasil' }).waitFor();
   await customer.page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await customer.page.locator('.card .price').first().filter({ hasText: 'Rp777.000' }).waitFor();
+  await admin.page.locator('#navigation [data-tab=hijabs]').click();
+  await admin.page.locator('[data-kind=hijabs][data-action=edit]').first().click();
+  await admin.page.locator('#edit-form [name=price]').fill('115000');
+  await admin.page.locator('#edit-form [name=publish]').click();
+  await admin.page.locator('#editor').waitFor({ state: 'hidden' });
+  await admin.page.locator('#toast').filter({ hasText: 'sudah dipublikasikan' }).waitFor();
+  await customer.page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await customer.page
+    .locator('.hijab-price')
+    .first()
+    .filter({ hasText: 'Rp115.000' })
+    .waitFor({ state: 'attached' });
   await admin.page.locator('[data-tab=site]').click();
   await admin.page.locator('[data-kind=settings]').click();
   await admin.page.locator('#edit-form [name=maxQty]').fill('2');
@@ -186,7 +198,7 @@ try {
   await admin.page.locator('#edit-form [name=lookbookTitle]').fill('A shared collection');
   await admin.page.locator('#edit-form [name=qrisWidth]').fill('240');
   await admin.page.locator('#edit-form [name=recommendations]').fill('1');
-  await admin.page.locator('#edit-form [type=submit]').click();
+  await admin.page.locator('#edit-form [type=submit]:not([name=publish])').click();
   await admin.page.locator('#editor').waitFor({ state: 'hidden' });
   await admin.page.locator('#publish').click();
   await admin.page.locator('#toast').filter({ hasText: 'Website berhasil' }).waitFor();

@@ -11,7 +11,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=cloud-cms-3';
+} from '../web/data.js?v=cms-publish-verify-1';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(
@@ -428,7 +428,11 @@ $('#editor').addEventListener('cancel', (event) => {
 $('#edit-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const button = event.submitter;
-  button.disabled = true;
+  const publishNow = button?.name === 'publish';
+  if (publishNow && !confirm('Simpan perubahan ini dan publikasikan seluruh draf ke website?'))
+    return;
+  const submitButtons = [...event.currentTarget.querySelectorAll('[type="submit"]')];
+  submitButtons.forEach((b) => (b.disabled = true));
   error('', '#editor-error');
   try {
     requireAdmin();
@@ -451,18 +455,21 @@ $('#edit-form').addEventListener('submit', async (event) => {
         if (type === 'number') data[key] = Number(data[key]);
       }
     await save(kind, id, data);
+    if (publishNow) await publish();
     await refresh();
     $('#editor').close();
     editing = null;
     toast(
-      usesCloudCMS && kind === 'products'
-        ? 'Draf tersimpan. Stok online sudah diperbarui; publikasikan untuk konten/harga.'
-        : 'Draf tersimpan. Publikasikan untuk menampilkan perubahan.',
+      publishNow
+        ? 'Perubahan tersimpan dan sudah dipublikasikan ke website.'
+        : usesCloudCMS && kind === 'products'
+          ? 'Draf tersimpan. Stok online sudah diperbarui; publikasikan untuk konten/harga.'
+          : 'Draf tersimpan. Publikasikan untuk menampilkan perubahan.',
     );
   } catch (err) {
     error(err.message, '#editor-error');
   } finally {
-    button.disabled = false;
+    submitButtons.forEach((b) => (b.disabled = false));
   }
 });
 function guardSession() {

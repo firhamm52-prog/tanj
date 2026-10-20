@@ -56,6 +56,22 @@ export async function removeCloudContent(kind, id) {
 }
 export async function publishCloudContent() {
   if (!draft) await loadCloudAdmin();
+  const expectedPrices = Object.fromEntries(
+    ['products', 'hijabs'].map((kind) => [
+      kind,
+      draft[kind].map(({ id, price, status }) => ({ id, price, status })),
+    ]),
+  );
   draft = await call('tanj_cms_publish', { expected_revision: draft.revision });
+  const published = await call('tanj_cms_storefront');
+  for (const kind of ['products', 'hijabs']) {
+    for (const item of expectedPrices[kind]) {
+      if (item.status === 'draft') continue;
+      if (!published[kind]?.some((p) => p.id === item.id && p.price === item.price))
+        throw Error(
+          'Draf tersimpan, tetapi harga di website belum sesuai. Muat ulang CMS dan coba Publikasikan lagi.',
+        );
+    }
+  }
   return draft;
 }
