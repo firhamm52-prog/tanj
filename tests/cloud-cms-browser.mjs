@@ -29,7 +29,7 @@ const server = createServer(async (req, res) => {
 });
 try {
   await db.exec(
-    `create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`,
+    `create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`,
   );
   for (const file of [
     '202610160001_accounts.sql',
@@ -39,6 +39,11 @@ try {
     '202610160005_payment_confirmation_guard.sql',
     '202610160006_signup_email_check.sql',
     '202610170007_shared_cms.sql',
+    '202610170008_biteship_shipping.sql',
+    '202610180008_hijab_checkout.sql',
+    '202610180009_order_completion.sql',
+    '202610180010_clothing_shipping_subsidy.sql',
+    '202610200011_cms_publish_prices.sql',
   ])
     await db.exec(await readFile('supabase/migrations/' + file, 'utf8'));
   await db.query(
@@ -181,15 +186,15 @@ try {
   await customer.page.locator('.card .price').first().filter({ hasText: 'Rp777.000' }).waitFor();
   await admin.page.locator('#navigation [data-tab=hijabs]').click();
   await admin.page.locator('[data-kind=hijabs][data-action=edit]').first().click();
-  await admin.page.locator('#edit-form [name=price]').fill('115000');
+  await admin.page.locator('#edit-form [name=price]').fill('11500000');
   await admin.page.locator('#edit-form [name=publish]').click();
   await admin.page.locator('#editor').waitFor({ state: 'hidden' });
   await admin.page.locator('#toast').filter({ hasText: 'sudah dipublikasikan' }).waitFor();
-  await customer.page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  // No focus/refresh: the open buyer page must update by itself.
   await customer.page
     .locator('.hijab-price')
     .first()
-    .filter({ hasText: 'Rp115.000' })
+    .filter({ hasText: 'Rp11.500.000' })
     .waitFor({ state: 'attached' });
   await admin.page.locator('[data-tab=site]').click();
   await admin.page.locator('[data-kind=settings]').click();

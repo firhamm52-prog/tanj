@@ -454,7 +454,13 @@ $('#edit-form').addEventListener('submit', async (event) => {
         if (type === 'checkbox') data[key] = !!data[key];
         if (type === 'number') data[key] = Number(data[key]);
       }
-    await save(kind, id, data);
+    const saved = await save(kind, id, data);
+    if (usesCloudCMS && ['products', 'hijabs'].includes(kind) && id) {
+      if (saved[kind]?.find((p) => p.id === id)?.price !== data.price)
+        throw Error(
+          'Harga draf belum sesuai. Jalankan pembaruan database 202610200011_cms_publish_prices.sql, lalu simpan lagi.',
+        );
+    }
     if (publishNow) await publish();
     await refresh();
     $('#editor').close();

@@ -5878,7 +5878,10 @@
         }
       }
       window.addEventListener('focus', syncCloudCatalog);
-      setInterval(syncCloudCatalog, 30000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) syncCloudCatalog();
+      });
+      setInterval(syncCloudCatalog, 5000);
       const badge = document.createElement('span');
       badge.className = 'bag-badge';
       badge.id = 'bag-badge';
