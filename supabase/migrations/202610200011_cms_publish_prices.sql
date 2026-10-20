@@ -64,7 +64,8 @@ BEGIN
   END IF;
   UPDATE public.tb_m_product
   SET
-    active = FALSE;
+    active = FALSE
+  WHERE active IS DISTINCT FROM FALSE;
   FOR p IN SELECT value FROM jsonb_array_elements(c.draft -> 'products') LOOP
     UPDATE public.tb_m_product
     SET

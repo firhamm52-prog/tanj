@@ -44,6 +44,7 @@ try {
     '202610180009_order_completion.sql',
     '202610180010_clothing_shipping_subsidy.sql',
     '202610200011_cms_publish_prices.sql',
+    '202610200012_cms_publish_safe_updates.sql',
   ])
     await db.exec(await readFile('supabase/migrations/' + file, 'utf8'));
   await db.query(
