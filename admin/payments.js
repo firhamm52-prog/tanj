@@ -347,8 +347,6 @@ $('qris-remove').onclick = async () => {
 };
 
 if (cloudEnabled) {
-  document.querySelector('.notice').textContent =
-    'Akun dan pesanan tersimpan online. Transfer bank tidak terdeteksi otomatis; cocokkan mutasi rekening sebelum menyetujui pembayaran.';
   document.querySelector('.trial-tag').textContent = 'Pembayaran manual';
   document.querySelector('details>p').textContent =
     'Pilih gambar, lalu tekan Simpan QRIS. Gambar disimpan online dan tampil di checkout semua perangkat.';
