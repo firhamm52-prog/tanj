@@ -16,6 +16,8 @@ test('private gateway transitions verify amounts and release stock once', async 
     await storageFixture(db);
     for (const f of (await readdir('supabase/migrations')).filter((f) => f.endsWith('.sql')).sort())
       await db.exec(await readFile('supabase/migrations/' + f, 'utf8'));
+    const setup = (await db.query(await readFile('docs/check-midtrans-setup.sql', 'utf8'))).rows[0];
+    assert.deepEqual(Object.values(setup), [true, true, true]);
     await db.query("insert into auth.users(id,email) values($1,'buyer@example.com')", [buyer]);
     const as = async (role, owner = buyer) => {
       await db.exec('reset role');
@@ -335,6 +337,7 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
   let amount;
   let own = true;
   let outcome = 'success';
+  let gatewayFailure = false;
   const operations = [];
   const handler = createMidtransHandler({
     env: (k) => v[k],
@@ -372,6 +375,8 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
       }
       if (url.endsWith('/tanj_midtrans_gateway')) {
         operations.push(JSON.parse(options.body).operation);
+        if (gatewayFailure)
+          return Response.json({ code: '42501', message: 'permission denied' }, { status: 403 });
         return Response.json({ status: 'WAITING_PAYMENT' });
       }
       throw Error(url);
@@ -392,6 +397,15 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
   outcome = 'reject';
   assert.equal((await handler(request())).status, 502);
   assert.deepEqual(operations, ['creation_rejected']);
+  gatewayFailure = true;
+  const failedCleanup = await handler(request());
+  assert.equal(failedCleanup.status, 502);
+  assert.match((await failedCleanup.json()).error, /Midtrans belum dapat memproses/);
+  outcome = 'success';
+  const failedRedirect = await handler(request());
+  assert.equal(failedRedirect.status, 409);
+  assert.match((await failedRedirect.json()).error, /Status pembayaran belum dapat disimpan/);
+  gatewayFailure = false;
   operations.length = 0;
   for (outcome of ['timeout', 'duplicate']) {
     assert.ok((await handler(request())).status >= 500);

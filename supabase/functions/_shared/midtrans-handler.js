@@ -32,13 +32,24 @@ export function createMidtransHandler({ env, fetcher = fetch }) {
       signal: AbortSignal.timeout(12000),
     });
     const d = await r.json();
-    if (!r.ok)
+    if (!r.ok) {
+      let message = String(d.message || 'Unknown database error');
+      for (const credential of [secret, key, publicKey])
+        if (credential) message = message.split(credential).join('[redacted]');
+      console.warn('Midtrans database request rejected', {
+        rpc: name,
+        operation: body.operation || 'prepare',
+        httpStatus: r.status,
+        code: d.code,
+        message: message.slice(0, 1000),
+      });
       fail(
         409,
         token
           ? d.message || 'Pesanan belum dapat diproses.'
           : 'Status pembayaran belum dapat disimpan. Coba periksa lagi.',
       );
+    }
     return d;
   }
   async function provider(host, path, body) {
@@ -208,7 +219,13 @@ export function createMidtransHandler({ env, fetcher = fetch }) {
           });
         } catch (e) {
           if (e.creationRejected) {
-            await rpc('tanj_midtrans_gateway', { oid, operation: 'creation_rejected' });
+            try {
+              await rpc('tanj_midtrans_gateway', { oid, operation: 'creation_rejected' });
+            } catch {
+              // The RPC logged its own failure. Preserve the original provider error;
+              // an unsuccessful cleanup must never be presented as a payment success.
+              console.warn('Midtrans reservation release requires admin follow-up');
+            }
           }
           throw e;
         }
