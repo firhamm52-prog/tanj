@@ -2,7 +2,7 @@ import { freshSeed, DEMO_KEY, PUBLISHED_KEY, storefront } from '../shared/seed.j
 import { validate } from '../shared/validation.js?v=sold-publish-2';
 import { supabaseConfig } from './supabase-config.js?v=improve-2';
 export const usesCloudCMS = !!supabaseConfig.enabled;
-const cloudCMS = () => import('./cloud-cms.js?v=cms-publish-verify-1');
+const cloudCMS = () => import('./cloud-cms.js?v=cms-stock-3');
 export const isApi = window.TANJ_CONFIG?.mode === 'api';
 const apiBase = window.TANJ_CONFIG?.apiBase || '/api';
 function read(key) {

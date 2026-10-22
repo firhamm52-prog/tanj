@@ -35,7 +35,7 @@ export async function loadCloudAdmin() {
 }
 export async function saveCloudContent(kind, id, item) {
   if (!draft) await loadCloudAdmin();
-  const expected = draft.products.find((p) => p.id === id)?.stock ?? null;
+  const expected = draft[kind]?.find?.((p) => p.id === id)?.stock ?? null;
   draft = await call('tanj_cms_save', {
     kind,
     content_id: id || null,

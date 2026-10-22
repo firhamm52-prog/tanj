@@ -11,7 +11,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=cms-publish-verify-1';
+} from '../web/data.js?v=cms-stock-3';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(
@@ -460,6 +460,10 @@ $('#edit-form').addEventListener('submit', async (event) => {
         throw Error(
           'Harga draf belum sesuai. Jalankan pembaruan database 202610200011_cms_publish_prices.sql, lalu simpan lagi.',
         );
+      if (saved[kind]?.find((p) => p.id === id)?.stock !== data.stock)
+        throw Error(
+          'Stok belum tersimpan. Jalankan pembaruan database 202610220016_cms_hijab_stock.sql, lalu muat ulang CMS.',
+        );
     }
     if (publishNow) await publish();
     await refresh();
@@ -468,7 +472,7 @@ $('#edit-form').addEventListener('submit', async (event) => {
     toast(
       publishNow
         ? 'Perubahan tersimpan dan sudah dipublikasikan ke website.'
-        : usesCloudCMS && kind === 'products'
+        : usesCloudCMS && ['products', 'hijabs'].includes(kind)
           ? 'Draf tersimpan. Stok online sudah diperbarui; publikasikan untuk konten/harga.'
           : 'Draf tersimpan. Publikasikan untuk menampilkan perubahan.',
     );
