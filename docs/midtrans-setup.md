@@ -29,7 +29,7 @@ Check that the Snap amount equals the stored order total; a success redirect alo
 
 ## Operational behavior
 
-The customer-facing **Cek status pembayaran** button has been removed. Active Midtrans payment screens check authoritative status every 10 seconds and immediately on returning to the browser tab. After verified payment and order refresh, the screen changes to **Pembayaran berhasil** automatically, without reloading the whole page or relying on the customer's claim. Temporary verification errors leave the bill visible and retry automatically. This frontend update needs no SQL or Edge Function redeployment.
+The customer-facing **Cek status pembayaran** button has been removed. Active Midtrans payment screens check authoritative status every 5 seconds and immediately on returning to the browser tab. After verified payment and order refresh, the screen changes to **Pembayaran berhasil** automatically, without reloading the whole page or relying on the customer's claim. Temporary verification errors leave the bill visible and retry automatically. The 5-second update needs a Midtrans Edge Function redeploy to allow 30 status checks/minute per user independently of the 12 payment-start attempts/minute. No SQL changes are needed.
 
 ### Two payment choices (021)
 
@@ -51,7 +51,7 @@ After installing 015, run `supabase/migrations/202610220019_midtrans_embedded.sq
 
 For Midtrans orders, Buat pesanan automatically prepares and embeds Snap on the payment screen. Customers choose QRIS or a VA bank; Midtrans displays that transaction's QR/VA instructions for the stored total including net shipping. A static merchant QR or bank account is not used for automatic settlement. Without a Client Key or for a historical session missing its Snap token, checkout falls back to the hosted Midtrans payment page. Public Client Key and customer-bound Snap token are sent after the authenticated order-owner check; the Server Key stays on the server.
 
-The browser checks authoritative status every 10 seconds while this payment screen is visible, in addition to webhooks and the existing order refresh. Snap UI callbacks never mark the order paid themselves; they trigger verification through the server. Failed setup leaves a Muat ulang pembayaran button. Local browser tests use a simulated provider, not actual payments.
+The browser checks authoritative status every 5 seconds while this payment screen is visible, in addition to webhooks and the existing order refresh. Snap UI callbacks never mark the order paid themselves; they trigger verification through the server. Failed setup leaves a Muat ulang pembayaran button. Local browser tests use a simulated provider, not actual payments.
 
 Migration 019 permits another creation attempt after an expired preparation lease using the same TANJ/Midtrans order ID and retaining its stock reservation. Midtrans documents that regenerating Snap for an unused order invalidates the previous unused token, while utilized orders reject duplicate creation. Duplicate responses trigger an authoritative status lookup, not inventory release or a new order ID. A valid existing bill whose Snap token was lost may still need merchant follow-up; it is not cancelled or refunded automatically. Attempt IDs prevent a delayed response from a previous attempt releasing or overwriting a newer reservation/session. Core API 404 before a payment method is selected is treated as not started, never as proof that stock can safely be released. This supersedes the 015-only indefinite creation block described below.
 

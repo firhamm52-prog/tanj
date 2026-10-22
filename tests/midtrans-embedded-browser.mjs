@@ -87,7 +87,7 @@ try {
   await page.evaluate(() => {
     window.paymentState = 'PAID';
   });
-  await page.clock.fastForward(10000);
+  await page.clock.fastForward(5000);
   await page.waitForFunction(() => window.verified === 1);
   assert.equal(await page.evaluate(() => window.verified), 1);
   assert.ok(await page.evaluate(() => window.calls.every((c) => c.orderId === 'TANJ-test')));

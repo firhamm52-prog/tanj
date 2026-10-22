@@ -180,9 +180,12 @@ export function createMidtransHandler({ env, fetcher = fetch }) {
         const user = await r.json();
         if (!user.id) fail(401, 'Login terlebih dahulu.');
         for (const [id, l] of limits) if (l.until < Date.now()) limits.delete(id);
-        const l = limits.get(user.id) || { count: 0, until: Date.now() + 60000 };
-        if (++l.count > 12) fail(429, 'Tunggu satu menit sebelum mencoba lagi.');
-        limits.set(user.id, l);
+        const statusCheck = path.endsWith('/status');
+        const limitKey = user.id + (statusCheck ? ':status' : ':start');
+        const l = limits.get(limitKey) || { count: 0, until: Date.now() + 60000 };
+        if (++l.count > (statusCheck ? 30 : 12))
+          fail(429, 'Tunggu satu menit sebelum mencoba lagi.');
+        limits.set(limitKey, l);
         // Owner SELECT is enforced by RLS, and no client-supplied amount is used.
         const rr = await fetcher(
           url + '/rest/v1/tb_t_order?select=id&id=eq.' + encodeURIComponent(oid),

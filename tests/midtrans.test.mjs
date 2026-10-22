@@ -6,6 +6,39 @@ import { storageFixture } from './storage-fixture.mjs';
 import { createMidtransHandler } from '../supabase/functions/_shared/midtrans-handler.js';
 const oid = 'TANJ-44444444-4444-4444-8444-444444444444';
 const buyer = '11111111-1111-4111-8111-111111111111';
+
+test('automatic status polling has a separate budget from payment starts', async () => {
+  const values = {
+    SUPABASE_URL: 'https://db.test',
+    SUPABASE_SERVICE_ROLE_KEY: 'secret',
+    SUPABASE_ANON_KEY: 'public',
+    MIDTRANS_SERVER_KEY: 'server',
+    MIDTRANS_ENABLED: 'true',
+  };
+  const handler = createMidtransHandler({
+    env: (name) => values[name],
+    fetcher: async (url) => {
+      if (url.endsWith('/auth/v1/user')) return Response.json({ id: buyer });
+      if (url.includes('/tb_t_order?')) return Response.json([{ id: oid }]);
+      if (url.endsWith('/tanj_midtrans_prepare'))
+        return Response.json({ redirect_url: 'https://app.sandbox.midtrans.com/snap/test' });
+      if (url.endsWith('/status')) return Response.json({ status_code: '404' }, { status: 404 });
+      throw Error(url);
+    },
+  });
+  const request = (path) =>
+    handler(
+      new Request(`https://edge.test/midtrans/${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer customer' },
+        body: JSON.stringify({ orderId: oid }),
+      }),
+    );
+  for (let i = 0; i < 30; i++) assert.equal((await request('status')).status, 200);
+  assert.equal((await request('status')).status, 429);
+  for (let i = 0; i < 12; i++) assert.equal((await request('start')).status, 200);
+  assert.equal((await request('start')).status, 429);
+});
 test('private gateway transitions verify amounts and release stock once', async () => {
   const db = new PGlite();
   try {

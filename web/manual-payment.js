@@ -1,4 +1,4 @@
-import { mountMidtransCheckout } from './midtrans-checkout.js?v=auto-status-2';
+import { mountMidtransCheckout } from './midtrans-checkout.js?v=auto-status-5sec';
 import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js';
 import { cloudEnabled } from './supabase-payments.js?v=improve-2';
 import { cropQrisArtwork } from './qris-crop.js';
@@ -327,8 +327,7 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
           });
         } else if (order.status === 'PAID') {
           panel.querySelector('h3').textContent = 'Pembayaran berhasil';
-          message.textContent =
-            'Pembayaran berhasil diverifikasi. Pesanan siap diproses.';
+          message.textContent = 'Pembayaran berhasil diverifikasi. Pesanan siap diproses.';
         }
       }
       void cropQrisArtwork($('checkout-qris-image'));

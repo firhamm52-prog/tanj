@@ -112,7 +112,7 @@ export function mountMidtransCheckout(
   const timer = setInterval(() => {
     if (!active()) clearInterval(timer);
     else void verify();
-  }, 10000);
+  }, 5000);
   const resume = () => {
     void verify();
   };
