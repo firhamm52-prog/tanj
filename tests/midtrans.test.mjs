@@ -54,7 +54,9 @@ test('private gateway transitions verify amounts and release stock once', async 
     const actual = (await db.query('select public.tanj_create_order($1,$2,$3) d', checkoutArgs))
       .rows[0].d;
     assert.equal(actual.payment.provider, 'midtrans');
-    assert.ok(actual.total > 14000);
+    assert.equal(actual.total, actual.subtotal + actual.shipping.fee);
+    assert.equal(actual.adjustment, 0);
+    assert.equal(actual.code, 0);
     assert.deepEqual(
       (await db.query('select public.tanj_create_order($1,$2,$3) d', checkoutArgs)).rows[0].d,
       actual,
@@ -85,6 +87,14 @@ test('private gateway transitions verify amounts and release stock once', async 
       o,
     ]);
     await as('authenticated');
+    const existing = (
+      await db.query('select public.tanj_create_order($1,$2,$3) d', [
+        oid.slice(5).toLowerCase(),
+        { paymentMethod: 'midtrans' },
+        [],
+      ])
+    ).rows[0].d;
+    assert.deepEqual(existing, o);
     await assert.rejects(
       db.query('select public.tanj_midtrans_gateway($1,$2,$3)', [oid, 'status', {}]),
       /permission denied/,

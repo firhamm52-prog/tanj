@@ -4,7 +4,7 @@ Checkout uses Snap redirection, so no Client Key is needed in HTML. Amount comes
 
 ## Install
 
-1. Run the entire `supabase/migrations/202610220013_midtrans.sql` once in the Supabase SQL Editor, after migrations 001?012. Do not rerun the ALTER FUNCTION migration.
+1. Run the entire `supabase/migrations/202610220013_midtrans.sql` once in the Supabase SQL Editor, after migrations 001?012. Then run `202610220014_midtrans_exact_total.sql` to remove unique-code adjustments from new Midtrans orders. Existing order amounts remain unchanged. Do not rerun the ALTER FUNCTION migration.
 2. Supabase ? Edge Functions ? create a function named **midtrans**. Paste **all** of `supabase/dashboard/midtrans.ts` into its editor and Deploy. Do not paste the shared handler by itself.
 3. Disable **Verify JWT / Enforce JWT verification** on that function. The handler validates customer JWTs itself; the notification route validates the Midtrans signature and then checks GET Status server-to-server. An external Midtrans webhook cannot supply a Supabase customer JWT.
 4. Secrets:
@@ -38,3 +38,5 @@ References:
 - https://docs.midtrans.com/docs/https-notification-webhooks
 - https://docs.midtrans.com/reference/get-transaction-status
 - https://docs.midtrans.com/docs/snap-advanced-feature
+
+New Midtrans orders charge subtotal plus net shipping only (after shipping subsidy). They have no unique-code surcharge. Historical Midtrans orders retain their original amounts.

@@ -367,7 +367,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     const catalog = await getCatalog();
     const discount = shippingSubsidy(getItems(), catalog, fee);
     $('checkout-price-summary').innerHTML =
-      `<p><span>Subtotal · ${getItems().reduce((n, i) => n + i.qty, 0)} barang</span><strong>${money(getSubtotal())}</strong></p><p><span>Ongkir · ${esc(shippingLabel)}</span><strong>${selectedAddress ? (liveShipping && !liveChoice ? 'Pilih kurir' : money(fee)) : 'Pilih alamat'}</strong></p><p class="checkout-grand-total"><span>Total sebelum kode unik</span><strong>${liveShipping && !liveChoice ? 'Pilih kurir untuk total' : money(getSubtotal() + fee)}</strong></p><small>Kode unik akan ditambahkan setelah pesanan dibuat.</small>`;
+      `<p><span>Subtotal · ${getItems().reduce((n, i) => n + i.qty, 0)} barang</span><strong>${money(getSubtotal())}</strong></p><p><span>Ongkir · ${esc(shippingLabel)}</span><strong>${selectedAddress ? (liveShipping && !liveChoice ? 'Pilih kurir' : money(fee)) : 'Pilih alamat'}</strong></p><p class="checkout-grand-total"><span>${payment.id === 'midtrans' ? 'Total pembayaran' : 'Total sebelum kode unik'}</span><strong>${liveShipping && !liveChoice ? 'Pilih kurir untuk total' : money(getSubtotal() + fee)}</strong></p>${payment.id === 'midtrans' ? '' : '<small>Kode unik akan ditambahkan setelah pesanan dibuat.</small>'}`;
     const total = $('checkout-price-summary').querySelector('.checkout-grand-total strong');
     if (selectedAddress && !(liveShipping && !liveChoice)) {
       total.textContent = money(getSubtotal() + discount.fee);
