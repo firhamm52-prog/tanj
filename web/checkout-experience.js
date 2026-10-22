@@ -56,7 +56,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
       paymentMethods.unshift({
         id: 'midtrans',
         name: 'Pembayaran otomatis',
-        detail: 'QRIS, GoPay, atau transfer virtual account',
+        detail: 'Virtual Account atau QRIS',
         enabled: true,
       });
     payment = paymentMethods.find((p) => p.id === 'midtrans');

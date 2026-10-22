@@ -160,6 +160,7 @@ function createMidtransHandler({ env, fetcher = fetch }) {
         );
         const d2 = await provider(snapHost, "/snap/v1/transactions", {
           transaction_details: { order_id: oid, gross_amount: o.total },
+          enabled_payments: ["bank_transfer", "cimb_va", "danamon_va", "bsi_va", "other_qris"],
           customer_details: {
             first_name: o.customer.name,
             email: o.customer.email,

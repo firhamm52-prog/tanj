@@ -19,7 +19,7 @@ Checkout uses Snap redirection, so no Client Key is needed in HTML. Amount comes
 
    Use ordinary HTTP Payment Notification, not BI SNAP. Save. Sandbox and Production use separate credentials and settings.
 
-6. After setting `MIDTRANS_ENABLED=true`, refresh checkout, select **Pembayaran otomatis**, create an order and click **Bayar sekarang**. Only payment methods activated in the Midtrans account are shown by Snap.
+6. After setting `MIDTRANS_ENABLED=true`, refresh checkout, select **Pembayaran otomatis**, create an order and click **Bayar sekarang**. Snap is restricted to Virtual Accounts and generic QRIS (other_qris); a requested channel must also be active in the merchant account. No standalone e-wallet/card/paylater methods are requested. Generic QRIS requires an active GoPay or ShopeePay QRIS acquirer, but is displayed to buyers as QRIS.
 
 ## Validation
 

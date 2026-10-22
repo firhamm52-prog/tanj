@@ -234,6 +234,13 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
           },
         });
       if (url === 'https://app.sandbox.midtrans.com/snap/v1/transactions') {
+        assert.deepEqual(JSON.parse(options.body).enabled_payments, [
+          'bank_transfer',
+          'cimb_va',
+          'danamon_va',
+          'bsi_va',
+          'other_qris',
+        ]);
         amount = JSON.parse(options.body).transaction_details.gross_amount;
         return Response.json({
           redirect_url: 'https://app.sandbox.midtrans.com/snap/v2/vtweb/token',
