@@ -27,22 +27,32 @@ export const deliveryMethods = [
   { id: 'jt-regular', name: 'J&T', service: 'Reguler' },
   { id: 'jne-regular', name: 'JNE', service: 'Reguler' },
 ];
-export const paymentMethods = [
-  {
-    id: 'qris-manual',
-    name: 'QRIS',
-    detail: 'Pembayaran manual · diverifikasi admin',
-    enabled: true,
-  },
-  { id: 'permata-va', name: 'Permata Virtual Account' },
-  { id: 'permata-syariah-va', name: 'Permata Syariah Virtual Account' },
-  { id: 'danamon-va', name: 'Danamon Virtual Account' },
-  { id: 'bsi-va', name: 'Bank Syariah Indonesia Virtual Account' },
-  { id: 'cimb-va', name: 'CIMB Niaga Virtual Account' },
-  { id: 'ovo', name: 'OVO' },
-  { id: 'alfamart', name: 'Alfamart' },
-  { id: 'card', name: 'Kartu kredit / debit' },
-];
+export const paymentMethods = ['localhost', '127.0.0.1'].includes(location.hostname)
+  ? [
+      {
+        id: 'qris-manual',
+        name: 'QRIS',
+        detail: 'Pembayaran manual · diverifikasi admin',
+        enabled: true,
+      },
+      { id: 'midtrans-va', name: 'Virtual Account', channel: 'va' },
+    ]
+  : [
+      {
+        id: 'midtrans-va',
+        name: 'Virtual Account',
+        channel: 'va',
+        detail: 'Memuat layanan pembayaran…',
+        enabled: false,
+      },
+      {
+        id: 'midtrans-qris',
+        name: 'QRIS',
+        channel: 'qris',
+        detail: 'Memuat layanan pembayaran…',
+        enabled: false,
+      },
+    ];
 
 export function mountCheckoutExperience({ form, locations, getItems, getSubtotal, getCatalog }) {
   let selectedAddress = null,
@@ -50,15 +60,33 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     shipping = deliveryMethods[0],
     payment = paymentMethods[0];
   midtransConfiguration().then((config) => {
-    if (!config.enabled) return;
-    if (!paymentMethods.some((p) => p.id === 'midtrans'))
-      paymentMethods.unshift({
-        id: 'midtrans',
-        name: 'Pembayaran otomatis',
-        detail: 'Virtual Account atau QRIS',
+    if (!config.enabled) {
+      paymentMethods
+        .filter((method) => method.id.startsWith('midtrans'))
+        .forEach(
+          (method) => (method.detail = 'Layanan pembayaran belum tersedia. Coba muat ulang.'),
+        );
+      return;
+    }
+    paymentMethods.splice(
+      0,
+      paymentMethods.length,
+      {
+        id: 'midtrans-va',
+        name: 'Virtual Account',
+        detail: 'Bayar melalui virtual account bank.',
+        channel: 'va',
         enabled: true,
-      });
-    payment = paymentMethods.find((p) => p.id === 'midtrans');
+      },
+      {
+        id: 'midtrans-qris',
+        name: 'QRIS',
+        detail: 'Scan QRIS sesuai total pembayaran.',
+        channel: 'qris',
+        enabled: true,
+      },
+    );
+    payment = paymentMethods[0];
     render().catch(() => {});
   });
   let liveShipping = false,
@@ -319,7 +347,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
           : deliveryMethods
         : paymentMethods,
       selected = shippingMode ? shipping : payment;
-    dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup pilihan">&times;</button><p class="checkout-eyebrow">TANJ / CHECKOUT</p><h2>${shippingMode ? 'Metode pengiriman' : 'Metode pembayaran'}</h2><p>${shippingMode ? (liveShipping ? 'Pilih layanan pengiriman. Tarif berdasarkan kode pos dan perkiraan berat paket.' : 'Ongkir dihitung untuk paket 1 kg. Hubungi admin untuk memastikan layanan pengiriman.') : 'Pilih pembayaran otomatis lewat Midtrans atau QRIS manual.'}</p><form>${options.map((o) => `<label class="checkout-method ${!shippingMode && !o.enabled ? 'unavailable' : ''}"><input type="radio" name="method" value="${esc(o.id)}" required ${selected.id === o.id ? 'checked' : ''} ${!shippingMode && !o.enabled ? 'disabled' : ''}><span><strong>${esc(o.name)}</strong><small>${shippingMode ? esc(serviceLabel(o.service)) + ' - ' + (liveShipping ? esc(durationLabel(o.duration)) : 'tarif wilayah') : esc(o.detail || 'Belum tersedia')}</small></span>${shippingMode ? `<strong>${selectedAddress ? money(liveShipping ? o.fee : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee) : 'Pilih alamat'}</strong>` : ''}</label>`).join('')}<button type="submit" class="shop-primary">Konfirmasi</button></form>`;
+    dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup pilihan">&times;</button><p class="checkout-eyebrow">TANJ / CHECKOUT</p><h2>${shippingMode ? 'Metode pengiriman' : 'Metode pembayaran'}</h2><p>${shippingMode ? (liveShipping ? 'Pilih layanan pengiriman. Tarif berdasarkan kode pos dan perkiraan berat paket.' : 'Ongkir dihitung untuk paket 1 kg. Hubungi admin untuk memastikan layanan pengiriman.') : 'Metode pembayaran menggunakan Virtual Account &amp; QRIS.'}</p><form>${options.map((o) => `<label class="checkout-method ${!shippingMode && !o.enabled ? 'unavailable' : ''}"><input type="radio" name="method" value="${esc(o.id)}" required ${selected.id === o.id ? 'checked' : ''} ${!shippingMode && !o.enabled ? 'disabled' : ''}><span><strong>${esc(o.name)}</strong><small>${shippingMode ? esc(serviceLabel(o.service)) + ' - ' + (liveShipping ? esc(durationLabel(o.duration)) : 'tarif wilayah') : esc(o.detail || 'Belum tersedia')}</small></span>${shippingMode ? `<strong>${selectedAddress ? money(liveShipping ? o.fee : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee) : 'Pilih alamat'}</strong>` : ''}</label>`).join('')}<button type="submit" class="shop-primary">Konfirmasi</button></form>`;
     document.body.append(dialog);
     dialog.showModal();
     dialog.querySelector('.customer-close').onclick = () => dialog.close();
@@ -357,7 +385,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     $('shipping-choice').innerHTML =
       `<span class="method-mark">${esc(liveShipping && !liveChoice ? 'Pilih kurir' : shipping.name)}</span><span><strong>${esc(liveShipping && !liveChoice ? 'Cek ongkir' : serviceLabel(shipping.service))}</strong><small>${liveShipping ? (liveChoice ? esc(durationLabel(shipping.duration)) + ' - ' + money(shipping.fee) : 'Sesuai alamat dan berat barang') : 'Tarif wilayah - 1 kg'}</small></span><span>&rarr;</span>`;
     $('payment-choice').innerHTML =
-      `<span class="method-mark">${payment.id === 'midtrans' ? 'PAY' : 'QRIS'}</span><span><strong>${esc(payment.name)}</strong><small>${esc(payment.detail)}</small></span><span>→</span>`;
+      `<span class="method-mark">${payment.id.startsWith('midtrans') ? 'PAY' : 'QRIS'}</span><span><strong>${esc(payment.name)}</strong><small>${esc(payment.detail)}</small></span><span>→</span>`;
     let fee = 0;
     if (selectedAddress)
       fee = liveShipping
@@ -366,7 +394,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     const catalog = await getCatalog();
     const discount = shippingSubsidy(getItems(), catalog, fee);
     $('checkout-price-summary').innerHTML =
-      `<p><span>Subtotal · ${getItems().reduce((n, i) => n + i.qty, 0)} barang</span><strong>${money(getSubtotal())}</strong></p><p><span>Ongkir · ${esc(shippingLabel)}</span><strong>${selectedAddress ? (liveShipping && !liveChoice ? 'Pilih kurir' : money(fee)) : 'Pilih alamat'}</strong></p><p class="checkout-grand-total"><span>${payment.id === 'midtrans' ? 'Total pembayaran' : 'Total sebelum kode unik'}</span><strong>${liveShipping && !liveChoice ? 'Pilih kurir untuk total' : money(getSubtotal() + fee)}</strong></p>${payment.id === 'midtrans' ? '' : '<small>Kode unik akan ditambahkan setelah pesanan dibuat.</small>'}`;
+      `<p><span>Subtotal · ${getItems().reduce((n, i) => n + i.qty, 0)} barang</span><strong>${money(getSubtotal())}</strong></p><p><span>Ongkir · ${esc(shippingLabel)}</span><strong>${selectedAddress ? (liveShipping && !liveChoice ? 'Pilih kurir' : money(fee)) : 'Pilih alamat'}</strong></p><p class="checkout-grand-total"><span>${payment.id.startsWith('midtrans') ? 'Total pembayaran' : 'Total sebelum kode unik'}</span><strong>${liveShipping && !liveChoice ? 'Pilih kurir untuk total' : money(getSubtotal() + fee)}</strong></p>${payment.id.startsWith('midtrans') ? '' : '<small>Kode unik akan ditambahkan setelah pesanan dibuat.</small>'}`;
     const total = $('checkout-price-summary').querySelector('.checkout-grand-total strong');
     if (selectedAddress && !(liveShipping && !liveChoice)) {
       total.textContent = money(getSubtotal() + discount.fee);
@@ -410,6 +438,8 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
   });
   return {
     async validate() {
+      if (!payment.enabled)
+        throw Error('Layanan pembayaran belum tersedia. Muat ulang dan coba lagi.');
       if (!customerSession()) {
         requireCustomer(() => {});
         throw Error('Login untuk melanjutkan pesanan.');
@@ -440,7 +470,8 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
         ...(liveShipping ? { shippingQuoteId: quote.quoteId } : {}),
         shippingMethod: shipping.id,
         shippingName: shipping.name + ' ' + shipping.service,
-        paymentMethod: payment.id,
+        paymentMethod: payment.id.startsWith('midtrans') ? 'midtrans' : payment.id,
+        ...(payment.channel ? { paymentChannel: payment.channel } : {}),
         customerId: customerSession().id,
       };
     },

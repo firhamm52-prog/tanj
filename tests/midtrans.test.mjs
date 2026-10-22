@@ -50,6 +50,7 @@ test('private gateway transitions verify amounts and release stock once', async 
         address: 'Jalan Test',
         phone: '081200000000',
         paymentMethod: 'midtrans',
+        paymentChannel: 'qris',
         shippingMethod: option.id,
         shippingQuoteId: qid,
         total: 1,
@@ -59,6 +60,8 @@ test('private gateway transitions verify amounts and release stock once', async 
     const actual = (await db.query('select public.tanj_create_order($1,$2,$3) d', checkoutArgs))
       .rows[0].d;
     assert.equal(actual.payment.provider, 'midtrans');
+    assert.equal(actual.payment.channel, 'qris');
+    assert.equal(actual.payment.name, 'QRIS');
     assert.equal(actual.total, actual.subtotal + actual.shipping.fee);
     assert.equal(actual.adjustment, 0);
     assert.equal(actual.code, 0);
@@ -377,6 +380,7 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
   let amount;
   let own = true;
   let outcome = 'success';
+  let channel;
   let gatewayFailure = false;
   const operations = [];
   const handler = createMidtransHandler({
@@ -387,6 +391,7 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
       if (url.endsWith('/tanj_midtrans_prepare'))
         return Response.json({
           order: {
+            payment: { channel },
             total: 123456,
             deadline: Date.now() + 3600000,
             customer: { name: 'Buyer', email: 'test@example.com', phone: '081200000000' },
@@ -410,13 +415,14 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
             { error_messages: ['order_id has already been taken'] },
             { status: 400 },
           );
-        assert.deepEqual(JSON.parse(options.body).enabled_payments, [
-          'bank_transfer',
-          'cimb_va',
-          'danamon_va',
-          'bsi_va',
-          'other_qris',
-        ]);
+        assert.deepEqual(
+          JSON.parse(options.body).enabled_payments,
+          channel === 'qris'
+            ? ['other_qris']
+            : channel === 'va'
+              ? ['bank_transfer', 'cimb_va', 'danamon_va', 'bsi_va']
+              : ['bank_transfer', 'cimb_va', 'danamon_va', 'bsi_va', 'other_qris'],
+        );
         amount = JSON.parse(options.body).transaction_details.gross_amount;
         assert.deepEqual(JSON.parse(options.body).permata_va, { recipient_name: 'TANJ INDONESIA' });
         return Response.json({
@@ -480,4 +486,6 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
   assert.equal(paidRecovery.status, 200);
   assert.equal((await paidRecovery.json()).status, 'PAID');
   assert.deepEqual(operations, ['status'], 'duplicate recovery verifies the existing transaction');
+  outcome = 'success';
+  for (channel of ['va', 'qris']) assert.equal((await handler(request())).status, 200);
 });

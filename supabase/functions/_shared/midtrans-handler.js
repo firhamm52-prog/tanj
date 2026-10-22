@@ -215,7 +215,12 @@ export function createMidtransHandler({ env, fetcher = fetch }) {
         try {
           d = await provider(snapHost, '/snap/v1/transactions', {
             transaction_details: { order_id: oid, gross_amount: o.total },
-            enabled_payments: ['bank_transfer', 'cimb_va', 'danamon_va', 'bsi_va', 'other_qris'],
+            enabled_payments:
+              o.payment?.channel === 'qris'
+                ? ['other_qris']
+                : o.payment?.channel === 'va'
+                  ? ['bank_transfer', 'cimb_va', 'danamon_va', 'bsi_va']
+                  : ['bank_transfer', 'cimb_va', 'danamon_va', 'bsi_va', 'other_qris'],
             permata_va: { recipient_name: 'TANJ INDONESIA' },
             customer_details: {
               first_name: o.customer.name,

@@ -145,7 +145,7 @@ try {
   assert.match(await page.locator('#shipping-choice').textContent(), /JNE/);
   await page.locator('#payment-choice').click();
   const methodDialog = page.getByRole('dialog', { name: 'Metode pembayaran', exact: true });
-  assert.equal(await methodDialog.locator('[value=permata-va]').isDisabled(), true);
+  assert.equal(await methodDialog.locator('[value=midtrans-va]').isDisabled(), true);
   await methodDialog.getByRole('button', { name: 'Konfirmasi', exact: true }).click();
   await mkdir('test-results', { recursive: true });
   await page.screenshot({ path: 'test-results/checkout-experience-desktop.png' });
@@ -431,6 +431,25 @@ try {
   assert.match(await page.locator('#bag-items').textContent(), /Selcuk Brown/);
   await page.locator('#bag-next').click();
   await page.locator('#checkout-selected-items').filter({ hasText: 'Selcuk Brown' }).waitFor();
+  // Enabled gateway checkout has exactly two automatic choices.
+  await context.route('**/web/midtrans.js*', (route) =>
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: 'export async function midtransConfiguration(){return {enabled:true};} export async function midtransRequest(){throw Error("No real payments in this test");}',
+    }),
+  );
+  await page.reload();
+  if (!(await page.locator('#bag-modal').isVisible())) await page.locator('#bag-open').click();
+  if (await page.locator('#bag-next').isVisible()) await page.locator('#bag-next').click();
+  await page.locator('#payment-choice').click();
+  const automaticDialog = page.getByRole('dialog', { name: 'Metode pembayaran', exact: true });
+  assert.equal(await automaticDialog.locator('.checkout-method').count(), 2);
+  await automaticDialog.locator('[value=midtrans-va]').waitFor();
+  assert.equal(await automaticDialog.locator('[value=midtrans-va]').isEnabled(), true);
+  await automaticDialog.locator('[value=midtrans-qris]').check();
+  assert.doesNotMatch(await automaticDialog.textContent(), /manual|Belum tersedia/);
+  await automaticDialog.getByRole('button', { name: 'Konfirmasi', exact: true }).click();
+  assert.match(await page.locator('#payment-choice').textContent(), /QRIS/);
   assert.deepEqual(errors, []);
   console.log(
     'PASS: customer registration/login validation, login gate, Order Sekarang, address create/edit/persistence/isolation, account-bound recipient despite modified input, shipping choice, disabled gateway methods, Order, email preview/deep link, payment ownership, responsive layout.',

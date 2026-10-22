@@ -29,6 +29,10 @@ Check that the Snap amount equals the stored order total; a success redirect alo
 
 ## Operational behavior
 
+### Two payment choices (021)
+
+Run `supabase/migrations/202610230021_midtrans_payment_channels.sql` once after 020, then deploy the rebuilt `supabase/dashboard/midtrans.ts` to the Midtrans Edge Function. Enabled production checkout now shows exactly **Virtual Account** and **QRIS**. Both use Midtrans; manual QRIS and unavailable gateway placeholders are removed from the production chooser. The stored order records the chosen channel before creating a Snap session; QRIS requests `other_qris` only, VA requests bank transfer channels only. Historical sessions retain their original methods. QRIS requires an active GoPay or ShopeePay QRIS acquirer in the matching Midtrans merchant environment; code changes alone do not activate it. See [Other QRIS](https://docs.midtrans.com/reference/other-qris).
+
 ### Payment window and couriers (020)
 
 Run `supabase/migrations/202610230020_payment_window_couriers.sql` once. It sets the live payment settings and CMS draft/published payment window to 2 hours for new orders. Existing order deadlines and existing Midtrans bills are preserved. Midtrans receives the remaining time until that stored deadline, so stock stays reserved until verified settlement or verified expiry/cancellation; local timers alone do not restore inventory.
