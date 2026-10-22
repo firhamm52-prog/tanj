@@ -320,7 +320,8 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
             try {
               await openMidtrans(order.id);
             } catch (e) {
-              $('manual-payment-error').textContent = 'Pembayaran belum dapat diproses. Coba lagi.';
+              $('manual-payment-error').textContent =
+                e.message || 'Pembayaran belum dapat diproses. Coba lagi.';
               pay.disabled = false;
               pay.textContent = 'Process Payment';
             }

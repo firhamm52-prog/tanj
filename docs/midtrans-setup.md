@@ -40,3 +40,13 @@ References:
 - https://docs.midtrans.com/docs/snap-advanced-feature
 
 New Midtrans orders charge subtotal plus net shipping only (after shipping subsidy). They have no unique-code surcharge. Historical Midtrans orders retain their original amounts.
+
+## Inventory reservation update (015)
+
+Run `supabase/migrations/202610220015_midtrans_stock_reservation.sql` once after 014, then replace the Midtrans Edge Function code with the newly generated `supabase/dashboard/midtrans.ts` and deploy it. Keep Verify JWT off. Both SQL and Edge code are required; a GitHub push does not deploy Supabase functions.
+
+New Midtrans orders no longer reserve inventory at checkout creation. Process Payment atomically reserves all items before asking Midtrans to create the Snap bill. Competing payment preparations cannot reserve the same last unit; the loser sees `[Nama Produk] sudah diorder`. A failed multi-item reservation rolls back all item debits. A definitive provider rejection releases inventory exactly once and permits retry. A successful bill retains its reservation until verified payment or verified expiry/cancellation; settlement does not debit inventory again. Existing orders preserve their earlier reservations and totals. Manual QRIS behavior is unchanged.
+
+A network timeout, provider server error, duplicate-order response, or failure to persist the redirect URL does **not** prove no bill exists. Keep inventory reserved in these cases. After the preparation lease expires, creation remains blocked until the merchant investigates the order in Midtrans; do not blindly restore stock or issue a different bill. Use Cek status pembayaran for transactions visible to Midtrans. An unused Snap session may not yet appear in the Core status API; these cases require merchant follow-up. Stock is restored on verified terminal notification/status, not just a local timer. If notifications fail, use the status check to reconcile.
+
+To diagnose a failed Process Payment, inspect Supabase Edge Functions → midtrans → Logs for `Midtrans provider rejected request`. It records HTTP/provider status and bounded provider error messages, without the Server Key or request body. No live payment success has been established by the local simulated-provider tests.

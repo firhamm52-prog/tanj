@@ -46,11 +46,21 @@ function createMidtransHandler({ env, fetcher = fetch }) {
       signal: AbortSignal.timeout(18e3)
     });
     const d = await r.json();
-    if (!r.ok || d.status_code && Number(d.status_code) >= 400)
-      fail(
-        502,
-        "Midtrans belum dapat memproses pembayaran. Coba lagi atau hubungi admin dengan nomor pesanan."
+    if (!r.ok || d.status_code && Number(d.status_code) >= 400) {
+      const messages = Array.isArray(d.error_messages) ? d.error_messages.join("; ") : "";
+      console.warn("Midtrans provider rejected request", {
+        httpStatus: r.status,
+        providerStatus: d.status_code,
+        errors: messages.split(key).join("[redacted]").slice(0, 1e3)
+      });
+      const rejected = [400, 401, 403, 422].includes(r.status) && !/already|taken|duplicate|exist/i.test(messages);
+      throw Object.assign(
+        Error(
+          "Midtrans belum dapat memproses pembayaran. Coba lagi atau hubungi admin dengan nomor pesanan."
+        ),
+        { status: 502, creationRejected: rejected }
       );
+    }
     return d;
   }
   const limits = /* @__PURE__ */ new Map();
@@ -165,21 +175,29 @@ function createMidtransHandler({ env, fetcher = fetch }) {
           1,
           Math.min(1440, Math.floor((Number(o.deadline) - Date.now()) / 6e4))
         );
-        const d2 = await provider(snapHost, "/snap/v1/transactions", {
-          transaction_details: { order_id: oid, gross_amount: o.total },
-          enabled_payments: ["bank_transfer", "cimb_va", "danamon_va", "bsi_va", "other_qris"],
-          customer_details: {
-            first_name: o.customer.name,
-            email: o.customer.email,
-            phone: o.customer.phone
-          },
-          callbacks: { finish: finish.href },
-          expiry: {
-            start_time: (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " +0000"),
-            unit: "minutes",
-            duration: remaining
+        let d2;
+        try {
+          d2 = await provider(snapHost, "/snap/v1/transactions", {
+            transaction_details: { order_id: oid, gross_amount: o.total },
+            enabled_payments: ["bank_transfer", "cimb_va", "danamon_va", "bsi_va", "other_qris"],
+            customer_details: {
+              first_name: o.customer.name,
+              email: o.customer.email,
+              phone: o.customer.phone
+            },
+            callbacks: { finish: finish.href },
+            expiry: {
+              start_time: (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " +0000"),
+              unit: "minutes",
+              duration: remaining
+            }
+          });
+        } catch (e) {
+          if (e.creationRejected) {
+            await rpc("tanj_midtrans_gateway", { oid, operation: "creation_rejected" });
           }
-        });
+          throw e;
+        }
         const redirect = new URL(d2.redirect_url);
         if (redirect.protocol !== "https:" || redirect.hostname !== snapHost || !redirect.pathname.startsWith("/snap/"))
           fail(502, "Tautan Midtrans tidak valid.");

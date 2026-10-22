@@ -15,14 +15,15 @@ test('private gateway transitions verify amounts and release stock once', async 
     for (const f of (await readdir('supabase/migrations')).filter((f) => f.endsWith('.sql')).sort())
       await db.exec(await readFile('supabase/migrations/' + f, 'utf8'));
     await db.query("insert into auth.users(id,email) values($1,'buyer@example.com')", [buyer]);
-    const as = async (role) => {
+    const as = async (role, owner = buyer) => {
       await db.exec('reset role');
-      await db.query("select set_config('request.jwt.claim.sub',$1,false)", [buyer]);
+      await db.query("select set_config('request.jwt.claim.sub',$1,false)", [owner]);
       await db.exec('set role ' + role);
     };
     const stock = (await db.query("select stock from public.tb_m_product where id='base-0-0'"))
       .rows[0].stock;
     const qid = crypto.randomUUID();
+    await db.exec("update public.tb_m_product set stock=1 where id='base-0-1'");
     const destination = { provinceId: '36', cityId: '36.71', districtId: '36.71.07', zip: '15115' };
     const option = {
       id: 'biteship:jne:reg',
@@ -71,6 +72,102 @@ test('private gateway transitions verify amounts and release stock once', async 
       /Midtrans/,
     );
     await db.exec('reset role');
+    const available = async () =>
+      (await db.query("select stock from public.tb_m_product where id='base-0-1'")).rows[0].stock;
+    assert.equal(await available(), 1, 'creating an order does not reserve inventory');
+    const otherBuyer = '22222222-2222-4222-8222-222222222222';
+    const otherQuote = crypto.randomUUID();
+    await db.query("insert into auth.users(id,email) values($1,'other@example.com')", [otherBuyer]);
+    await db.query(
+      "insert into public.tb_t_shipping_quote(id,account_id,destination,lines,options,expires_at) values($1,$2,$3,$4,$5,now()+interval '10 minutes')",
+      [otherQuote, otherBuyer, destination, [{ id: 'base-0-1', qty: 1 }], [option]],
+    );
+    await as('authenticated', otherBuyer);
+    const otherOrder = (
+      await db.query('select public.tanj_create_order($1,$2,$3) d', [
+        crypto.randomUUID(),
+        { ...checkoutArgs[1], shippingQuoteId: otherQuote },
+        checkoutArgs[2],
+      ])
+    ).rows[0].d;
+    await as('authenticated');
+    await db.query('select public.tanj_midtrans_prepare($1)', [actual.id]);
+    await as('authenticated', otherBuyer);
+    await assert.rejects(
+      db.query('select public.tanj_midtrans_prepare($1)', [otherOrder.id]),
+      /sudah diorder/,
+    );
+    await db.exec('reset role');
+    assert.equal(await available(), 0, 'only the first payment preparation reserves the last item');
+    await as('service_role');
+    for (let n = 0; n < 2; n++)
+      await db.query('select public.tanj_midtrans_gateway($1,$2)', [
+        actual.id,
+        'creation_rejected',
+      ]);
+    await db.exec('reset role');
+    assert.equal(await available(), 1, 'definitive rejection releases exactly once');
+    // A later unavailable item must roll back earlier debits in the same preparation.
+    await db.query("update public.tb_t_order set data=jsonb_set(data,'{items}',$2) where id=$1", [
+      otherOrder.id,
+      JSON.stringify([...otherOrder.items, { id: 'missing-product', name: 'Other item', qty: 1 }]),
+    ]);
+    await as('authenticated', otherBuyer);
+    await assert.rejects(
+      db.query('select public.tanj_midtrans_prepare($1)', [otherOrder.id]),
+      /Other item sudah diorder/,
+    );
+    await db.exec('reset role');
+    assert.equal(await available(), 1, 'partial reservation rolls back');
+    await db.query('update public.tb_t_order set data=$2 where id=$1', [otherOrder.id, otherOrder]);
+    await as('authenticated', otherBuyer);
+    await db.query('select public.tanj_midtrans_prepare($1)', [otherOrder.id]);
+    await as('service_role');
+    await db.query('select public.tanj_midtrans_gateway($1,$2,$3)', [
+      otherOrder.id,
+      'redirect',
+      {
+        url: 'https://app.sandbox.midtrans.com/snap/v2/vtweb/other',
+      },
+    ]);
+    await db.query('select public.tanj_midtrans_gateway($1,$2)', [
+      otherOrder.id,
+      'creation_rejected',
+    ]);
+    await db.exec('reset role');
+    assert.equal(await available(), 0, 'late rejection cannot release an active bill');
+    await as('service_role');
+    for (let n = 0; n < 2; n++)
+      await db.query('select public.tanj_midtrans_gateway($1,$2,$3)', [
+        otherOrder.id,
+        'status',
+        {
+          order_id: otherOrder.id,
+          gross_amount: otherOrder.total,
+          transaction_status: 'expire',
+        },
+      ]);
+    await db.exec('reset role');
+    assert.equal(await available(), 1, 'expiry releases the payment reservation exactly once');
+    await as('authenticated');
+    await db.query('select public.tanj_midtrans_prepare($1)', [actual.id]);
+    await as('service_role');
+    for (const status of ['settlement', 'settlement', 'expire'])
+      await db.query('select public.tanj_midtrans_gateway($1,$2,$3)', [
+        actual.id,
+        'status',
+        {
+          order_id: actual.id,
+          gross_amount: actual.total,
+          transaction_status: status,
+        },
+      ]);
+    await db.exec('reset role');
+    assert.equal(
+      await available(),
+      0,
+      'settlement does not debit again or allow late expiry to release',
+    );
     const o = {
       id: oid,
       version: 1,
@@ -235,6 +332,8 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
   };
   let amount;
   let own = true;
+  let outcome = 'success';
+  const operations = [];
   const handler = createMidtransHandler({
     env: (k) => v[k],
     fetcher: async (url, options) => {
@@ -249,6 +348,14 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
           },
         });
       if (url === 'https://app.sandbox.midtrans.com/snap/v1/transactions') {
+        if (outcome === 'timeout') throw new TypeError('Network timed out');
+        if (outcome === 'reject')
+          return Response.json({ error_messages: ['Invalid payment channel'] }, { status: 400 });
+        if (outcome === 'duplicate')
+          return Response.json(
+            { error_messages: ['order_id has already been taken'] },
+            { status: 400 },
+          );
         assert.deepEqual(JSON.parse(options.body).enabled_payments, [
           'bank_transfer',
           'cimb_va',
@@ -261,8 +368,10 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
           redirect_url: 'https://app.sandbox.midtrans.com/snap/v2/vtweb/token',
         });
       }
-      if (url.endsWith('/tanj_midtrans_gateway'))
+      if (url.endsWith('/tanj_midtrans_gateway')) {
+        operations.push(JSON.parse(options.body).operation);
         return Response.json({ status: 'WAITING_PAYMENT' });
+      }
       throw Error(url);
     },
   });
@@ -276,4 +385,14 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
   assert.equal(amount, 123456);
   own = false;
   assert.equal((await handler(request())).status, 404);
+  own = true;
+  operations.length = 0;
+  outcome = 'reject';
+  assert.equal((await handler(request())).status, 502);
+  assert.deepEqual(operations, ['creation_rejected']);
+  operations.length = 0;
+  for (outcome of ['timeout', 'duplicate']) {
+    assert.ok((await handler(request())).status >= 500);
+    assert.deepEqual(operations, [], 'uncertain creation must not release inventory');
+  }
 });
