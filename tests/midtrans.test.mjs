@@ -187,6 +187,11 @@ test('edge rejects unsigned webhooks and uses API status rather than notificatio
     401,
   );
   assert.equal(calls, 0);
+  assert.equal((await handler(new Request('https://edge.test/midtrans/notification'))).status, 200);
+  const probe = await handler(request({ order_id: 'dashboard-test' }));
+  assert.equal(probe.status, 200);
+  assert.equal((await probe.json()).ignored, true);
+  assert.equal(calls, 0);
   const signature_key = Buffer.from(
     await crypto.subtle.digest(
       'SHA-512',

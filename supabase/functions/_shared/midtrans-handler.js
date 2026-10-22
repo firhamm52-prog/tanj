@@ -76,6 +76,11 @@ export function createMidtransHandler({ env, fetcher = fetch }) {
       if (origin && !origins.includes(origin)) fail(403, 'Origin tidak diizinkan.');
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
       const path = new URL(request.url).pathname;
+      if (request.method === 'GET' && path.endsWith('/notification'))
+        return json(200, {
+          reachable: true,
+          message: 'Payment notifications require a signed POST.',
+        });
       if (request.method === 'GET' && path.endsWith('/config'))
         return json(200, { enabled, production });
       if (!ready) fail(503, 'Pembayaran Midtrans belum dikonfigurasi.');
@@ -109,6 +114,10 @@ export function createMidtransHandler({ env, fetcher = fetch }) {
       if (!webhook && !path.endsWith('/start') && !path.endsWith('/status'))
         fail(404, 'Endpoint tidak ditemukan.');
       const oid = webhook ? input.order_id : input.orderId;
+      // A merchant account may also send dashboard probes or notifications for other stores.
+      // Acknowledge unrelated IDs without calling the provider or touching TANJ orders.
+      if (webhook && typeof oid === 'string' && !oid.startsWith('TANJ-'))
+        return json(200, { received: true, ignored: true });
       if (typeof oid !== 'string' || !/^TANJ-[A-F0-9-]{36}$/.test(oid))
         fail(422, 'Nomor pesanan tidak valid.');
       let token;
@@ -219,6 +228,10 @@ export function createMidtransHandler({ env, fetcher = fetch }) {
       });
       return json(200, result);
     } catch (e) {
+      console.warn('Midtrans request rejected', {
+        method: request.method,
+        status: e.status || 503,
+      });
       return json(e.status || 503, {
         error: e.status ? e.message : 'Layanan pembayaran belum merespons. Coba lagi.',
       });
