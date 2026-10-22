@@ -1,3 +1,4 @@
+import { midtransConfiguration } from './midtrans.js';
 import {
   customerSession,
   requireCustomer,
@@ -49,6 +50,18 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     editing = null,
     shipping = deliveryMethods[0],
     payment = paymentMethods[0];
+  midtransConfiguration().then((config) => {
+    if (!config.enabled) return;
+    if (!paymentMethods.some((p) => p.id === 'midtrans'))
+      paymentMethods.unshift({
+        id: 'midtrans',
+        name: 'Pembayaran otomatis',
+        detail: 'QRIS, GoPay, atau transfer virtual account',
+        enabled: true,
+      });
+    payment = paymentMethods.find((p) => p.id === 'midtrans');
+    render().catch(() => {});
+  });
   let liveShipping = false,
     quote = null;
   const shippingSignature = () =>
@@ -307,7 +320,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
           : deliveryMethods
         : paymentMethods,
       selected = shippingMode ? shipping : payment;
-    dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup pilihan">&times;</button><p class="checkout-eyebrow">TANJ / CHECKOUT</p><h2>${shippingMode ? 'Metode pengiriman' : 'Metode pembayaran'}</h2><p>${shippingMode ? (liveShipping ? 'Pilih layanan pengiriman. Tarif berdasarkan kode pos dan perkiraan berat paket.' : 'Ongkir dihitung untuk paket 1 kg. Hubungi admin untuk memastikan layanan pengiriman.') : 'Bayar dengan QRIS. Metode pembayaran lainnya belum tersedia.'}</p><form>${options.map((o) => `<label class="checkout-method ${!shippingMode && !o.enabled ? 'unavailable' : ''}"><input type="radio" name="method" value="${esc(o.id)}" required ${selected.id === o.id ? 'checked' : ''} ${!shippingMode && !o.enabled ? 'disabled' : ''}><span><strong>${esc(o.name)}</strong><small>${shippingMode ? esc(serviceLabel(o.service)) + ' - ' + (liveShipping ? esc(durationLabel(o.duration)) : 'tarif wilayah') : esc(o.detail || 'Belum tersedia')}</small></span>${shippingMode ? `<strong>${selectedAddress ? money(liveShipping ? o.fee : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee) : 'Pilih alamat'}</strong>` : ''}</label>`).join('')}<button type="submit" class="shop-primary">Konfirmasi</button></form>`;
+    dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup pilihan">&times;</button><p class="checkout-eyebrow">TANJ / CHECKOUT</p><h2>${shippingMode ? 'Metode pengiriman' : 'Metode pembayaran'}</h2><p>${shippingMode ? (liveShipping ? 'Pilih layanan pengiriman. Tarif berdasarkan kode pos dan perkiraan berat paket.' : 'Ongkir dihitung untuk paket 1 kg. Hubungi admin untuk memastikan layanan pengiriman.') : 'Pilih pembayaran otomatis lewat Midtrans atau QRIS manual.'}</p><form>${options.map((o) => `<label class="checkout-method ${!shippingMode && !o.enabled ? 'unavailable' : ''}"><input type="radio" name="method" value="${esc(o.id)}" required ${selected.id === o.id ? 'checked' : ''} ${!shippingMode && !o.enabled ? 'disabled' : ''}><span><strong>${esc(o.name)}</strong><small>${shippingMode ? esc(serviceLabel(o.service)) + ' - ' + (liveShipping ? esc(durationLabel(o.duration)) : 'tarif wilayah') : esc(o.detail || 'Belum tersedia')}</small></span>${shippingMode ? `<strong>${selectedAddress ? money(liveShipping ? o.fee : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee) : 'Pilih alamat'}</strong>` : ''}</label>`).join('')}<button type="submit" class="shop-primary">Konfirmasi</button></form>`;
     document.body.append(dialog);
     dialog.showModal();
     dialog.querySelector('.customer-close').onclick = () => dialog.close();
@@ -345,7 +358,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     $('shipping-choice').innerHTML =
       `<span class="method-mark">${esc(liveShipping && !liveChoice ? 'Pilih kurir' : shipping.name)}</span><span><strong>${esc(liveShipping && !liveChoice ? 'Cek ongkir' : serviceLabel(shipping.service))}</strong><small>${liveShipping ? (liveChoice ? esc(durationLabel(shipping.duration)) + ' - ' + money(shipping.fee) : 'Sesuai alamat dan berat barang') : 'Tarif wilayah - 1 kg'}</small></span><span>&rarr;</span>`;
     $('payment-choice').innerHTML =
-      `<span class="method-mark">QRIS</span><span><strong>${esc(payment.name)}</strong><small>${esc(payment.detail)}</small></span><span>→</span>`;
+      `<span class="method-mark">${payment.id === 'midtrans' ? 'PAY' : 'QRIS'}</span><span><strong>${esc(payment.name)}</strong><small>${esc(payment.detail)}</small></span><span>→</span>`;
     let fee = 0;
     if (selectedAddress)
       fee = liveShipping

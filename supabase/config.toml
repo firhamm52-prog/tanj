@@ -1,3 +1,7 @@
 [functions.shipping]
 # The handler validates the customer JWT against Supabase Auth itself.
 verify_jwt = false
+
+[functions.midtrans]
+# Customer JWT and webhook signature are validated by the handler.
+verify_jwt = false

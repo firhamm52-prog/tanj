@@ -85,7 +85,11 @@ function required(value, max, label) {
 export async function createPayment(customer, lines, catalog) {
   const owner = customerSession();
   if (!owner) throw Error('Login customer terlebih dahulu.');
-  if (customer.paymentMethod && customer.paymentMethod !== 'qris-manual')
+  if (
+    customer.paymentMethod &&
+    customer.paymentMethod !== 'qris-manual' &&
+    !(cloudEnabled && customer.paymentMethod === 'midtrans')
+  )
     throw Error('Metode gateway belum aktif. Gunakan QRIS manual.');
   customer = { ...customer, email: owner.email };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(owner.email || '')))
