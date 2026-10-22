@@ -63,6 +63,39 @@ test('CMS hijab restocks live inventory, preserves reservations and rejects stal
     live = await rpc('tanj_cms_storefront');
     assert.equal(live.hijabs[0].stock, 1, 'publishing cannot reset stock held by orders');
     assert.equal(live.hijabs[0].inStock, true);
+    draft = await rpc('tanj_cms_admin');
+    const newItem = {
+      name: 'Pashmina Olive',
+      collection: 'pashmina',
+      color: 'olive',
+      price: 125000,
+      stock: 3,
+      image: 'assets/hijab-selcuk-brown.webp',
+      status: 'draft',
+    };
+    draft = await rpc('tanj_cms_save', ['hijabs', null, newItem, draft.revision, null]);
+    const created = draft.hijabs.find((item) => item.name === newItem.name);
+    assert.ok(created.id);
+    assert.equal(created.stock, 3);
+    draft = await rpc('tanj_cms_publish', [draft.revision]);
+    assert.equal(
+      (await rpc('tanj_cms_storefront')).hijabs.some((item) => item.id === created.id),
+      false,
+    );
+    draft = await rpc('tanj_cms_save', [
+      'hijabs',
+      created.id,
+      { ...newItem, status: 'published' },
+      draft.revision,
+      3,
+    ]);
+    await rpc('tanj_cms_publish', [draft.revision]);
+    const published = (await rpc('tanj_cms_storefront')).hijabs.find(
+      (item) => item.id === created.id,
+    );
+    assert.equal(published.stock, 3);
+    assert.equal(published.price, 125000);
+    assert.equal(published.inStock, true);
   } finally {
     await db.close();
   }

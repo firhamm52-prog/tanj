@@ -45,6 +45,8 @@ try {
     '202610180010_clothing_shipping_subsidy.sql',
     '202610200011_cms_publish_prices.sql',
     '202610200012_cms_publish_safe_updates.sql',
+    '202610220016_cms_hijab_stock.sql',
+    '202610220017_cms_new_products.sql',
   ])
     await db.exec(await readFile('supabase/migrations/' + file, 'utf8'));
   await db.query(
@@ -196,6 +198,54 @@ try {
     .locator('.hijab-price')
     .first()
     .filter({ hasText: 'Rp11.500.000' })
+    .waitFor({ state: 'attached' });
+  // New hijab in a new collection: draft hidden, then publish into an already-open buyer tab.
+  await admin.page.locator('[data-action=new][data-kind=hijabs]').click();
+  await admin.page.locator('#edit-form [name=name]').fill('Pashmina Olive');
+  await admin.page.locator('#edit-form [name=collection]').fill('pashmina');
+  await admin.page.locator('#edit-form [name=color]').fill('olive');
+  await admin.page.locator('#edit-form [name=price]').fill('125000');
+  await admin.page.locator('#edit-form [name=stock]').fill('3');
+  await admin.page.locator('#edit-form [name=image]').fill('assets/hijab-selcuk-brown.webp');
+  await admin.page.locator('#edit-form [type=submit]:not([name=publish])').click();
+  await admin.page.locator('#editor').waitFor({ state: 'hidden' });
+  await admin.page.locator('#publish').click();
+  await admin.page.locator('#toast').filter({ hasText: 'Website berhasil' }).waitFor();
+  await customer.page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  assert.equal(
+    await customer.page.locator('.hijab-card').filter({ hasText: 'Pashmina Olive' }).count(),
+    0,
+  );
+  await admin.page
+    .locator('tr')
+    .filter({ hasText: 'Pashmina Olive' })
+    .locator('[data-action=edit]')
+    .click();
+  await admin.page.locator('#edit-form [name=status]').selectOption('published');
+  await admin.page.locator('#edit-form [name=publish]').click();
+  await admin.page.locator('#editor').waitFor({ state: 'hidden' });
+  const newHijab = customer.page.locator('.hijab-card').filter({ hasText: 'Pashmina Olive' });
+  await newHijab.waitFor({ state: 'attached' });
+  assert.match(await newHijab.textContent(), /Rp125.000/);
+  await customer.page.goto(url + '#all-products/scarves');
+  await newHijab.waitFor({ state: 'visible' });
+  await newHijab.locator('a').click();
+  await customer.page.locator('#product-modal').waitFor({ state: 'visible' });
+  assert.match(await customer.page.locator('#product-modal').textContent(), /Pashmina Olive/);
+  await customer.page.goto(url);
+  // Clothing creation uses the same CMS stock controller.
+  await admin.page.locator('[data-tab=products]').click();
+  await admin.page.locator('[data-action=new][data-kind=products]').click();
+  await admin.page.locator('#edit-form [name=name]').fill('New Outer Olive');
+  await admin.page.locator('#edit-form [name=colorName]').fill('Olive');
+  await admin.page.locator('#edit-form [name=price]').fill('250000');
+  await admin.page.locator('#edit-form [name=stock]').fill('3');
+  await admin.page.locator('#edit-form [name=status]').selectOption('published');
+  await admin.page.locator('#edit-form [name=publish]').click();
+  await admin.page.locator('#editor').waitFor({ state: 'hidden' });
+  await customer.page
+    .locator('.card')
+    .filter({ hasText: 'New Outer Olive' })
     .waitFor({ state: 'attached' });
   await admin.page.locator('[data-tab=site]').click();
   await admin.page.locator('[data-kind=settings]').click();

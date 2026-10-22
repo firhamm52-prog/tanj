@@ -5142,11 +5142,36 @@
       }
       cmsApply();
       function cmsApplyHijabs() {
+        const grid = document.getElementById('hijab-grid');
+        const availableIds = new Set(cmsState.hijabs.map((item) => item.id));
+        grid.querySelectorAll('.hijab-card').forEach((card) => {
+          const item = card.dataset.productId
+            ? cmsState.hijabs.find((item) => item.id === card.dataset.productId)
+            : cmsState.hijabs.find(
+                (item) =>
+                  item.collection === card.dataset.hijabCategory &&
+                  item.color === card.dataset.hijabColor,
+              );
+          if (!item || !availableIds.has(item.id)) card.remove();
+          else card.dataset.productId = item.id;
+        });
+        cmsState.hijabs.forEach((item) => {
+          let card = [...grid.children].find((card) => card.dataset.productId === item.id);
+          if (!card) {
+            card = document.createElement('article');
+            card.className = 'hijab-card';
+            card.dataset.productId = item.id;
+            card.innerHTML =
+              '<a><div class="hijab-media"><img loading="lazy"><span class="hijab-view"></span></div><div class="hijab-caption"><span class="hijab-collection"></span><h3></h3><span class="hijab-price"></span></div></a>';
+          }
+          card.dataset.hijabCategory = item.collection;
+          card.dataset.hijabColor = item.color;
+          card.querySelector('.hijab-caption > span').textContent =
+            item.collection.toUpperCase() + ' / HIJAB';
+          grid.append(card);
+        });
         document.querySelectorAll('#hijab-grid .hijab-card').forEach((card) => {
-          const item = cmsState.hijabs.find(
-            (x) =>
-              x.collection === card.dataset.hijabCategory && x.color === card.dataset.hijabColor,
-          );
+          const item = cmsState.hijabs.find((x) => x.id === card.dataset.productId);
           if (!item) return;
           const sold = item.inStock === false,
             link = card.querySelector('a'),
@@ -5869,6 +5894,7 @@
             cmsApply();
             cmsApplyHijabs();
             refreshCatalog();
+            routeCatalog();
             renderCart();
             if (!productModal.hidden) {
               activeVariant = findProduct(activeVariant?.id);

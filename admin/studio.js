@@ -11,7 +11,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=cms-stock-3';
+} from '../web/data.js?v=cms-products-4';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(
@@ -208,7 +208,7 @@ function render() {
         .join('') || '<p>Belum ada produk. Tambahkan produk pertamamu.</p>'
     }</div></section><section class="panel"><div class="feature">${image('assets/campaign-beige.webp')}<div><p>THE TANJ EXPERIENCE</p><h2>Your story, beautifully told.</h2><a href="../" target="_blank" rel="noopener">Lihat website ↗</a></div></div><div class="tip"><strong>Mulai dari detail kecil.</strong>Tambahkan produk, sesuaikan foto, lalu publikasikan ketika semuanya sudah siap.</div></section></div>`;
   } else if (tab === 'products' || tab === 'hijabs') {
-    w.innerHTML = `<div class="toolbar"><div class="filters"><input class="search" id="search" aria-label="Cari produk" placeholder="Cari nama atau koleksi…" value="${esc(query)}"><select id="filter" aria-label="Filter status"><option value="all">Semua status</option><option value="published">Aktif</option><option value="empty">Stok habis</option>${tab === 'products' ? '<option value="draft">Draf</option>' : ''}</select></div>${tab === 'products' ? '<button class="primary" data-action="new" data-kind="products">+ Tambah produk</button>' : ''}</div><div id="list"></div>`;
+    w.innerHTML = `<div class="toolbar"><div class="filters"><input class="search" id="search" aria-label="Cari produk" placeholder="Cari nama atau koleksi…" value="${esc(query)}"><select id="filter" aria-label="Filter status"><option value="all">Semua status</option><option value="published">Aktif</option><option value="empty">Stok habis</option><option value="draft">Draf</option></select></div><button class="primary" data-action="new" data-kind="${tab}">+ Tambah ${tab === 'products' ? 'produk' : 'hijab'}</button></div><div id="list"></div>`;
     $('#filter').value = filter;
     renderList();
   } else if (tab === 'collections') {
@@ -380,16 +380,29 @@ function openEditor(kind, id) {
   if (kind === 'hijabs')
     fields =
       field('name', 'Nama hijab', item.name) +
+      field('collection', 'Koleksi hijab (contoh: selcuk)', item.collection || '') +
+      field('color', 'Nama warna', item.color || '') +
       field(
         'price',
         'Harga (Rp)',
-        item.price,
+        item.price ?? 115000,
         'number',
         false,
         'min="0" max="1000000000" step="1"',
       ) +
-      field('stock', 'Stok (unit)', item.stock, 'number', false, 'min="0" max="1000000" step="1"') +
-      field('image', 'Foto hijab', item.image, 'text', true);
+      field(
+        'stock',
+        'Stok tersedia (unit)',
+        item.stock ?? 0,
+        'number',
+        false,
+        'min="0" max="1000000" step="1"',
+      ) +
+      select('status', 'Status', item.status || (id ? 'published' : 'draft'), [
+        ['draft', 'Draf — sembunyikan'],
+        ['published', 'Aktif — tampil setelah publikasi'],
+      ]) +
+      field('image', 'Foto hijab', item.image || '', 'text', true);
   if (kind === 'collections')
     fields =
       field('name', 'Nama koleksi', item.name, 'text', true) +
@@ -438,11 +451,6 @@ $('#edit-form').addEventListener('submit', async (event) => {
     requireAdmin();
     const { kind, id } = editing;
     const data = Object.fromEntries(new FormData(event.currentTarget));
-    if (kind === 'hijabs')
-      Object.assign(data, {
-        collection: state.hijabs.find((x) => x.id === id).collection,
-        color: state.hijabs.find((x) => x.id === id).color,
-      });
     if (['products', 'hijabs'].includes(kind)) {
       data.price = Number(data.price);
       data.stock = Number(data.stock);

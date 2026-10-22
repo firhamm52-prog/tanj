@@ -112,6 +112,8 @@ export function storefront(state) {
     products: state.products
       .filter((p) => p.status !== 'draft')
       .map((p) => ({ ...p, inStock: p.stock > 0 })),
-    hijabs: state.hijabs.map((p) => ({ ...p, inStock: p.stock > 0 })),
+    hijabs: state.hijabs
+      .filter((p) => p.status !== 'draft')
+      .map((p) => ({ ...p, inStock: p.stock > 0 })),
   };
 }

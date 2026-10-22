@@ -50,10 +50,15 @@ export function validate(kind, raw) {
   }
   if (kind === 'hijabs') {
     const stock = number(raw.stock, 'Stok', 1000000);
-    if (!['selcuk', 'georgia'].includes(raw.collection)) fail('Koleksi hijab tidak valid.');
+    const collection = text(raw.collection, 'Koleksi hijab', 80).toLowerCase().replace(/\s+/g, '-');
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(collection))
+      fail('Koleksi hijab harus berupa huruf, angka, spasi atau tanda hubung.');
+    const status = raw.status ?? 'published';
+    if (!['draft', 'published'].includes(status)) fail('Status hijab tidak valid.');
     return {
       name: text(raw.name, 'Nama hijab'),
-      collection: raw.collection,
+      collection,
+      status,
       color: text(raw.color, 'Warna'),
       image: media(raw.image),
       price: number(raw.price, 'Harga', 1000000000),
