@@ -409,6 +409,7 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
           'other_qris',
         ]);
         amount = JSON.parse(options.body).transaction_details.gross_amount;
+        assert.deepEqual(JSON.parse(options.body).permata_va, { recipient_name: 'TANJ INDONESIA' });
         return Response.json({
           redirect_url: 'https://app.sandbox.midtrans.com/snap/v2/vtweb/token',
         });

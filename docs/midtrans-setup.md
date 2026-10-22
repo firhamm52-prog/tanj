@@ -29,6 +29,8 @@ Check that the Snap amount equals the stored order total; a success redirect alo
 
 ## Operational behavior
 
+New Snap sessions request `permata_va.recipient_name = TANJ INDONESIA` for Permata VA payment prompts. Existing Snap sessions/VA instructions are reused without recreation, so the change applies to newly created sessions. The acquiring bank/application may retain its provider/biller label; this does not rename Midtrans's company code. See [Permata VA description](https://docs.midtrans.com/docs/snap-advanced-feature#specify-va-description).
+
 ### Embedded checkout (019)
 
 After installing 015, run `supabase/migrations/202610220019_midtrans_embedded.sql` once. Set Supabase Secret `MIDTRANS_CLIENT_KEY` to the **Production General Credentials Client Key** when `MIDTRANS_IS_PRODUCTION=true` (use matching Sandbox credentials for Sandbox). This is the public Client Key; keep `MIDTRANS_SERVER_KEY` as the private server credential. Replace the entire Midtrans Edge Function code with the rebuilt `supabase/dashboard/midtrans.ts` and deploy updates, retaining Verify JWT OFF.
