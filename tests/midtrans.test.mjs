@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
+import { storageFixture } from './storage-fixture.mjs';
 import { createMidtransHandler } from '../supabase/functions/_shared/midtrans-handler.js';
 const oid = 'TANJ-44444444-4444-4444-8444-444444444444';
 const buyer = '11111111-1111-4111-8111-111111111111';
@@ -12,6 +13,7 @@ test('private gateway transitions verify amounts and release stock once', async 
       create schema auth;create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');
       create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
       grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
+    await storageFixture(db);
     for (const f of (await readdir('supabase/migrations')).filter((f) => f.endsWith('.sql')).sort())
       await db.exec(await readFile('supabase/migrations/' + f, 'utf8'));
     await db.query("insert into auth.users(id,email) values($1,'buyer@example.com')", [buyer]);

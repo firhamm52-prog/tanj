@@ -747,6 +747,17 @@ dialog form {
   color: var(--muted);
   margin-top: 6px;
 }
+.upload-preview {
+  display: block;
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  margin-top: 12px;
+  border-radius: 6px;
+}
+.upload-preview[hidden] {
+  display: none;
+}
 .checkbox-label {
   display: flex;
   align-items: center;

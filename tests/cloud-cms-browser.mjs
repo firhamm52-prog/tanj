@@ -58,6 +58,11 @@ try {
   const url = `http://127.0.0.1:${server.address().port}/`;
   browser = await chromium.launch({ channel: 'chrome', headless: true });
   let queue = Promise.resolve();
+  let rejectUpload = true;
+  const photoBytes = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aP1sAAAAASUVORK5CYII=',
+    'base64',
+  );
   const errors = [];
   const rpcArgs = {
     tanj_is_admin: [],
@@ -80,6 +85,22 @@ try {
     await context.route('https://cms.test/**', async (route) => {
       const request = route.request(),
         path = new URL(request.url()).pathname;
+      if (path.startsWith('/storage/v1/object/public/cms-media/')) {
+        return route.fulfill({ status: 200, contentType: 'image/png', body: photoBytes });
+      }
+      if (path.startsWith('/storage/v1/object/cms-media/')) {
+        const denied = current?.id !== owner || rejectUpload;
+        rejectUpload = false;
+        return route.fulfill({
+          status: denied ? 403 : 200,
+          contentType: 'application/json',
+          body: JSON.stringify(
+            denied
+              ? { error: 'Unauthorized', message: 'Upload denied', statusCode: '403' }
+              : { Key: path.replace('/storage/v1/object/', ''), Id: crypto.randomUUID() },
+          ),
+        });
+      }
       let body = {},
         status = 200;
       if (path === '/auth/v1/token') {
@@ -206,7 +227,22 @@ try {
   await admin.page.locator('#edit-form [name=color]').fill('olive');
   await admin.page.locator('#edit-form [name=price]').fill('125000');
   await admin.page.locator('#edit-form [name=stock]').fill('3');
-  await admin.page.locator('#edit-form [name=image]').fill('assets/hijab-selcuk-brown.webp');
+  const uploadPicker = admin.page.locator('[data-upload-target=image]');
+  const photoFile = { name: 'device-photo.png', mimeType: 'image/png', buffer: photoBytes };
+  await uploadPicker.setInputFiles(photoFile);
+  await admin.page.locator('#editor-error').filter({ hasText: 'Foto gagal diunggah' }).waitFor();
+  assert.equal(await admin.page.locator('#edit-form [name=image]').inputValue(), '');
+  await uploadPicker.setInputFiles(photoFile);
+  await admin.page
+    .locator('.upload-control [role=status]')
+    .filter({ hasText: 'Foto terunggah' })
+    .waitFor();
+  const uploadedUrl = await admin.page.locator('#edit-form [name=image]').inputValue();
+  assert.match(
+    uploadedUrl,
+    /^https:\/\/cms.test\/storage\/v1\/object\/public\/cms-media\/products\//,
+  );
+  await admin.page.locator('.upload-preview').waitFor({ state: 'visible' });
   await admin.page.locator('#edit-form [type=submit]:not([name=publish])').click();
   await admin.page.locator('#editor').waitFor({ state: 'hidden' });
   await admin.page.locator('#publish').click();
@@ -227,6 +263,7 @@ try {
   const newHijab = customer.page.locator('.hijab-card').filter({ hasText: 'Pashmina Olive' });
   await newHijab.waitFor({ state: 'attached' });
   assert.match(await newHijab.textContent(), /Rp125.000/);
+  assert.equal(await newHijab.locator('img').getAttribute('src'), uploadedUrl);
   await customer.page.goto(url + '#all-products/scarves');
   await newHijab.waitFor({ state: 'visible' });
   await newHijab.locator('a').click();

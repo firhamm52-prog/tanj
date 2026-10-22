@@ -10,7 +10,11 @@ Masuk admin → mode CMS → Produk → **+ Tambah produk**. Isi nama, koleksi, 
 
 Masuk CMS → Hijab → **+ Tambah hijab**. Isi nama, koleksi (misalnya `selcuk`, `georgia` atau `pashmina`), warna, harga, stok tersedia dan foto. Koleksi hijab baru terlihat pada katalog semua hijab/Scarves; menu pintasan koleksi lama tetap tersedia.
 
-Foto menggunakan URL HTTPS yang sudah dapat diakses publik atau file yang sudah tersedia di folder `assets`. Form ini belum mengunggah file dari perangkat.
+Foto bisa diunggah dari HP/laptop melalui pilihan **Unggah foto ... dari perangkat** di bawah kolom foto model, foto produk atau foto hijab. Pilih JPG, PNG atau WebP, maksimal 5 MB. Setelah unggah berhasil, URL terisi otomatis dan pratinjau muncul. Simpan perubahan lalu publikasikan untuk menggunakan foto baru. URL HTTPS dan file yang sudah tersedia di `assets` tetap bisa dipakai.
+
+Untuk mengaktifkan unggah, jalankan `supabase/migrations/202610220018_cms_image_upload.sql` sekali di Supabase SQL Editor setelah migrasi CMS. Tidak perlu deploy Edge Function. SQL ini membuat bucket `cms-media`, membatasi tipe/ukuran file, dan mengizinkan unggah hanya bagi admin TANJ. Foto produk dapat dilihat publik; jangan unggah dokumen pribadi. Unggahan memakai nama unik dan tidak menimpa file lama. Foto yang diunggah tetapi tidak dipakai/disimpan tetap ada di bucket; kelola berkas yang tidak digunakan dari Supabase Storage.
+
+Rujukan: [Supabase Storage access control](https://supabase.com/docs/guides/storage/security/access-control), [bucket upload restrictions](https://supabase.com/docs/guides/storage/buckets/fundamentals).
 
 ## Simpan dan publikasikan
 

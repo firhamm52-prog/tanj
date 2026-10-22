@@ -2,6 +2,8 @@ import { siteSettingFields, defaultSiteSettings } from '../shared/site-settings.
 import { mountManualAdmin } from './manual-payments.js?v=owner-ui-3';
 import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=improve-2';
 import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js';
+import { uploadCmsImage } from '../web/cms-upload.js';
+let uploadingImage = false;
 import {
   isApi,
   usesCloudCMS,
@@ -282,7 +284,8 @@ $('#workspace').addEventListener('click', (event) => {
   });
 });
 function field(name, label, value = '', type = 'text', full = false, extra = '') {
-  return `<label class="${full ? 'full' : ''}">${label}<input name="${name}" type="${type}" value="${esc(value)}" ${extra} required>${['media', 'model', 'product', 'image'].includes(name) ? '<span class="field-help">assets/nama.webp atau URL HTTPS foto/video yang sudah dihosting.</span>' : ''}</label>`;
+  const upload = usesCloudCMS && ['model', 'product', 'image'].includes(name);
+  return `<label class="${full ? 'full' : ''}">${label}<input name="${name}" type="${type}" value="${esc(value)}" ${extra} required>${['media', 'model', 'product', 'image'].includes(name) ? '<span class="field-help">assets/nama.webp atau URL HTTPS foto/video yang sudah dihosting.</span>' : ''}</label>${upload ? `<div class="full upload-control"><label>Unggah ${label.toLowerCase()} dari perangkat<input type="file" accept="image/jpeg,image/png,image/webp" data-upload-target="${name}"></label><span class="field-help" role="status">JPG, PNG atau WebP, maksimal 5 MB. URL foto terisi otomatis.</span><img class="upload-preview" alt="Pratinjau foto yang diunggah" hidden></div>` : ''}`;
 }
 function select(name, label, value, options) {
   return `<label>${label}<select name="${name}" required>${options.map(([id, title]) => `<option value="${esc(id)}" ${value === id ? 'selected' : ''}>${esc(title)}</option>`).join('')}</select></label>`;
@@ -425,12 +428,46 @@ function openEditor(kind, id) {
   $('#editor').showModal();
 }
 function closeEditor() {
+  if (uploadingImage) return toast('Tunggu sampai unggah foto selesai.');
   if (editing?.dirty && !confirm('Tutup editor tanpa menyimpan perubahan?')) return;
   $('#editor').close();
   editing = null;
 }
 $('#edit-form').addEventListener('input', () => {
   if (editing) editing.dirty = true;
+});
+$('#edit-form').addEventListener('change', async (event) => {
+  const picker = event.target.closest('[data-upload-target]');
+  if (!picker?.files?.length || uploadingImage) return;
+  const editor = editing;
+  const field = $('#edit-form').elements.namedItem(picker.dataset.uploadTarget);
+  const status = picker.closest('.upload-control').querySelector('[role=status]');
+  const preview = picker.closest('.upload-control').querySelector('img');
+  const controls = [...$('#edit-form').querySelectorAll('[type=submit],[type=file]')];
+  const disabled = controls.map((control) => control.disabled);
+  uploadingImage = true;
+  controls.forEach((control) => (control.disabled = true));
+  status.textContent = 'Mengunggah foto…';
+  error('', '#editor-error');
+  try {
+    requireAdmin();
+    const url = await uploadCmsImage(picker.files[0]);
+    if (editing !== editor || !field.isConnected) return;
+    field.value = url;
+    preview.src = url;
+    preview.hidden = false;
+    editing.dirty = true;
+    status.textContent = 'Foto terunggah. Simpan perubahan untuk menggunakan foto ini.';
+  } catch (err) {
+    if (editing === editor) {
+      status.textContent = 'Unggah belum berhasil. Pilih foto untuk mencoba lagi.';
+      error(err.message, '#editor-error');
+    }
+  } finally {
+    uploadingImage = false;
+    picker.value = '';
+    controls.forEach((control, i) => (control.disabled = disabled[i]));
+  }
 });
 $('#close-editor').addEventListener('click', closeEditor);
 $('#cancel-editor').addEventListener('click', closeEditor);
@@ -439,6 +476,10 @@ $('#editor').addEventListener('cancel', (event) => {
   closeEditor();
 });
 $('#edit-form').addEventListener('submit', async (event) => {
+  if (uploadingImage) {
+    event.preventDefault();
+    return;
+  }
   event.preventDefault();
   const button = event.submitter;
   const publishNow = button?.name === 'publish';

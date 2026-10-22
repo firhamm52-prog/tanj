@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
+import { storageFixture } from './storage-fixture.mjs';
 
 test('CMS hijab restocks live inventory, preserves reservations and rejects stale saves', async () => {
   const db = new PGlite();
@@ -10,11 +11,36 @@ test('CMS hijab restocks live inventory, preserves reservations and rejects stal
       create schema auth; create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');
       create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
       grant usage on schema auth to authenticated,anon; grant execute on function auth.uid() to authenticated,anon;`);
+    await storageFixture(db);
     for (const f of (await readdir('supabase/migrations')).filter((f) => f.endsWith('.sql')).sort())
       await db.exec(await readFile('supabase/migrations/' + f, 'utf8'));
     const owner = '11111111-1111-4111-8111-111111111111';
     await db.query("insert into auth.users(id,email) values($1,'admin@example.com')", [owner]);
     await db.query('insert into public.tb_m_admin values($1)', [owner]);
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)", [owner]);
+    await db.exec('set role authenticated');
+    const objectPath = 'products/' + crypto.randomUUID() + '.jpg';
+    await db.query("insert into storage.objects(bucket_id,name) values('cms-media',$1)", [
+      objectPath,
+    ]);
+    await assert.rejects(
+      db.query("insert into storage.objects(bucket_id,name) values('cms-media','unsafe.svg')"),
+      /row-level security/,
+    );
+    await db.exec('reset role');
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)", [
+      '22222222-2222-4222-8222-222222222222',
+    ]);
+    await db.exec('set role authenticated');
+    await assert.rejects(
+      db.query("insert into storage.objects(bucket_id,name) values('cms-media',$1)", [objectPath]),
+      /row-level security/,
+    );
+    await db.exec('reset role');
+    const bucket = (await db.query("select * from storage.buckets where id='cms-media'")).rows[0];
+    assert.equal(bucket.file_size_limit, 5242880);
+    assert.equal(bucket.public, true);
+    assert.deepEqual(bucket.allowed_mime_types, ['image/jpeg', 'image/png', 'image/webp']);
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [owner]);
     await db.exec('set role authenticated');
     const rpc = async (name, params = []) =>

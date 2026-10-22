@@ -99,6 +99,7 @@ test('database trusts only stored quotes, binds address/cart/owner, preserves to
       create schema auth; create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');
       create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
       grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
+    await (await import('./storage-fixture.mjs')).storageFixture(db);
     for (const f of (await readdir('supabase/migrations')).filter((f) => f.endsWith('.sql')).sort())
       await db.exec(await readFile('supabase/migrations/' + f, 'utf8'));
     await db.exec('set role service_role');
