@@ -1,4 +1,5 @@
-import { openMidtrans, midtransRequest } from './midtrans.js';
+import { midtransRequest } from './midtrans.js';
+import { mountMidtransCheckout } from './midtrans-checkout.js';
 import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js';
 import { cloudEnabled } from './supabase-payments.js?v=improve-2';
 import { cropQrisArtwork } from './qris-crop.js';
@@ -219,7 +220,8 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
     $('bag-checkout-view').hidden = true;
     panel.hidden = false;
     if (cloudEnabled) {
-      panel.innerHTML = '<p role="status">Memuat pesanan...</p>';
+      if (!panel.querySelector('[data-midtrans-order]'))
+        panel.innerHTML = '<p role="status">Memuat pesanan...</p>';
       try {
         await refreshPayments();
       } catch (error) {
@@ -231,12 +233,22 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
     render();
     focusTitle();
   }
+  let stopMidtrans = () => {};
   function render() {
     panel.dataset.selectedOrder = selected || '';
     try {
       if (panel.hidden) return;
       const state = readPayments();
       const order = visibleOrders(state).find((o) => o.id === selected);
+      const embedded = panel.querySelector('[data-midtrans-order]');
+      if (
+        order?.payment?.provider === 'midtrans' &&
+        order.status === 'WAITING_PAYMENT' &&
+        embedded?.dataset.midtransOrder === order.id &&
+        embedded.dataset.version === String(order.version)
+      )
+        return;
+      stopMidtrans();
       if (!order) {
         panel.innerHTML = `<button type="button" class="checkout-back" id="manual-back">← Kembali ke tas</button><h3 tabindex="-1">Pesanan saya</h3>${demoNotice}<p id="manual-payment-error" role="alert">${requested && selected === requested ? esc('Pesanan dari link ini belum tersedia untuk akun di browser ini. Pastikan akun sesuai dengan pemilik pesanan. Pesanan lama versi browser belum otomatis dipindahkan. Hubungi admin TANJ dengan nomor pesanan ' + requested + '.') : ''}</p><label for="customer-status-filter">Status pesanan</label><select id="customer-status-filter"><option value="all">Semua</option><option value="WAITING_PAYMENT">Menunggu pembayaran</option><option value="CHECKING">Menunggu verifikasi</option><option value="PAID">Payment berhasil</option><option value="REJECTED">Pembayaran ditolak</option><option value="CANCELLED">Dibatalkan</option></select><div class="manual-order-list">${
           visibleOrders(state)
@@ -306,26 +318,13 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
           message.hidden = true;
           const actions = document.createElement('div');
           actions.className = 'manual-actions';
-          const pay = document.createElement('button');
-          pay.type = 'button';
-          pay.className = 'shop-primary';
-          pay.textContent = 'Process Payment';
+          const payment = document.createElement('section');
+          payment.dataset.midtransOrder = order.id;
+          payment.dataset.version = String(order.version);
           const check = document.createElement('button');
           check.type = 'button';
           check.className = 'shop-outline';
           check.textContent = 'Cek status pembayaran';
-          pay.onclick = async () => {
-            pay.disabled = true;
-            pay.textContent = 'Processing...';
-            try {
-              await openMidtrans(order.id);
-            } catch (e) {
-              $('manual-payment-error').textContent =
-                e.message || 'Pembayaran belum dapat diproses. Coba lagi.';
-              pay.disabled = false;
-              pay.textContent = 'Process Payment';
-            }
-          };
           check.onclick = async () => {
             check.disabled = true;
             try {
@@ -337,8 +336,14 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
               check.disabled = false;
             }
           };
-          actions.append(pay, check);
-          message.after(actions);
+          actions.append(check);
+          message.after(payment, actions);
+          stopMidtrans = mountMidtransCheckout(payment, order.id, {
+            onVerified: async () => {
+              await refreshPayments();
+              render();
+            },
+          });
         } else if (order.status === 'PAID')
           message.textContent =
             'Pembayaran berhasil diverifikasi oleh Midtrans. Pesanan siap diproses.';

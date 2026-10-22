@@ -210,6 +210,37 @@ test('private gateway transitions verify amounts and release stock once', async 
       db.query('select public.tanj_midtrans_prepare($1)', [oid]),
       /sedang disiapkan/,
     );
+    await db.exec('reset role');
+    await db.query(
+      "update public.tb_t_midtrans set lease_until=now()-interval '1 minute' where order_id=$1",
+      [oid],
+    );
+    await as('authenticated');
+    const recovered = (await db.query('select public.tanj_midtrans_prepare($1) d', [oid])).rows[0]
+      .d;
+    assert.notEqual(recovered.attemptId, p.attemptId);
+    await as('service_role');
+    await assert.rejects(
+      db.query('select public.tanj_midtrans_gateway($1,$2,$3)', [
+        oid,
+        'creation_rejected',
+        { attemptId: p.attemptId },
+      ]),
+      /sudah berubah/,
+    );
+    const snapToken = crypto.randomUUID();
+    await db.query('select public.tanj_midtrans_gateway($1,$2,$3)', [
+      oid,
+      'redirect',
+      {
+        url: 'https://app.sandbox.midtrans.com/snap/v3/redirection/' + snapToken,
+        token: snapToken,
+        attemptId: recovered.attemptId,
+      },
+    ]);
+    await as('authenticated');
+    const reused = (await db.query('select public.tanj_midtrans_prepare($1) d', [oid])).rows[0].d;
+    assert.equal(reused.snap_token, snapToken);
     await as('service_role');
     const d = {
       order_id: oid,
@@ -352,11 +383,20 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
             customer: { name: 'Buyer', email: 'test@example.com', phone: '081200000000' },
           },
         });
+      if (url.includes('/v2/'))
+        return outcome === 'duplicate_paid'
+          ? Response.json({
+              order_id: oid,
+              gross_amount: '123456.00',
+              transaction_status: 'settlement',
+              currency: 'IDR',
+            })
+          : Response.json({ status_code: '404' }, { status: 404 });
       if (url === 'https://app.sandbox.midtrans.com/snap/v1/transactions') {
         if (outcome === 'timeout') throw new TypeError('Network timed out');
         if (outcome === 'reject')
           return Response.json({ error_messages: ['Invalid payment channel'] }, { status: 400 });
-        if (outcome === 'duplicate')
+        if (outcome === 'duplicate' || outcome === 'duplicate_paid')
           return Response.json(
             { error_messages: ['order_id has already been taken'] },
             { status: 400 },
@@ -377,7 +417,9 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
         operations.push(JSON.parse(options.body).operation);
         if (gatewayFailure)
           return Response.json({ code: '42501', message: 'permission denied' }, { status: 403 });
-        return Response.json({ status: 'WAITING_PAYMENT' });
+        return Response.json({
+          status: JSON.parse(options.body).operation === 'status' ? 'PAID' : 'WAITING_PAYMENT',
+        });
       }
       throw Error(url);
     },
@@ -411,4 +453,21 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
     assert.ok((await handler(request())).status >= 500);
     assert.deepEqual(operations, [], 'uncertain creation must not release inventory');
   }
+  assert.deepEqual(
+    await (
+      await handler(
+        new Request('https://edge.test/midtrans/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer customer' },
+          body: JSON.stringify({ orderId: oid }),
+        }),
+      )
+    ).json(),
+    { status: 'WAITING_PAYMENT', notStarted: true },
+  );
+  outcome = 'duplicate_paid';
+  const paidRecovery = await handler(request());
+  assert.equal(paidRecovery.status, 200);
+  assert.equal((await paidRecovery.json()).status, 'PAID');
+  assert.deepEqual(operations, ['status'], 'duplicate recovery verifies the existing transaction');
 });

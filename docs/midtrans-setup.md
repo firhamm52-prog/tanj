@@ -1,6 +1,6 @@
 # Midtrans Snap TANJ
 
-Checkout uses Snap redirection, so no Client Key is needed in HTML. Amount comes only from the trusted order RPC; the browser cannot set it. Production is not enabled merely by committing the code.
+Checkout embeds Midtrans Snap when a matching public Client Key is configured; hosted redirection is the fallback for older sessions or missing Client Key. Amount comes only from the trusted order RPC; the browser cannot set it. Production is not enabled merely by committing the code.
 
 ## Install
 
@@ -28,6 +28,18 @@ Run `node --test --test-isolation=none tests/midtrans.test.mjs` and `npm.cmd run
 Check that the Snap amount equals the stored order total; a success redirect alone must not mark an order PAID. Complete a payment and verify a successful notification entry in Midtrans and PAID in TANJ. Cek status pembayaran provides a signed-in buyer fallback to the authoritative GET Status API. Delivery tracking and completion continue through the existing admin flow.
 
 ## Operational behavior
+
+### Embedded checkout (019)
+
+After installing 015, run `supabase/migrations/202610220019_midtrans_embedded.sql` once. Set Supabase Secret `MIDTRANS_CLIENT_KEY` to the **Production General Credentials Client Key** when `MIDTRANS_IS_PRODUCTION=true` (use matching Sandbox credentials for Sandbox). This is the public Client Key; keep `MIDTRANS_SERVER_KEY` as the private server credential. Replace the entire Midtrans Edge Function code with the rebuilt `supabase/dashboard/midtrans.ts` and deploy updates, retaining Verify JWT OFF.
+
+For Midtrans orders, Buat pesanan automatically prepares and embeds Snap on the payment screen. Customers choose QRIS or a VA bank; Midtrans displays that transaction's QR/VA instructions for the stored total including net shipping. A static merchant QR or bank account is not used for automatic settlement. Without a Client Key or for a historical session missing its Snap token, checkout falls back to the hosted Midtrans payment page. Public Client Key and customer-bound Snap token are sent after the authenticated order-owner check; the Server Key stays on the server.
+
+The browser checks authoritative status every 20 seconds while this payment screen is visible, in addition to webhooks and the existing order refresh. Snap UI callbacks never mark the order paid themselves; they trigger verification through the server. Failed setup leaves a Muat ulang pembayaran button. Local browser tests use a simulated provider, not actual payments.
+
+Migration 019 permits another creation attempt after an expired preparation lease using the same TANJ/Midtrans order ID and retaining its stock reservation. Midtrans documents that regenerating Snap for an unused order invalidates the previous unused token, while utilized orders reject duplicate creation. Duplicate responses trigger an authoritative status lookup, not inventory release or a new order ID. A valid existing bill whose Snap token was lost may still need merchant follow-up; it is not cancelled or refunded automatically. Attempt IDs prevent a delayed response from a previous attempt releasing or overwriting a newer reservation/session. Core API 404 before a payment method is selected is treated as not started, never as proof that stock can safely be released. This supersedes the 015-only indefinite creation block described below.
+
+Reference: [Snap embedded mode](https://docs.midtrans.com/reference/snap-js), [recreating Snap tokens](https://docs.midtrans.com/docs/snap-advanced-feature).
 
 Manual QRIS orders remain manual. Midtrans orders cannot be approved, rejected, cancelled, or marked paid through the old manual RPCs. Provider expiry/cancellation releases stock once; paid orders ignore delayed terminal notifications. Refunds, disputes and chargebacks require merchant follow-up in Midtrans and are not automatically refunded or restocked by TANJ.
 

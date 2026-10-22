@@ -1,0 +1,100 @@
+import { chromium } from 'playwright';
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import assert from 'node:assert/strict';
+const root = process.cwd();
+const server = createServer(async (req, res) => {
+  try {
+    const path = new URL(req.url, 'http://localhost').pathname;
+    if (path === '/fixture') {
+      res.setHeader('Content-Type', 'text/html');
+      return res.end('<div id="checkout"></div>');
+    }
+    const file = resolve(root, '.' + path);
+    if (!file.startsWith(root)) throw Error();
+    res.setHeader('Content-Type', 'text/javascript');
+    res.end(await readFile(file));
+  } catch {
+    res.writeHead(404);
+    res.end();
+  }
+});
+let browser;
+try {
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  browser = await chromium.launch({ channel: 'chrome', headless: true });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.route('https://app.sandbox.midtrans.com/snap/snap.js', (route) =>
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: `window.snap={embed(token, options) {
+      window.embeddedToken=token; window.onPay=options.onSuccess;
+      document.getElementById(options.embedId).innerHTML='<iframe title="QRIS dan VA"></iframe>';
+    }};`,
+    }),
+  );
+  await page.goto(`http://127.0.0.1:${server.address().port}/fixture`);
+  await page.evaluate(async () => {
+    const { mountMidtransCheckout } = await import('/web/midtrans-checkout.js');
+    window.mount = mountMidtransCheckout;
+    window.calls = [];
+    window.verified = 0;
+    window.fail = true;
+    window.paymentState = 'WAITING_PAYMENT';
+    window.stop = mountMidtransCheckout(document.getElementById('checkout'), 'TANJ-test', {
+      request: async (operation, orderId) => {
+        window.calls.push({ operation, orderId });
+        if (operation === 'status') return { status: window.paymentState };
+        if (window.fail) {
+          window.fail = false;
+          throw Error('Koneksi terputus');
+        }
+        return {
+          snapToken: 'test-token',
+          clientKey: 'PUBLIC-client-key',
+          production: false,
+          redirectUrl: 'https://app.sandbox.midtrans.com/snap/v3/redirection/test-token',
+        };
+      },
+      onVerified: async () => {
+        window.verified++;
+      },
+    });
+  });
+  await page.getByText('Koneksi terputus').waitFor();
+  await page.getByRole('button', { name: 'Muat ulang pembayaran' }).click();
+  await page.locator('iframe[title="QRIS dan VA"]').waitFor();
+  assert.equal(
+    await page.locator('script[data-client-key]').getAttribute('data-client-key'),
+    'PUBLIC-client-key',
+  );
+  assert.equal(
+    await page.evaluate(() => window.calls.filter((c) => c.operation === 'start').length),
+    2,
+  );
+  await page.evaluate(async () => {
+    await window.onPay();
+  });
+  assert.equal(
+    await page.evaluate(() => window.verified),
+    0,
+    'browser success alone must not mark paid',
+  );
+  await page.evaluate(async () => {
+    window.paymentState = 'PAID';
+    await window.onPay();
+  });
+  assert.equal(await page.evaluate(() => window.verified), 1);
+  assert.ok(await page.evaluate(() => window.calls.every((c) => c.orderId === 'TANJ-test')));
+  await page.evaluate(() => window.stop());
+  assert.deepEqual(errors, []);
+  console.log(
+    'PASS: automatic embedded checkout, upload-free public Client Key, retry same order, server-verified payment callbacks, mobile viewport. Provider is simulated.',
+  );
+} finally {
+  await browser?.close();
+  if (server.listening) await new Promise((r) => server.close(r));
+}

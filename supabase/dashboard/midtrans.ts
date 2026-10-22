@@ -4,6 +4,7 @@ function createMidtransHandler({ env, fetcher = fetch }) {
   const secret = env("TANJ_SUPABASE_SECRET_KEY") || env("SUPABASE_SERVICE_ROLE_KEY");
   const publicKey = env("SUPABASE_ANON_KEY");
   const key = env("MIDTRANS_SERVER_KEY");
+  const clientKey = env("MIDTRANS_CLIENT_KEY") || "";
   const production = env("MIDTRANS_IS_PRODUCTION") === "true";
   const ready = Boolean(key && url && secret && publicKey);
   const enabled = env("MIDTRANS_ENABLED") === "true" && ready;
@@ -57,6 +58,8 @@ function createMidtransHandler({ env, fetcher = fetch }) {
       signal: AbortSignal.timeout(18e3)
     });
     const d = await r.json();
+    if (host === apiHost && r.status === 404 && String(d.status_code) === "404")
+      return { notStarted: true };
     if (!r.ok || d.status_code && Number(d.status_code) >= 400) {
       const messages = Array.isArray(d.error_messages) ? d.error_messages.join("; ") : "";
       console.warn("Midtrans provider rejected request", {
@@ -64,12 +67,16 @@ function createMidtransHandler({ env, fetcher = fetch }) {
         providerStatus: d.status_code,
         errors: messages.split(key).join("[redacted]").slice(0, 1e3)
       });
-      const rejected = [400, 401, 403, 422].includes(r.status) && !/already|taken|duplicate|exist/i.test(messages);
+      const rejected = [400, 401, 403, 422].includes(r.status) && !/already|taken|duplicate|exist|paid|utilized|digunakan/i.test(messages);
       throw Object.assign(
         Error(
           "Midtrans belum dapat memproses pembayaran. Coba lagi atau hubungi admin dengan nomor pesanan."
         ),
-        { status: 502, creationRejected: rejected }
+        {
+          status: 502,
+          creationRejected: rejected,
+          duplicateOrder: /already|taken|duplicate|utilized|digunakan/i.test(messages)
+        }
       );
     }
     return d;
@@ -177,7 +184,13 @@ function createMidtransHandler({ env, fetcher = fetch }) {
       }
       if (path.endsWith("/start")) {
         const prepared = await rpc("tanj_midtrans_prepare", { oid }, token);
-        if (prepared.redirect_url) return json(200, { redirectUrl: prepared.redirect_url });
+        if (prepared.redirect_url)
+          return json(200, {
+            redirectUrl: prepared.redirect_url,
+            snapToken: prepared.snap_token,
+            clientKey,
+            production
+          });
         const o = prepared.order;
         const finish = new URL(site);
         finish.searchParams.set("order", oid);
@@ -204,9 +217,24 @@ function createMidtransHandler({ env, fetcher = fetch }) {
             }
           });
         } catch (e) {
+          if (e.duplicateOrder) {
+            const existing = await provider(apiHost, "/v2/" + encodeURIComponent(oid) + "/status");
+            if (!existing.notStarted) {
+              const result2 = await rpc("tanj_midtrans_gateway", {
+                oid,
+                operation: "status",
+                details: existing
+              });
+              return json(200, { ...result2, paymentPending: result2.status !== "PAID" });
+            }
+          }
           if (e.creationRejected) {
             try {
-              await rpc("tanj_midtrans_gateway", { oid, operation: "creation_rejected" });
+              await rpc("tanj_midtrans_gateway", {
+                oid,
+                operation: "creation_rejected",
+                details: { attemptId: prepared.attemptId }
+              });
             } catch {
               console.warn("Midtrans reservation release requires admin follow-up");
             }
@@ -219,11 +247,12 @@ function createMidtransHandler({ env, fetcher = fetch }) {
         await rpc("tanj_midtrans_gateway", {
           oid,
           operation: "redirect",
-          details: { url: redirect.href }
+          details: { url: redirect.href, token: d2.token || null, attemptId: prepared.attemptId }
         });
-        return json(200, { redirectUrl: redirect.href });
+        return json(200, { redirectUrl: redirect.href, snapToken: d2.token, clientKey, production });
       }
       const d = await provider(apiHost, "/v2/" + encodeURIComponent(oid) + "/status");
+      if (d.notStarted) return json(200, { status: "WAITING_PAYMENT", notStarted: true });
       if (d.order_id !== oid || !/^\d+(?:\.00)?$/.test(String(d.gross_amount)) || d.currency && d.currency !== "IDR")
         fail(422, "Detail pembayaran tidak valid.");
       const result = await rpc("tanj_midtrans_gateway", {

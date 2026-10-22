@@ -364,3 +364,13 @@
   height: 20px;
   flex: none;
 }
+
+.midtrans-embed {
+  width: 100%;
+  max-width: 700px;
+  min-height: 550px;
+  margin: 16px auto;
+}
+.midtrans-embed:empty {
+  min-height: 0;
+}
