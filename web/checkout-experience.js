@@ -27,6 +27,8 @@ export const deliveryMethods = [
   { id: 'jt-regular', name: 'J&T', service: 'Reguler' },
   { id: 'jne-regular', name: 'JNE', service: 'Reguler' },
 ];
+// Enable only after the merchant's QRIS channel is active in Midtrans.
+const qrisEnabled = false;
 export const paymentMethods = ['localhost', '127.0.0.1'].includes(location.hostname)
   ? [
       {
@@ -49,7 +51,7 @@ export const paymentMethods = ['localhost', '127.0.0.1'].includes(location.hostn
         id: 'midtrans-qris',
         name: 'QRIS',
         channel: 'qris',
-        detail: 'Memuat layanan pembayaran…',
+        detail: 'Segera tersedia',
         enabled: false,
       },
     ];
@@ -62,7 +64,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
   midtransConfiguration().then((config) => {
     if (!config.enabled) {
       paymentMethods
-        .filter((method) => method.id.startsWith('midtrans'))
+        .filter((method) => method.id === 'midtrans-va')
         .forEach(
           (method) => (method.detail = 'Layanan pembayaran belum tersedia. Coba muat ulang.'),
         );
@@ -81,9 +83,9 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
       {
         id: 'midtrans-qris',
         name: 'QRIS',
-        detail: 'Scan QRIS sesuai total pembayaran.',
+        detail: qrisEnabled ? 'Scan QRIS sesuai total pembayaran.' : 'Segera tersedia',
         channel: 'qris',
-        enabled: true,
+        enabled: qrisEnabled,
       },
     );
     payment = paymentMethods[0];

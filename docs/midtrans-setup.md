@@ -31,6 +31,8 @@ Check that the Snap amount equals the stored order total; a success redirect alo
 
 ### Two payment choices (021)
 
+QRIS is currently paused in the production chooser pending merchant activation: it displays **Segera tersedia** and cannot be selected. Virtual Account remains enabled when Midtrans is configured. After the merchant confirms GoPay QRIS or ShopeePay QRIS activation, set `qrisEnabled` to true in `web/checkout-experience.js` and publish the frontend update. This UI pause requires no additional secrets, SQL or Edge Function deployment, and does not cancel existing sessions.
+
 Run `supabase/migrations/202610230021_midtrans_payment_channels.sql` once after 020, then deploy the rebuilt `supabase/dashboard/midtrans.ts` to the Midtrans Edge Function. Enabled production checkout now shows exactly **Virtual Account** and **QRIS**. Both use Midtrans; manual QRIS and unavailable gateway placeholders are removed from the production chooser. The stored order records the chosen channel before creating a Snap session; QRIS requests `other_qris` only, VA requests bank transfer channels only. Historical sessions retain their original methods. QRIS requires an active GoPay or ShopeePay QRIS acquirer in the matching Midtrans merchant environment; code changes alone do not activate it. See [Other QRIS](https://docs.midtrans.com/reference/other-qris).
 
 ### Payment window and couriers (020)

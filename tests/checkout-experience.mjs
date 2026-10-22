@@ -431,7 +431,7 @@ try {
   assert.match(await page.locator('#bag-items').textContent(), /Selcuk Brown/);
   await page.locator('#bag-next').click();
   await page.locator('#checkout-selected-items').filter({ hasText: 'Selcuk Brown' }).waitFor();
-  // Enabled gateway checkout has exactly two automatic choices.
+  // Enabled gateway checkout has two choices; QRIS stays disabled pending activation.
   await context.route('**/web/midtrans.js*', (route) =>
     route.fulfill({
       contentType: 'text/javascript',
@@ -446,10 +446,11 @@ try {
   assert.equal(await automaticDialog.locator('.checkout-method').count(), 2);
   await automaticDialog.locator('[value=midtrans-va]').waitFor();
   assert.equal(await automaticDialog.locator('[value=midtrans-va]').isEnabled(), true);
-  await automaticDialog.locator('[value=midtrans-qris]').check();
+  assert.equal(await automaticDialog.locator('[value=midtrans-qris]').isDisabled(), true);
+  assert.match(await automaticDialog.textContent(), /Segera tersedia/);
   assert.doesNotMatch(await automaticDialog.textContent(), /manual|Belum tersedia/);
   await automaticDialog.getByRole('button', { name: 'Konfirmasi', exact: true }).click();
-  assert.match(await page.locator('#payment-choice').textContent(), /QRIS/);
+  assert.match(await page.locator('#payment-choice').textContent(), /Virtual Account/);
   assert.deepEqual(errors, []);
   console.log(
     'PASS: customer registration/login validation, login gate, Order Sekarang, address create/edit/persistence/isolation, account-bound recipient despite modified input, shipping choice, disabled gateway methods, Order, email preview/deep link, payment ownership, responsive layout.',
