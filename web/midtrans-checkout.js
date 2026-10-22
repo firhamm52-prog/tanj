@@ -33,20 +33,26 @@ export function mountMidtransCheckout(
     busy = false,
     verifying = false;
   container.innerHTML =
-    '<p role="status">Menyiapkan QRIS dan Virtual Account…</p><div class="midtrans-embed"></div><button type="button" class="shop-outline" hidden>Muat ulang pembayaran</button>';
+    '<p role="status">Menyiapkan QRIS dan Virtual Account…</p><div class="midtrans-embed"></div><p data-verification role="status" hidden></p><button type="button" class="shop-outline" hidden>Muat ulang pembayaran</button>';
   const message = container.querySelector('[role=status]');
   const frame = container.querySelector('.midtrans-embed');
   frame.id = 'midtrans-' + crypto.randomUUID();
   const retry = container.querySelector('button');
+  const verification = container.querySelector('[data-verification]');
   const active = () => !stopped && container.isConnected;
   async function verify() {
     if (!active() || document.hidden || container.closest('[hidden]') || verifying) return;
     verifying = true;
     try {
       const result = await request('status', orderId);
+      if (active()) verification.hidden = true;
       if (active() && ['PAID', 'CANCELLED'].includes(result.status)) await onVerified();
     } catch {
-      /* Keep the payment screen usable; the explicit check button reports errors. */
+      if (active()) {
+        verification.textContent =
+          'Status pembayaran akan diperiksa kembali otomatis saat koneksi tersedia.';
+        verification.hidden = false;
+      }
     } finally {
       verifying = false;
     }
@@ -87,8 +93,7 @@ export function mountMidtransCheckout(
         onPending: verify,
         onError: () => {
           if (active()) {
-            message.textContent =
-              'Pembayaran belum selesai. Periksa status atau muat ulang pembayaran.';
+            message.textContent = 'Pembayaran belum selesai. Status akan diperiksa otomatis.';
             retry.hidden = false;
           }
         },
@@ -107,10 +112,17 @@ export function mountMidtransCheckout(
   const timer = setInterval(() => {
     if (!active()) clearInterval(timer);
     else void verify();
-  }, 20000);
+  }, 10000);
+  const resume = () => {
+    void verify();
+  };
+  window.addEventListener('focus', resume);
+  document.addEventListener('visibilitychange', resume);
   void start();
   return () => {
     stopped = true;
     clearInterval(timer);
+    window.removeEventListener('focus', resume);
+    document.removeEventListener('visibilitychange', resume);
   };
 }

@@ -1,5 +1,4 @@
-import { midtransRequest } from './midtrans.js';
-import { mountMidtransCheckout } from './midtrans-checkout.js';
+import { mountMidtransCheckout } from './midtrans-checkout.js?v=auto-status-2';
 import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js';
 import { cloudEnabled } from './supabase-payments.js?v=improve-2';
 import { cropQrisArtwork } from './qris-crop.js';
@@ -316,37 +315,21 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
         const message = panel.querySelector('.manual-status');
         if (order.status === 'WAITING_PAYMENT') {
           message.hidden = true;
-          const actions = document.createElement('div');
-          actions.className = 'manual-actions';
           const payment = document.createElement('section');
           payment.dataset.midtransOrder = order.id;
           payment.dataset.version = String(order.version);
-          const check = document.createElement('button');
-          check.type = 'button';
-          check.className = 'shop-outline';
-          check.textContent = 'Cek status pembayaran';
-          check.onclick = async () => {
-            check.disabled = true;
-            try {
-              await midtransRequest('status', order.id);
-              await refreshPayments();
-              await showPanel();
-            } catch (e) {
-              $('manual-payment-error').textContent = e.message;
-              check.disabled = false;
-            }
-          };
-          actions.append(check);
-          message.after(payment, actions);
+          message.after(payment);
           stopMidtrans = mountMidtransCheckout(payment, order.id, {
             onVerified: async () => {
               await refreshPayments();
               render();
             },
           });
-        } else if (order.status === 'PAID')
+        } else if (order.status === 'PAID') {
+          panel.querySelector('h3').textContent = 'Pembayaran berhasil';
           message.textContent =
             'Pembayaran berhasil diverifikasi. Pesanan siap diproses.';
+        }
       }
       void cropQrisArtwork($('checkout-qris-image'));
       mountPaymentSocialLinks($('order-notify-whatsapp'), $('order-notify-email'));

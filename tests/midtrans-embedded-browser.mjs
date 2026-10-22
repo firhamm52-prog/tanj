@@ -37,6 +37,7 @@ try {
     }),
   );
   await page.goto(`http://127.0.0.1:${server.address().port}/fixture`);
+  await page.clock.install();
   await page.evaluate(async () => {
     const { mountMidtransCheckout } = await import('/web/midtrans-checkout.js');
     window.mount = mountMidtransCheckout;
@@ -83,10 +84,11 @@ try {
     0,
     'browser success alone must not mark paid',
   );
-  await page.evaluate(async () => {
+  await page.evaluate(() => {
     window.paymentState = 'PAID';
-    await window.onPay();
   });
+  await page.clock.fastForward(10000);
+  await page.waitForFunction(() => window.verified === 1);
   assert.equal(await page.evaluate(() => window.verified), 1);
   assert.ok(await page.evaluate(() => window.calls.every((c) => c.orderId === 'TANJ-test')));
   await page.evaluate(() => window.stop());
