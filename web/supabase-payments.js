@@ -5,7 +5,7 @@ import {
   cloudSession,
 } from './supabase-customer.js?v=improve-2';
 export { cloudEnabled };
-let state = { version: 1, orders: [], settings: { hours: 24, admin: 'Admin TANJ' } },
+let state = { version: 1, orders: [], settings: { hours: 2, admin: 'Admin TANJ' } },
   generation = 0;
 export const cloudPayments = () => state;
 function check(error) {

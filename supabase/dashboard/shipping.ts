@@ -1,5 +1,5 @@
 // supabase/functions/_shared/biteship.js
-function shippingItems(lines, catalog, { clothing = 700, hijab = 300 } = {}) {
+function shippingItems(lines, catalog, { clothing = 1e3, hijab = 300 } = {}) {
   if (!Array.isArray(lines) || !lines.length || lines.length > 40)
     throw Object.assign(Error("Tas belanja tidak valid."), { status: 422 });
   const seen = /* @__PURE__ */ new Set();
@@ -18,12 +18,8 @@ function shippingItems(lines, catalog, { clothing = 700, hijab = 300 } = {}) {
     };
   });
 }
-function createRates({
-  apiKey,
-  origin = "13110",
-  couriers = "jne,jnt,tiki,lion",
-  fetcher = fetch
-}) {
+function createRates({ apiKey, origin = "13110", couriers = "jne,jnt", fetcher = fetch }) {
+  couriers = couriers.split(",").map((x) => x.trim()).filter((x) => ["jne", "jnt"].includes(x)).join(",");
   const cache = /* @__PURE__ */ new Map();
   return async (postalCode, items) => {
     if (!apiKey)
@@ -108,7 +104,7 @@ function createShippingHandler({ env, fetcher = fetch }) {
   const rates = createRates({
     apiKey: env("BITESHIP_API_KEY"),
     origin: env("BITESHIP_ORIGIN_POSTAL_CODE") || "13110",
-    couriers: env("BITESHIP_COURIERS") || "jne,jnt,tiki,lion",
+    couriers: env("BITESHIP_COURIERS") || "jne,jnt",
     fetcher
   });
   const limits = /* @__PURE__ */ new Map();
@@ -214,7 +210,7 @@ function createShippingHandler({ env, fetcher = fetch }) {
         body: "{}"
       });
       const weight = {
-        clothing: Number(env("BITESHIP_CLOTHING_WEIGHT_GRAMS") || 700),
+        clothing: Number(env("BITESHIP_CLOTHING_WEIGHT_GRAMS") || 1e3),
         hijab: Number(env("BITESHIP_HIJAB_WEIGHT_GRAMS") || 300)
       };
       if (!Object.values(weight).every((w) => Number.isInteger(w) && w > 0 && w <= 5e4))
@@ -237,9 +233,10 @@ function createShippingHandler({ env, fetcher = fetch }) {
       });
       const cached = await cloud("/rest/v1/tb_t_shipping_quote?" + params);
       const weightGrams = items.reduce((n, i) => n + i.weight * i.quantity, 0);
-      if (cached?.length)
+      const cachedOptions = cached?.[0]?.options?.filter((option) => ["jne", "jnt"].includes(option.courier)) || [];
+      if (cachedOptions.length)
         return json(200, {
-          options: cached[0].options,
+          options: cachedOptions,
           quoteId: cached[0].id,
           expiresAt: cached[0].expires_at,
           weightGrams

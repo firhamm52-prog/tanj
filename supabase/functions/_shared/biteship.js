@@ -27,12 +27,12 @@ export function shippingItems(lines, catalog, { clothing = 1000, hijab = 300 } =
   });
 }
 
-export function createRates({
-  apiKey,
-  origin = '13110',
-  couriers = 'jne,jnt,tiki,lion',
-  fetcher = fetch,
-}) {
+export function createRates({ apiKey, origin = '13110', couriers = 'jne,jnt', fetcher = fetch }) {
+  couriers = couriers
+    .split(',')
+    .map((x) => x.trim())
+    .filter((x) => ['jne', 'jnt'].includes(x))
+    .join(',');
   const cache = new Map();
   return async (postalCode, items) => {
     if (!apiKey)

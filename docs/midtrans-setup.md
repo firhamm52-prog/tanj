@@ -29,6 +29,12 @@ Check that the Snap amount equals the stored order total; a success redirect alo
 
 ## Operational behavior
 
+### Payment window and couriers (020)
+
+Run `supabase/migrations/202610230020_payment_window_couriers.sql` once. It sets the live payment settings and CMS draft/published payment window to 2 hours for new orders. Existing order deadlines and existing Midtrans bills are preserved. Midtrans receives the remaining time until that stored deadline, so stock stays reserved until verified settlement or verified expiry/cancellation; local timers alone do not restore inventory.
+
+Deploy the regenerated `supabase/dashboard/shipping.ts` to the **shipping** Edge Function. Set `BITESHIP_COURIERS=jne,jnt` in Supabase Secrets. Only JNE and J&T survive the server courier allowlist, cached quote filter, browser filter and new-order database validation. Historical orders using other couriers remain readable and idempotent retries keep their original data. No Midtrans Edge Function redeploy is needed for 020. CMS settings can be used to deliberately change the payment window later.
+
 New Snap sessions request `permata_va.recipient_name = TANJ INDONESIA` for Permata VA payment prompts. Existing Snap sessions/VA instructions are reused without recreation, so the change applies to newly created sessions. The acquiring bank/application may retain its provider/biller label; this does not rename Midtrans's company code. See [Permata VA description](https://docs.midtrans.com/docs/snap-advanced-feature#specify-va-description).
 
 ### Embedded checkout (019)

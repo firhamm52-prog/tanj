@@ -26,7 +26,7 @@ export const escapeHTML = (value) =>
     /[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
-const empty = () => ({ version: 1, orders: [], settings: { hours: 24, admin: 'Admin TANJ' } });
+const empty = () => ({ version: 1, orders: [], settings: { hours: 2, admin: 'Admin TANJ' } });
 export function readPayments() {
   if (cloudEnabled) return cloudPayments();
   try {

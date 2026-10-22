@@ -12,7 +12,7 @@ export const defaultSiteSettings = Object.freeze({
   maxQty: 99,
   qrisWidth: 180,
   recommendations: 2,
-  paymentHours: 24,
+  paymentHours: 2,
   storyTheme: 'ivory',
   headingFont: 'times',
 });

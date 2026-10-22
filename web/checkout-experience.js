@@ -8,7 +8,7 @@ import {
   deleteAddress,
 } from './customer-account.js?v=owner-ui-3';
 import { getShippingEstimate, validateShippingDestination } from './shipping.js?v=districts-1';
-import { shippingConfiguration, shippingRates } from './biteship.js';
+import { shippingConfiguration, shippingRates } from './biteship.js?v=jne-jnt-2';
 import { shippingSubsidy } from '../shared/shipping-subsidy.js';
 const $ = (id) => document.getElementById(id);
 const esc = (value) =>
@@ -26,7 +26,6 @@ const durationLabel = (duration) => String(duration || '').replace(/\bdays?\b/gi
 export const deliveryMethods = [
   { id: 'jt-regular', name: 'J&T', service: 'Reguler' },
   { id: 'jne-regular', name: 'JNE', service: 'Reguler' },
-  { id: 'lion-regpack', name: 'Lion Parcel', service: 'Reg Pack' },
 ];
 export const paymentMethods = [
   {

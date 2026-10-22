@@ -10,7 +10,7 @@ export function createShippingHandler({ env, fetcher = fetch }) {
   const rates = createRates({
     apiKey: env('BITESHIP_API_KEY'),
     origin: env('BITESHIP_ORIGIN_POSTAL_CODE') || '13110',
-    couriers: env('BITESHIP_COURIERS') || 'jne,jnt,tiki,lion',
+    couriers: env('BITESHIP_COURIERS') || 'jne,jnt',
     fetcher,
   });
   const limits = new Map();
@@ -145,9 +145,11 @@ export function createShippingHandler({ env, fetcher = fetch }) {
       });
       const cached = await cloud('/rest/v1/tb_t_shipping_quote?' + params);
       const weightGrams = items.reduce((n, i) => n + i.weight * i.quantity, 0);
-      if (cached?.length)
+      const cachedOptions =
+        cached?.[0]?.options?.filter((option) => ['jne', 'jnt'].includes(option.courier)) || [];
+      if (cachedOptions.length)
         return json(200, {
-          options: cached[0].options,
+          options: cachedOptions,
           quoteId: cached[0].id,
           expiresAt: cached[0].expires_at,
           weightGrams,

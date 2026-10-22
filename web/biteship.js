@@ -45,5 +45,8 @@ export async function shippingRates(address, lines) {
     .json()
     .catch(() => ({ error: 'Layanan ongkir belum siap. Hubungi admin TANJ.' }));
   if (!r.ok) throw Error(result.error || 'Ongkir belum tersedia.');
+  result.options = (result.options || []).filter((option) =>
+    ['jne', 'jnt'].includes(option.courier),
+  );
   return result;
 }

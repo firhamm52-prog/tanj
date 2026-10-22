@@ -62,6 +62,15 @@ test('private gateway transitions verify amounts and release stock once', async 
     assert.equal(actual.total, actual.subtotal + actual.shipping.fee);
     assert.equal(actual.adjustment, 0);
     assert.equal(actual.code, 0);
+    assert.equal(actual.deadline - actual.createdAt, 2 * 60 * 60 * 1000);
+    await assert.rejects(
+      db.query('select public.tanj_create_order($1,$2,$3)', [
+        crypto.randomUUID(),
+        { ...checkoutArgs[1], shippingMethod: 'biteship:lion:regpack' },
+        checkoutArgs[2],
+      ]),
+      /JNE atau J&T/,
+    );
     assert.deepEqual(
       (await db.query('select public.tanj_create_order($1,$2,$3) d', checkoutArgs)).rows[0].d,
       actual,

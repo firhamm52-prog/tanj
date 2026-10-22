@@ -299,7 +299,7 @@ try {
   });
   assert.equal(boundEmail, 'other@example.com');
   // Exercise live-rate checkout with a stub: no provider calls or paid requests.
-  await context.route('**/web/biteship.js', (route) =>
+  await context.route('**/web/biteship.js*', (route) =>
     route.fulfill({
       contentType: 'text/javascript',
       body: `export async function shippingConfiguration(){return {enabled:true};}
