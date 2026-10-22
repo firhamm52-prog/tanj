@@ -346,7 +346,7 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
           });
         } else if (order.status === 'PAID')
           message.textContent =
-            'Pembayaran berhasil diverifikasi oleh Midtrans. Pesanan siap diproses.';
+            'Pembayaran berhasil diverifikasi. Pesanan siap diproses.';
       }
       void cropQrisArtwork($('checkout-qris-image'));
       mountPaymentSocialLinks($('order-notify-whatsapp'), $('order-notify-email'));
