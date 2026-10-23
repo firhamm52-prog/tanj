@@ -2,6 +2,13 @@ import { midtransRequest } from './midtrans.js?v=change-feedback-12';
 
 let snapScript;
 let snapOwner;
+export function reloadPaymentOrder(orderId) {
+  const url = new URL(location.href);
+  url.searchParams.set('order', orderId);
+  url.hash = 'pesanan';
+  history.replaceState(history.state, '', url);
+  location.reload();
+}
 export function loadSnap(production, clientKey) {
   return (snapScript ||= new Promise((resolve, reject) => {
     const script = document.createElement('script');
@@ -29,7 +36,7 @@ export function mountMidtransCheckout(
     onVerified = async () => {},
     canChangeMethod = false,
     canChangeBank = false,
-    preferHosted = false,
+    reloadOrder = reloadPaymentOrder,
     redirect = (url) => location.assign(url),
   } = {},
 ) {
@@ -38,7 +45,6 @@ export function mountMidtransCheckout(
     verifying = false;
   const owner = {};
   let mountedSnap;
-  let hosted = preferHosted;
   function closeSnap() {
     if (snapOwner === owner) {
       snapOwner = null;
@@ -55,7 +61,7 @@ export function mountMidtransCheckout(
     const change = document.createElement('button');
     change.type = 'button';
     change.className = 'shop-outline';
-    change.textContent = canChangeMethod ? 'Ubah metode pembayaran' : 'Ganti bank';
+    change.textContent = canChangeMethod ? 'Ubah metode pembayaran' : 'Ubah bank account';
     const changeNotice = document.createElement('p');
     changeNotice.dataset.methodChange = '';
     changeNotice.setAttribute('role', 'status');
@@ -76,28 +82,22 @@ export function mountMidtransCheckout(
       changeNotice.hidden = false;
       changeNotice.textContent = 'Memeriksa tagihan dan mengubah metode pembayaran…';
       verification.hidden = true;
-      let reopen = false;
       try {
         const result = await request(canChangeMethod ? 'change-method' : 'change-bank', orderId);
         if (!active()) return;
         if (result.changed || result.bankSelectionReady || result.status === 'PAID') {
           closeSnap();
           if (result.changed || result.bankSelectionReady) {
-            hosted = true;
-            container.querySelector('[data-payment-link]')?.remove();
             change.hidden = true;
-            reopen = true;
-            changeNotice.textContent =
-              'Metode pembayaran diubah menjadi Virtual Account. Menyiapkan pembayaran…';
-          }
-          await onVerified();
+            changeNotice.textContent = 'Menampilkan pilihan bank kembali pada pesanan ini…';
+            reloadOrder(orderId);
+          } else await onVerified();
         } else throw Error('Perubahan metode pembayaran belum dikonfirmasi. Coba kembali.');
       } catch (error) {
         if (active()) changeNotice.textContent = error.message;
       } finally {
         busy = false;
         change.disabled = false;
-        if (reopen && active()) void start();
       }
     };
     container.append(change, changeNotice);
@@ -145,27 +145,6 @@ export function mountMidtransCheckout(
         !url.pathname.startsWith('/snap/')
       )
         throw Error('Tautan pembayaran tidak valid.');
-      let paymentLink = container.querySelector('[data-payment-link]');
-      if (!paymentLink) {
-        paymentLink = document.createElement('a');
-        paymentLink.dataset.paymentLink = '';
-        paymentLink.className = 'shop-outline';
-        paymentLink.target = '_blank';
-        paymentLink.rel = 'noopener noreferrer';
-        container.append(paymentLink);
-      }
-      paymentLink.href = url.href;
-      paymentLink.textContent = hosted
-        ? 'Lanjutkan pembayaran Virtual Account'
-        : 'Buka halaman pembayaran Midtrans';
-      if (hosted) {
-        closeSnap();
-        frame.replaceChildren();
-        frame.hidden = true;
-        message.textContent =
-          'Virtual Account siap. Klik tombol di bawah untuk memilih bank dan melanjutkan pembayaran di Midtrans. Kembali ke TANJ untuk melihat statusnya.';
-        return;
-      }
       // Hosted checkout remains available while the merchant configures the public Client Key.
       if (!data.snapToken || !data.clientKey) {
         redirect(url.href);
@@ -198,7 +177,10 @@ export function mountMidtransCheckout(
         if (!/invalid state transition|not allowed to be called in this state/i.test(error.message))
           throw error;
         closeSnap();
-        redirect(url.href);
+        message.textContent =
+          'Pembayaran perlu dimuat ulang. Tekan Muat ulang pembayaran untuk membuka pesanan yang sama.';
+        retry.hidden = false;
+        retry.onclick = () => reloadOrder(orderId);
         return;
       }
       message.textContent = 'Pilih QRIS atau Virtual Account untuk membayar.';

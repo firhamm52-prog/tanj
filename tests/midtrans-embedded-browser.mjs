@@ -125,16 +125,14 @@ try {
         },
         hide() {},
       }),
-      redirect: (url) => {
-        window.recoveryUrl = url;
+      reloadOrder: (id) => {
+        window.recoveryOrder = id;
       },
     });
   });
-  await page.waitForFunction(() => Boolean(window.recoveryUrl));
-  assert.equal(
-    await page.evaluate(() => window.recoveryUrl),
-    'https://app.sandbox.midtrans.com/snap/v3/redirection/test-token',
-  );
+  await page.getByRole('button', { name: 'Muat ulang pembayaran' }).click();
+  await page.waitForFunction(() => Boolean(window.recoveryOrder));
+  assert.equal(await page.evaluate(() => window.recoveryOrder), 'TANJ-test');
   await page.evaluate(() => window.stop());
   assert.deepEqual(errors, []);
   await page.evaluate(() => {
@@ -144,6 +142,9 @@ try {
     window.stop = window.mount(document.getElementById('checkout'), 'TANJ-test', {
       ...window.checkoutOptions,
       canChangeMethod: true,
+      reloadOrder: (id) => {
+        window.changeReload = id;
+      },
       request: async (operation, id) => {
         if (operation === 'change-method') {
           window.changes++;
@@ -177,34 +178,15 @@ try {
   });
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Ubah metode pembayaran', exact: true }).click();
-  await page.waitForFunction(() => window.changeVerified === 1);
-  await page
-    .getByRole('link', { name: 'Lanjutkan pembayaran Virtual Account', exact: true })
-    .waitFor();
+  await page.waitForFunction(() => window.changeReload === 'TANJ-test');
   assert.equal(await page.locator('iframe').count(), 0);
-  assert.equal(
-    await page.locator('[data-payment-link]').getAttribute('href'),
-    'https://app.sandbox.midtrans.com/snap/v3/redirection/test-token',
-  );
+  assert.equal(await page.locator('[data-payment-link]').count(), 0);
+  assert.equal(await page.evaluate(() => window.changeVerified), 0);
   assert.equal(await page.evaluate(() => window.changes), 2);
   assert.equal(
     await page.getByRole('button', { name: 'Ubah metode pembayaran', exact: true }).isVisible(),
     false,
   );
-  await page.evaluate(() => window.stop());
-  await page.evaluate(() => {
-    window.stop = window.mount(document.getElementById('checkout'), 'TANJ-test', {
-      ...window.checkoutOptions,
-      preferHosted: true,
-      load: async () => {
-        throw Error('Changed orders must not embed Snap again');
-      },
-    });
-  });
-  await page
-    .getByRole('link', { name: 'Lanjutkan pembayaran Virtual Account', exact: true })
-    .waitFor();
-  assert.equal(await page.locator('iframe').count(), 0);
   await page.evaluate(() => window.stop());
   await page.evaluate(() => {
     window.bankChanges = [];
@@ -226,13 +208,31 @@ try {
   });
   await page.locator('iframe[title="QRIS dan VA"]').waitFor();
   page.once('dialog', (dialog) => dialog.accept());
-  await page.getByRole('button', { name: 'Ganti bank', exact: true }).click();
-  await page
-    .getByRole('link', { name: 'Lanjutkan pembayaran Virtual Account', exact: true })
-    .waitFor();
-  assert.deepEqual(await page.evaluate(() => window.bankChanges), ['TANJ-test']);
-  assert.equal(await page.evaluate(() => window.bankRefreshed), 1);
-  assert.equal(await page.locator('iframe').count(), 0);
+  await page.getByRole('button', { name: 'Ubah bank account', exact: true }).click();
+  await page.waitForURL('**/fixture?order=TANJ-test#pesanan');
+  assert.equal(page.context().pages().length, 1);
+  await page.evaluate(async () => {
+    const { mountMidtransCheckout } = await import('/web/midtrans-checkout.js');
+    window.stop = mountMidtransCheckout(document.getElementById('checkout'), 'TANJ-test', {
+      canChangeBank: true,
+      request: async (operation) =>
+        operation === 'status'
+          ? { status: 'WAITING_PAYMENT' }
+          : {
+              snapToken: 'new-bank-token',
+              clientKey: 'PUBLIC-client-key',
+              production: false,
+              redirectUrl: 'https://app.sandbox.midtrans.com/snap/v3/redirection/new-bank-token',
+            },
+    });
+  });
+  await page.locator('iframe[title="QRIS dan VA"]').waitFor();
+  assert.equal(await page.evaluate(() => window.embeddedToken), 'new-bank-token');
+  assert.equal(
+    await page.getByRole('button', { name: 'Ubah bank account', exact: true }).isVisible(),
+    true,
+  );
+  assert.equal(await page.locator('[data-payment-link], a[target="_blank"]').count(), 0);
   await page.evaluate(() => window.stop());
   console.log(
     'PASS: automatic embedded checkout, upload-free public Client Key, retry same order, server-verified payment callbacks, mobile viewport. Provider is simulated.',
