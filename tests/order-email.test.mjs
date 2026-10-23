@@ -23,6 +23,17 @@ const order = {
   total: 697123,
   payment: { name: 'QRIS manual' },
 };
+test('zero adjustments are omitted from pending and tracking emails', () => {
+  for (const extra of [{}, { status: 'PAID', tracking: { courier: 'JNE', number: '123' } }]) {
+    const email = buildOrderEmail(
+      { ...order, adjustment: 0, total: 697000, ...extra },
+      { baseUrl: 'https://example.com/tanj/' },
+    );
+    assert.doesNotMatch(email.html + email.text, /Kode unik/);
+    assert.match(email.text, /Ongkos Kirim: Rp10\.000/);
+    assert.match(email.text, /Subtotal: Rp687\.000/);
+  }
+});
 test('paid customer email thanks the buyer without payment instructions', () => {
   const email = buildOrderEmail(
     { ...order, status: 'PAID' },

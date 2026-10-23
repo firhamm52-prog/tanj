@@ -217,7 +217,7 @@
                 <td
                   style="padding: 8px 8px 8px 0; font-size: 13px; line-height: 1.6; color: #746859"
                 >
-                  Subtotal produk
+                  Subtotal:
                 </td>
                 <td
                   align="right"
@@ -248,7 +248,7 @@
                 <td
                   style="padding: 8px 8px 8px 0; font-size: 13px; line-height: 1.6; color: #746859"
                 >
-                  Ongkir dibayar
+                  Ongkos Kirim:
                 </td>
                 <td
                   align="right"
@@ -257,7 +257,7 @@
                   {{shipping_fee}}
                 </td>
               </tr>
-              <tr>
+              {{#has_unique_code}}<tr>
                 <td
                   style="padding: 8px 8px 8px 0; font-size: 13px; line-height: 1.6; color: #746859"
                 >
@@ -269,7 +269,7 @@
                 >
                   {{unique_code}}
                 </td>
-              </tr>
+              </tr>{{/has_unique_code}}
               <tr>
                 <td
                   style="

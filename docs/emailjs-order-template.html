@@ -83,17 +83,17 @@
     </div>
     <table style="width: 100%; font-size: 13px; line-height: 2.2; margin-top: 18px">
       <tr>
-        <td>Subtotal produk</td>
+        <td>Subtotal:</td>
         <td style="text-align: right">{{order_subtotal}}</td>
       </tr>
       <tr>
-        <td>Ongkir</td>
+        <td>Ongkos Kirim:</td>
         <td style="text-align: right">{{shipping_fee}}</td>
       </tr>
-      <tr>
+      {{#has_unique_code}}<tr>
         <td>Kode unik</td>
         <td style="text-align: right">{{unique_code}}</td>
-      </tr>
+      </tr>{{/has_unique_code}}
       <tr>
         <td style="border-top: 1px solid #e6ded3; padding-top: 12px">
           <strong>Total pembayaran</strong>
