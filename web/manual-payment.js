@@ -10,7 +10,7 @@ import {
   ensureCustomerSession,
 } from './customer-account.js?v=owner-ui-3';
 import { isAdmin } from './admin-session.js?v=improve-2';
-import { mountCheckoutExperience } from './checkout-experience.js?v=qris-active-7';
+import { mountCheckoutExperience } from './checkout-experience.js?v=qris-paused-10';
 import { buildOrderEmail } from '../shared/order-email.js';
 import { notifyPayment } from './payment-notifications.js?v=shipping-subsidy-1';
 import { orderContactLinks } from './order-contact.js?v=gmail-compose-2';
