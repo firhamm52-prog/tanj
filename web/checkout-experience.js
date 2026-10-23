@@ -28,7 +28,7 @@ export const deliveryMethods = [
   { id: 'jne-regular', name: 'JNE', service: 'Reguler' },
 ];
 // Enable only after the merchant's QRIS channel is active in Midtrans.
-const qrisEnabled = false;
+const qrisEnabled = true;
 export const paymentMethods = ['localhost', '127.0.0.1'].includes(location.hostname)
   ? [
       {
