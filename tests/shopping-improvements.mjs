@@ -138,6 +138,58 @@ try {
       contentType: 'text/javascript',
       body: `import { freshSeed, storefront } from '/shared/seed.js';
       export const isApi=false, usesCloudCMS=false;
+      export async function loadStorefront(){const state=freshSeed();
+        state.products[0].stock=1; state.products[0].inStock=true; return storefront(state);}`,
+    }),
+  );
+  await page.goto(url);
+  await page.evaluate(() => localStorage.removeItem('noireaterial-cart-v1'));
+  await page.reload();
+  await page.evaluate(async () => {
+    const account = await import('./web/customer-account.js?v=owner-ui-3');
+    await account.authenticateCustomer(
+      {
+        name: 'Stock buyer',
+        email: 'stock@example.com',
+        password: 'stock-password-123',
+        repeat: 'stock-password-123',
+      },
+      true,
+    );
+  });
+  await page.locator('.product-preview').first().click();
+  const cartProduct = await page.locator('#product-modal').getAttribute('data-active-product');
+  await page.locator('#product-add').click();
+  assert.equal(
+    await page.locator('#bag-modal').isVisible(),
+    true,
+    JSON.stringify({
+      errors,
+      cart: await page.evaluate(() => localStorage.getItem('noireaterial-cart-v1')),
+    }),
+  );
+  await page.locator('#bag-modal [data-utility-close]').click();
+  await page.locator('.product-preview').first().click();
+  assert.equal(await page.locator('#product-add').isEnabled(), true);
+  assert.equal(await page.locator('#product-buy-now').isEnabled(), true);
+  assert.equal(await page.locator('#product-quantity').textContent(), '1');
+  await page.locator('#product-add').click();
+  assert.equal(
+    await page.evaluate(
+      (id) =>
+        JSON.parse(localStorage.getItem('noireaterial-cart-v1') || '[]').find((i) => i.id === id)
+          ?.qty,
+      cartProduct,
+    ),
+    1,
+  );
+  await page.locator('#bag-modal [data-utility-close]').click();
+  await context.unroute('**/web/data.js*');
+  await context.route('**/web/data.js*', (route) =>
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: `import { freshSeed, storefront } from '/shared/seed.js';
+      export const isApi=false, usesCloudCMS=false;
       export async function loadStorefront(){
         const state=freshSeed();
         state.products[0].stock=0; state.products[0].inStock=true;

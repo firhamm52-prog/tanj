@@ -47,7 +47,9 @@ export function createMidtransHandler({ env, fetcher = fetch }) {
       fail(
         409,
         token
-          ? d.message || 'Pesanan belum dapat diproses.'
+          ? /sudah diorder/i.test(String(d.message || ''))
+            ? 'Stok barang sudah tidak tersedia karena sudah dipesan atau dibayarkan customer lain. Periksa tas belanja kembali.'
+            : d.message || 'Pesanan belum dapat diproses.'
           : 'Status pembayaran belum dapat disimpan. Coba periksa lagi.',
       );
     }

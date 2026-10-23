@@ -421,6 +421,8 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
     fetcher: async (url, options) => {
       if (url.endsWith('/auth/v1/user')) return Response.json({ id: buyer });
       if (url.includes('/tb_t_order?')) return Response.json(own ? [{ id: oid }] : []);
+      if (url.endsWith('/tanj_midtrans_prepare') && outcome === 'sold_out')
+        return Response.json({ message: 'Selcuk Brown sudah diorder' }, { status: 400 });
       if (url.endsWith('/tanj_midtrans_prepare'))
         return Response.json({
           order: {
@@ -521,4 +523,8 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
   assert.deepEqual(operations, ['status'], 'duplicate recovery verifies the existing transaction');
   outcome = 'success';
   for (channel of ['va', 'qris']) assert.equal((await handler(request())).status, 200);
+  outcome = 'sold_out';
+  const soldOut = await handler(request());
+  assert.equal(soldOut.status, 409);
+  assert.match((await soldOut.json()).error, /sudah dipesan atau dibayarkan customer lain/);
 });

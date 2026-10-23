@@ -5596,12 +5596,7 @@
         cmsAvailable(item) && Number.isSafeInteger(item?.stock) && item.stock > 0
           ? Math.min(sitePreferences().maxQty, item.stock)
           : 0;
-      const remainingStock = (item) =>
-        Math.max(
-          0,
-          stockLimit(item) -
-            cart.filter((line) => line.id === item.id).reduce((sum, line) => sum + line.qty, 0),
-        );
+      const remainingStock = (item) => stockLimit(item);
       function normalizeCart() {
         const quantities = new Map();
         cart.forEach((line) => {
@@ -5672,11 +5667,7 @@
         const addButton = document.getElementById('product-add');
         addButton.disabled = !remaining;
         document.getElementById('product-buy-now').disabled = !remaining;
-        addButton.firstChild.textContent = remaining
-          ? 'Tambahkan ke tas '
-          : stockLimit(item)
-            ? 'Semua stok sudah di tas '
-            : 'Sold out ';
+        addButton.firstChild.textContent = remaining ? 'Tambahkan ke tas ' : 'Sold out ';
         productImage.src = cmsAssetSrc(item.model) || cmsAssetSrc(item.product);
         productImage.alt = 'Model mengenakan ' + productFullName(item);
         productColors.replaceChildren();
@@ -5730,7 +5721,7 @@
           return;
         }
         const line = cart.find((x) => x.id === activeVariant.id);
-        if (line) line.qty += quantity;
+        if (line) line.qty = Math.min(stockLimit(activeVariant), line.qty + quantity);
         else cart.push({ id: activeVariant.id, qty: quantity });
         showStockNotice('');
         storeCart();
