@@ -67,20 +67,13 @@ export function mountMidtransCheckout(
     changeNotice.setAttribute('role', 'status');
     changeNotice.hidden = true;
     change.onclick = async () => {
-      if (
-        busy ||
-        !active() ||
-        !window.confirm(
-          canChangeMethod
-            ? 'Ubah pembayaran QRIS menjadi Virtual Account? Server akan memeriksa apakah tagihan masih dapat diubah.'
-            : 'Ganti bank pembayaran? VA lama akan dibatalkan terlebih dahulu. Jangan bayar nomor lama selama proses ini. Pesanan dan total tetap sama.',
-        )
-      )
-        return;
+      if (busy || !active()) return;
       busy = true;
       change.disabled = true;
       changeNotice.hidden = false;
-      changeNotice.textContent = 'Memeriksa tagihan dan mengubah metode pembayaran…';
+      changeNotice.textContent = canChangeMethod
+        ? 'Memeriksa tagihan dan mengubah metode pembayaran…'
+        : 'Mengganti bank pembayaran. Jangan bayar VA lama selama proses ini…';
       verification.hidden = true;
       try {
         const result = await request(canChangeMethod ? 'change-method' : 'change-bank', orderId);

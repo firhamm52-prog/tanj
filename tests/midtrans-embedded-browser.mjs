@@ -27,6 +27,10 @@ try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
+  page.on('dialog', async (dialog) => {
+    errors.push('Unexpected browser dialog: ' + dialog.message());
+    await dialog.dismiss();
+  });
   await page.route('https://app.sandbox.midtrans.com/snap/snap.js', (route) =>
     route.fulfill({
       contentType: 'text/javascript',
@@ -165,7 +169,6 @@ try {
   await page
     .getByText('Pengecekan status belum berhasil: Status pembayaran belum dapat disimpan.')
     .waitFor();
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Ubah metode pembayaran', exact: true }).click();
   await page
     .locator('[data-method-change]')
@@ -176,7 +179,6 @@ try {
   await page.evaluate(() => {
     window.failChange = false;
   });
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Ubah metode pembayaran', exact: true }).click();
   await page.waitForFunction(() => window.changeReload === 'TANJ-test');
   assert.equal(await page.locator('iframe').count(), 0);
@@ -207,7 +209,6 @@ try {
     });
   });
   await page.locator('iframe[title="QRIS dan VA"]').waitFor();
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Ubah bank account', exact: true }).click();
   await page.waitForURL('**/fixture?order=TANJ-test#pesanan');
   assert.equal(page.context().pages().length, 1);
