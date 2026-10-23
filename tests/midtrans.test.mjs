@@ -6,6 +6,81 @@ import { storageFixture } from './storage-fixture.mjs';
 import { createMidtransHandler } from '../supabase/functions/_shared/midtrans-handler.js';
 const oid = 'TANJ-44444444-4444-4444-8444-444444444444';
 const buyer = '11111111-1111-4111-8111-111111111111';
+test('changing an issued VA bank requires confirmed cancellation, rechecks payment races and keeps one TANJ order', async () => {
+  const values = {
+    SUPABASE_URL: 'https://db.test',
+    SUPABASE_SERVICE_ROLE_KEY: 'private',
+    SUPABASE_ANON_KEY: 'public',
+    MIDTRANS_SERVER_KEY: 'server',
+  };
+  let phase = 'pending',
+    cancels = 0,
+    completed = 0,
+    paid = false,
+    canCancel = true,
+    own = true;
+  const operations = [];
+  const handler = createMidtransHandler({
+    env: (k) => values[k],
+    fetcher: async (url, options) => {
+      if (url.endsWith('/auth/v1/user')) return Response.json({ id: buyer });
+      if (url.includes('/tb_t_order?')) return Response.json(own ? [{ id: oid }] : []);
+      if (url.endsWith('/tanj_midtrans_bank_change')) {
+        const body = JSON.parse(options.body);
+        operations.push(body.operation);
+        assert.equal(body.oid, oid);
+        if (body.operation === 'begin')
+          return Response.json({ providerOrderId: oid, switchId: buyer, total: 1000 });
+        if (body.operation === 'complete') {
+          assert.ok(['cancel', 'expire'].includes(phase));
+          completed++;
+        }
+        return Response.json({});
+      }
+      if (url.endsWith('/cancel')) {
+        cancels++;
+        if (paid) phase = 'settlement';
+        else if (canCancel) phase = 'cancel';
+        return Response.json({ status_code: '200' });
+      }
+      if (url.endsWith('/status'))
+        return Response.json({
+          order_id: oid,
+          gross_amount: '1000.00',
+          currency: 'IDR',
+          transaction_status: phase,
+          payment_type: 'bank_transfer',
+        });
+      if (url.endsWith('/tanj_midtrans_gateway'))
+        return Response.json({ status: phase === 'settlement' ? 'PAID' : 'WAITING_PAYMENT' });
+      throw Error(url);
+    },
+  });
+  const request = () =>
+    handler(
+      new Request('https://edge.test/midtrans/change-bank', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+        body: JSON.stringify({ orderId: oid }),
+      }),
+    );
+  assert.equal((await request()).status, 200);
+  assert.equal(cancels, 1);
+  assert.equal(completed, 1);
+  phase = 'pending';
+  paid = true;
+  assert.equal((await (await request()).json()).status, 'PAID');
+  assert.equal(completed, 1, 'payment during cancellation must not create another bill');
+  phase = 'pending';
+  paid = false;
+  canCancel = false;
+  assert.equal((await request()).status, 409);
+  assert.equal(completed, 1, 'uncertain cancellation must not rotate the bill');
+  own = false;
+  const before = cancels;
+  assert.equal((await request()).status, 404);
+  assert.equal(cancels, before);
+});
 test('method change verifies provider status and ownership before touching the session', async () => {
   const values = {
     SUPABASE_URL: 'https://db.test',
@@ -20,6 +95,7 @@ test('method change verifies provider status and ownership before touching the s
   const handler = createMidtransHandler({
     env: (k) => values[k],
     fetcher: async (url) => {
+      if (url.endsWith('/tanj_midtrans_context')) return Response.json({ providerOrderId: oid });
       if (url.endsWith('/auth/v1/user')) return Response.json({ id: buyer });
       if (url.includes('/tb_t_order?')) return Response.json(own ? [{ id: oid }] : []);
       if (url.endsWith('/status'))
@@ -73,6 +149,7 @@ test('automatic status polling has a separate budget from payment starts', async
   const handler = createMidtransHandler({
     env: (name) => values[name],
     fetcher: async (url) => {
+      if (url.endsWith('/tanj_midtrans_context')) return Response.json({ providerOrderId: oid });
       if (url.endsWith('/auth/v1/user')) return Response.json({ id: buyer });
       if (url.includes('/tb_t_order?')) return Response.json([{ id: oid }]);
       if (url.endsWith('/tanj_midtrans_prepare'))
@@ -180,6 +257,14 @@ test('private gateway transitions verify amounts and release stock once', async 
       (await db.query("select stock from public.tb_m_product where id='base-0-1'")).rows[0].stock;
     assert.equal(await available(), 1, 'creating an order does not reserve inventory');
     await as('authenticated');
+    await assert.rejects(
+      db.query('select public.tanj_midtrans_bank_change($1,$2)', [actual.id, 'begin']),
+      /permission denied/,
+    );
+    await assert.rejects(
+      db.query('select public.tanj_midtrans_context($1)', [actual.id]),
+      /permission denied/,
+    );
     await assert.rejects(
       db.query('select public.tanj_midtrans_change_to_va($1)', [actual.id]),
       /permission denied/,
@@ -293,12 +378,89 @@ test('private gateway transitions verify amounts and release stock once', async 
     await as('authenticated');
     await db.query('select public.tanj_midtrans_prepare($1)', [actual.id]);
     await as('service_role');
+    await db.query('select public.tanj_midtrans_gateway($1,$2,$3)', [
+      actual.id,
+      'redirect',
+      { url: 'https://app.sandbox.midtrans.com/snap/old-bank' },
+    ]);
+    const bankChange = (
+      await db.query('select public.tanj_midtrans_bank_change($1,$2) d', [actual.id, 'begin'])
+    ).rows[0].d;
+    await assert.rejects(
+      db.query('select public.tanj_midtrans_bank_change($1,$2)', [actual.id, 'begin']),
+      /sedang diperbarui/,
+    );
+    await db.query('select public.tanj_midtrans_gateway($1,$2,$3)', [
+      actual.id,
+      'status',
+      {
+        order_id: actual.id,
+        provider_order_id: actual.id,
+        gross_amount: actual.total,
+        transaction_status: 'cancel',
+      },
+    ]);
+    await db.exec('reset role');
+    assert.equal(
+      await available(),
+      0,
+      'cancel during bank change must not release reserved inventory',
+    );
+    assert.equal(
+      (await db.query('select data from public.tb_t_order where id=$1', [actual.id])).rows[0].data
+        .status,
+      'WAITING_PAYMENT',
+    );
+    await as('service_role');
+    const bankResult = (
+      await db.query('select public.tanj_midtrans_bank_change($1,$2,$3,$4) d', [
+        actual.id,
+        'complete',
+        actual.id,
+        bankChange.switchId,
+      ])
+    ).rows[0].d;
+    assert.equal(bankResult.providerOrderId.length, 50);
+    await assert.rejects(
+      db.query('select public.tanj_midtrans_bank_change($1,$2,$3,$4)', [
+        actual.id,
+        'complete',
+        actual.id,
+        bankChange.switchId,
+      ]),
+      /sudah berubah/,
+    );
+    await db.query('select public.tanj_midtrans_gateway($1,$2,$3)', [
+      actual.id,
+      'status',
+      {
+        order_id: actual.id,
+        provider_order_id: actual.id,
+        gross_amount: actual.total,
+        transaction_status: 'cancel',
+      },
+    ]);
+    await db.exec('reset role');
+    assert.equal(
+      await available(),
+      0,
+      'late old-bank cancellation must not release the new bill stock',
+    );
+    await as('authenticated');
+    const newBankPreparation = (
+      await db.query('select public.tanj_midtrans_prepare($1) d', [actual.id])
+    ).rows[0].d;
+    assert.equal(newBankPreparation.providerOrderId, bankResult.providerOrderId);
+    assert.equal(newBankPreparation.order.total, actual.total);
+    assert.equal(newBankPreparation.order.deadline, actual.deadline);
+    await as('service_role');
     for (const status of ['settlement', 'settlement', 'expire'])
       await db.query('select public.tanj_midtrans_gateway($1,$2,$3)', [
         actual.id,
         'status',
         {
           order_id: actual.id,
+          provider_order_id: bankResult.providerOrderId,
           gross_amount: actual.total,
           transaction_status: status,
         },
@@ -440,10 +602,11 @@ test('edge rejects unsigned webhooks and uses API status rather than notificatio
   const handler = createMidtransHandler({
     env: (k) => values[k],
     fetcher: async (url, options) => {
+      if (url.endsWith('/tanj_midtrans_context')) return Response.json({ providerOrderId: oid });
       calls++;
       if (url.includes('/v2/'))
         return Response.json({
-          order_id: oid,
+          order_id: decodeURIComponent(url.split('/v2/')[1].split('/status')[0]),
           gross_amount: '123456.00',
           transaction_status: 'settlement',
           transaction_id: 'tx',
@@ -471,27 +634,32 @@ test('edge rejects unsigned webhooks and uses API status rather than notificatio
   assert.equal(probe.status, 200);
   assert.equal((await probe.json()).ignored, true);
   assert.equal(calls, 0);
-  const signature_key = Buffer.from(
-    await crypto.subtle.digest(
-      'SHA-512',
-      new TextEncoder().encode(oid + '200' + '123456.00' + 'secret'),
-    ),
-  ).toString('hex');
-  assert.equal(
-    (
-      await handler(
-        request({
-          order_id: oid,
-          status_code: '200',
-          gross_amount: '123456.00',
-          signature_key,
-          transaction_status: 'deny',
-        }),
-      )
-    ).status,
-    200,
-  );
-  assert.equal(saved.details.transaction_status, 'settlement');
+  for (const providerOrderId of [oid, oid + '-ABC12345']) {
+    const signature_key = Buffer.from(
+      await crypto.subtle.digest(
+        'SHA-512',
+        new TextEncoder().encode(providerOrderId + '200' + '123456.00' + 'secret'),
+      ),
+    ).toString('hex');
+    assert.equal(
+      (
+        await handler(
+          request({
+            order_id: providerOrderId,
+            status_code: '200',
+            gross_amount: '123456.00',
+            signature_key,
+            transaction_status: 'deny',
+          }),
+        )
+      ).status,
+      200,
+    );
+    assert.equal(saved.details.transaction_status, 'settlement');
+    assert.equal(saved.oid, oid);
+    assert.equal(saved.details.order_id, oid);
+    assert.equal(saved.details.provider_order_id, providerOrderId);
+  }
 });
 
 test('edge start ignores browser totals, preserves ownership and uses trusted redirect hosts', async () => {
@@ -506,17 +674,21 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
   let own = true;
   let outcome = 'success';
   let channel;
+  let preparedProviderId = oid;
+  let sentProviderId;
   let gatewayFailure = false;
   const operations = [];
   const handler = createMidtransHandler({
     env: (k) => v[k],
     fetcher: async (url, options) => {
+      if (url.endsWith('/tanj_midtrans_context')) return Response.json({ providerOrderId: oid });
       if (url.endsWith('/auth/v1/user')) return Response.json({ id: buyer });
       if (url.includes('/tb_t_order?')) return Response.json(own ? [{ id: oid }] : []);
       if (url.endsWith('/tanj_midtrans_prepare') && outcome === 'sold_out')
         return Response.json({ message: 'Selcuk Brown sudah diorder' }, { status: 400 });
       if (url.endsWith('/tanj_midtrans_prepare'))
         return Response.json({
+          providerOrderId: preparedProviderId,
           order: {
             payment: { channel },
             total: 123456,
@@ -551,6 +723,7 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
               : ['bank_transfer', 'cimb_va', 'danamon_va', 'bsi_va', 'other_qris'],
         );
         amount = JSON.parse(options.body).transaction_details.gross_amount;
+        sentProviderId = JSON.parse(options.body).transaction_details.order_id;
         assert.deepEqual(JSON.parse(options.body).permata_va, { recipient_name: 'TANJ INDONESIA' });
         return Response.json({
           redirect_url: 'https://app.sandbox.midtrans.com/snap/v2/vtweb/token',
@@ -619,4 +792,12 @@ test('edge start ignores browser totals, preserves ownership and uses trusted re
   const soldOut = await handler(request());
   assert.equal(soldOut.status, 409);
   assert.match((await soldOut.json()).error, /sudah dipesan atau dibayarkan customer lain/);
+  outcome = 'success';
+  preparedProviderId = oid + '-ABC12345';
+  assert.equal((await handler(request())).status, 200);
+  assert.equal(
+    sentProviderId,
+    preparedProviderId,
+    'replacement provider bill must not reuse a cancelled bank bill ID',
+  );
 });

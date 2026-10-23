@@ -206,6 +206,34 @@ try {
     .waitFor();
   assert.equal(await page.locator('iframe').count(), 0);
   await page.evaluate(() => window.stop());
+  await page.evaluate(() => {
+    window.bankChanges = [];
+    window.bankRefreshed = 0;
+    window.stop = window.mount(document.getElementById('checkout'), 'TANJ-test', {
+      ...window.checkoutOptions,
+      canChangeBank: true,
+      request: async (operation, id) => {
+        if (operation === 'change-bank') {
+          window.bankChanges.push(id);
+          return { changed: true };
+        }
+        return window.checkoutOptions.request(operation, id);
+      },
+      onVerified: async () => {
+        window.bankRefreshed++;
+      },
+    });
+  });
+  await page.locator('iframe[title="QRIS dan VA"]').waitFor();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Ganti bank', exact: true }).click();
+  await page
+    .getByRole('link', { name: 'Lanjutkan pembayaran Virtual Account', exact: true })
+    .waitFor();
+  assert.deepEqual(await page.evaluate(() => window.bankChanges), ['TANJ-test']);
+  assert.equal(await page.evaluate(() => window.bankRefreshed), 1);
+  assert.equal(await page.locator('iframe').count(), 0);
+  await page.evaluate(() => window.stop());
   console.log(
     'PASS: automatic embedded checkout, upload-free public Client Key, retry same order, server-verified payment callbacks, mobile viewport. Provider is simulated.',
   );

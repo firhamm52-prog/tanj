@@ -29,6 +29,14 @@ Check that the Snap amount equals the stored order total; a success redirect alo
 
 ## Operational behavior
 
+### Change an issued VA bank (023)
+
+Install `supabase/migrations/202610240023_change_va_bank.sql` once after 022, then deploy the rebuilt `supabase/dashboard/midtrans.ts`. Unpaid VA orders (including historical Midtrans orders without a channel) show **Ganti bank** outside Snap. The customer confirms cancellation of the old VA, the backend authenticates the owner, acquires a one-minute switch lease and reads the provider status. A paid bill is reconciled without replacement. An issued pending bank-transfer/Mandiri bill is cancelled via Midtrans and its cancellation is verified with a separate status lookup before local rotation. If no bank has been chosen yet, the existing payment list is reopened instead.
+
+One TANJ order, stock reservation, total and deadline are preserved. A replacement provider bill uses the TANJ ID plus an eight-hex suffix (50 characters total); provider IDs are private gateway metadata, not new customer orders. Status checks follow the active provider ID. Signed webhook verification uses the full provider ID and maps it to the original TANJ order. The private gateway rejects unknown provider IDs, ignores delayed cancellation/expiry from retired bills, and still reconciles authoritative paid notifications. Switching prevents cancellation callbacks from releasing the stock reservation while the replacement is being prepared. A duplicate click or stale completion cannot rotate twice. If cancellation cannot be confirmed, no new bill is created; the customer can retry after the lease expires. After a confirmed switch, the validated Midtrans-hosted page opens from **Lanjutkan pembayaran Virtual Account**, where the customer chooses another bank. Do not pay the old VA after confirming a switch.
+
+Tests cover the SQL lease and stock preservation, late old-bill cancellation, suffixed webhook signatures, ownership, provider cancellation uncertainty, payment racing with cancellation, replacement bill IDs, and the browser button. Provider responses are simulated in tests; production cancellation success depends on the bank/Midtrans response. See [Midtrans pending payment cancellation](https://docs.midtrans.com/reference/cancel-api-1) and [one order with multiple provider attempts](https://docs.midtrans.com/docs/snap-advanced-feature).
+
 ### Change an unused QRIS session to VA (022)
 
 After changing methods, TANJ shows **Lanjutkan pembayaran Virtual Account**, opening the validated Midtrans-hosted URL in a new tab rather than embedding another Snap instance. Reopening a changed order keeps this recovery view; TANJ continues authoritative status checks on return. Ordinary embedded orders also include a direct Midtrans link if the embedded display is blank. These frontend recovery changes require no further SQL or Edge Function deployment.

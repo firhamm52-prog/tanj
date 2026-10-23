@@ -41,7 +41,7 @@ function createMidtransHandler({ env, fetcher = fetch }) {
       });
       fail(
         409,
-        token ? /sudah diorder/i.test(String(d.message || "")) ? "Stok barang sudah tidak tersedia karena sudah dipesan atau dibayarkan customer lain. Periksa tas belanja kembali." : d.message || "Pesanan belum dapat diproses." : "Status pembayaran belum dapat disimpan. Coba periksa lagi."
+        name === "tanj_midtrans_bank_change" && d.code === "P0001" && /^(Pesanan|Batas pembayaran|Pembayaran sedang|Percobaan)/.test(String(d.message)) ? d.message : token ? /sudah diorder/i.test(String(d.message || "")) ? "Stok barang sudah tidak tersedia karena sudah dipesan atau dibayarkan customer lain. Periksa tas belanja kembali." : d.message || "Pesanan belum dapat diproses." : "Status pembayaran belum dapat disimpan. Coba periksa lagi."
       );
     }
     return d;
@@ -80,6 +80,26 @@ function createMidtransHandler({ env, fetcher = fetch }) {
       );
     }
     return d;
+  }
+  async function saveStatus(oid, providerId, d) {
+    if (d.order_id !== providerId || !/^\d+(?:\.00)?$/.test(String(d.gross_amount)) || d.currency && d.currency !== "IDR")
+      fail(422, "Detail pembayaran tidak valid.");
+    return rpc("tanj_midtrans_gateway", {
+      oid,
+      operation: "status",
+      details: {
+        order_id: oid,
+        provider_order_id: providerId,
+        gross_amount: d.gross_amount,
+        currency: d.currency || "IDR",
+        transaction_status: d.transaction_status,
+        fraud_status: d.fraud_status || "",
+        transaction_id: d.transaction_id
+      }
+    });
+  }
+  async function providerIdFor(oid) {
+    return (await rpc("tanj_midtrans_context", { oid })).providerOrderId;
   }
   const limits = /* @__PURE__ */ new Map();
   return async (request) => {
@@ -132,20 +152,23 @@ function createMidtransHandler({ env, fetcher = fetch }) {
         fail(400, "JSON tidak valid.");
       }
       const webhook = path.endsWith("/notification");
-      if (!webhook && !path.endsWith("/start") && !path.endsWith("/status") && !path.endsWith("/change-method"))
+      if (!webhook && !path.endsWith("/start") && !path.endsWith("/status") && !path.endsWith("/change-method") && !path.endsWith("/change-bank"))
         fail(404, "Endpoint tidak ditemukan.");
-      const oid = webhook ? input.order_id : input.orderId;
-      if (webhook && typeof oid === "string" && !oid.startsWith("TANJ-"))
+      const incomingId = webhook ? input.order_id : input.orderId;
+      if (webhook && typeof incomingId === "string" && !incomingId.startsWith("TANJ-"))
         return json(200, { received: true, ignored: true });
-      if (typeof oid !== "string" || !/^TANJ-[A-F0-9-]{36}$/.test(oid))
+      if (typeof incomingId !== "string" || !(webhook ? /^TANJ-[A-F0-9-]{36}(?:-[A-F0-9]{8})?$/ : /^TANJ-[A-F0-9-]{36}$/).test(
+        incomingId
+      ))
         fail(422, "Nomor pesanan tidak valid.");
+      const oid = incomingId.slice(0, 41);
       let token;
       if (webhook) {
         if (typeof input.signature_key !== "string") fail(401, "Signature diperlukan.");
         const digest = await crypto.subtle.digest(
           "SHA-512",
           new TextEncoder().encode(
-            oid + String(input.status_code) + String(input.gross_amount) + key
+            incomingId + String(input.status_code) + String(input.gross_amount) + key
           )
         );
         const expected = Array.from(
@@ -185,14 +208,51 @@ function createMidtransHandler({ env, fetcher = fetch }) {
         if (!rr.ok || !(await rr.json()).some((o) => o.id === oid))
           fail(404, "Pesanan tidak ditemukan.");
       }
+      if (path.endsWith("/change-bank")) {
+        const change = await rpc("tanj_midtrans_bank_change", { oid, operation: "begin" });
+        const pid2 = change.providerOrderId;
+        const status = () => provider(apiHost, "/v2/" + encodeURIComponent(pid2) + "/status");
+        const existing = await status();
+        const abort = () => rpc("tanj_midtrans_bank_change", { oid, operation: "abort", switch_id: change.switchId });
+        if (existing.notStarted) {
+          await abort();
+          return json(200, { bankSelectionReady: true });
+        }
+        if (existing.order_id !== pid2 || Number(existing.gross_amount) !== change.total || existing.currency && existing.currency !== "IDR")
+          fail(422, "Detail pembayaran tidak valid.");
+        if (["settlement", "capture"].includes(existing.transaction_status))
+          return json(200, await saveStatus(oid, pid2, existing));
+        if (!["bank_transfer", "echannel"].includes(existing.payment_type) || !["pending", "cancel", "expire"].includes(existing.transaction_status)) {
+          await abort();
+          fail(409, "Pembayaran ini tidak dapat diganti bank.");
+        }
+        if (existing.transaction_status === "pending") {
+          try {
+            await provider(apiHost, "/v2/" + encodeURIComponent(pid2) + "/cancel", {});
+          } catch {
+          }
+        }
+        const confirmed = await status();
+        if (!confirmed.notStarted && ["settlement", "capture"].includes(confirmed.transaction_status))
+          return json(200, await saveStatus(oid, pid2, confirmed));
+        if (confirmed.notStarted || confirmed.order_id !== pid2 || Number(confirmed.gross_amount) !== change.total || confirmed.currency && confirmed.currency !== "IDR" || !["cancel", "expire"].includes(confirmed.transaction_status))
+          fail(
+            409,
+            "Pembatalan VA lama belum terkonfirmasi. Jangan bayar nomor lama. Coba Ganti bank kembali dalam satu menit."
+          );
+        await rpc("tanj_midtrans_bank_change", {
+          oid,
+          operation: "complete",
+          provider_id: pid2,
+          switch_id: change.switchId
+        });
+        return json(200, { changed: true });
+      }
       if (path.endsWith("/change-method")) {
-        const existing = await provider(apiHost, "/v2/" + encodeURIComponent(oid) + "/status");
+        const pid2 = await providerIdFor(oid);
+        const existing = await provider(apiHost, "/v2/" + encodeURIComponent(pid2) + "/status");
         if (!existing.notStarted) {
-          const result2 = await rpc("tanj_midtrans_gateway", {
-            oid,
-            operation: "status",
-            details: existing
-          });
+          const result2 = await saveStatus(oid, pid2, existing);
           if (result2.status === "PAID") return json(200, result2);
           fail(
             409,
@@ -212,6 +272,7 @@ function createMidtransHandler({ env, fetcher = fetch }) {
             production
           });
         const o = prepared.order;
+        const pid2 = prepared.providerOrderId || oid;
         const finish = new URL(site);
         finish.searchParams.set("order", oid);
         finish.hash = "pesanan";
@@ -222,7 +283,7 @@ function createMidtransHandler({ env, fetcher = fetch }) {
         let d2;
         try {
           d2 = await provider(snapHost, "/snap/v1/transactions", {
-            transaction_details: { order_id: oid, gross_amount: o.total },
+            transaction_details: { order_id: pid2, gross_amount: o.total },
             enabled_payments: o.payment?.channel === "qris" ? ["other_qris"] : o.payment?.channel === "va" ? ["bank_transfer", "cimb_va", "danamon_va", "bsi_va"] : ["bank_transfer", "cimb_va", "danamon_va", "bsi_va", "other_qris"],
             permata_va: { recipient_name: "TANJ INDONESIA" },
             customer_details: {
@@ -239,13 +300,9 @@ function createMidtransHandler({ env, fetcher = fetch }) {
           });
         } catch (e) {
           if (e.duplicateOrder) {
-            const existing = await provider(apiHost, "/v2/" + encodeURIComponent(oid) + "/status");
+            const existing = await provider(apiHost, "/v2/" + encodeURIComponent(pid2) + "/status");
             if (!existing.notStarted) {
-              const result2 = await rpc("tanj_midtrans_gateway", {
-                oid,
-                operation: "status",
-                details: existing
-              });
+              const result2 = await saveStatus(oid, pid2, existing);
               return json(200, { ...result2, paymentPending: result2.status !== "PAID" });
             }
           }
@@ -272,22 +329,10 @@ function createMidtransHandler({ env, fetcher = fetch }) {
         });
         return json(200, { redirectUrl: redirect.href, snapToken: d2.token, clientKey, production });
       }
-      const d = await provider(apiHost, "/v2/" + encodeURIComponent(oid) + "/status");
+      const pid = webhook ? incomingId : await providerIdFor(oid);
+      const d = await provider(apiHost, "/v2/" + encodeURIComponent(pid) + "/status");
       if (d.notStarted) return json(200, { status: "WAITING_PAYMENT", notStarted: true });
-      if (d.order_id !== oid || !/^\d+(?:\.00)?$/.test(String(d.gross_amount)) || d.currency && d.currency !== "IDR")
-        fail(422, "Detail pembayaran tidak valid.");
-      const result = await rpc("tanj_midtrans_gateway", {
-        oid,
-        operation: "status",
-        details: {
-          order_id: d.order_id,
-          gross_amount: d.gross_amount,
-          currency: d.currency || "IDR",
-          transaction_status: d.transaction_status,
-          fraud_status: d.fraud_status || "",
-          transaction_id: d.transaction_id
-        }
-      });
+      const result = await saveStatus(oid, pid, d);
       return json(200, result);
     } catch (e) {
       console.warn("Midtrans request rejected", {

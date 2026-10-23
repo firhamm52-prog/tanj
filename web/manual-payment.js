@@ -1,4 +1,4 @@
-import { mountMidtransCheckout } from './midtrans-checkout.js?v=hosted-recovery-13';
+import { mountMidtransCheckout } from './midtrans-checkout.js?v=change-bank-14';
 import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js';
 import { cloudEnabled } from './supabase-payments.js?v=improve-2';
 import { cropQrisArtwork } from './qris-crop.js';
@@ -321,6 +321,7 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
           message.after(payment);
           stopMidtrans = mountMidtransCheckout(payment, order.id, {
             canChangeMethod: order.payment?.channel === 'qris',
+            canChangeBank: order.payment?.channel !== 'qris',
             preferHosted: order.payment?.methodChanged === true,
             onVerified: async () => {
               await refreshPayments();

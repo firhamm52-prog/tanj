@@ -28,6 +28,7 @@ export function mountMidtransCheckout(
     load = loadSnap,
     onVerified = async () => {},
     canChangeMethod = false,
+    canChangeBank = false,
     preferHosted = false,
     redirect = (url) => location.assign(url),
   } = {},
@@ -50,11 +51,11 @@ export function mountMidtransCheckout(
   const frame = container.querySelector('.midtrans-embed');
   frame.id = 'midtrans-' + crypto.randomUUID();
   const retry = container.querySelector('button');
-  if (canChangeMethod) {
+  if (canChangeMethod || canChangeBank) {
     const change = document.createElement('button');
     change.type = 'button';
     change.className = 'shop-outline';
-    change.textContent = 'Ubah metode pembayaran';
+    change.textContent = canChangeMethod ? 'Ubah metode pembayaran' : 'Ganti bank';
     const changeNotice = document.createElement('p');
     changeNotice.dataset.methodChange = '';
     changeNotice.setAttribute('role', 'status');
@@ -64,7 +65,9 @@ export function mountMidtransCheckout(
         busy ||
         !active() ||
         !window.confirm(
-          'Ubah pembayaran QRIS menjadi Virtual Account? Server akan memeriksa apakah tagihan masih dapat diubah.',
+          canChangeMethod
+            ? 'Ubah pembayaran QRIS menjadi Virtual Account? Server akan memeriksa apakah tagihan masih dapat diubah.'
+            : 'Ganti bank pembayaran? VA lama akan dibatalkan terlebih dahulu. Jangan bayar nomor lama selama proses ini. Pesanan dan total tetap sama.',
         )
       )
         return;
@@ -75,11 +78,11 @@ export function mountMidtransCheckout(
       verification.hidden = true;
       let reopen = false;
       try {
-        const result = await request('change-method', orderId);
+        const result = await request(canChangeMethod ? 'change-method' : 'change-bank', orderId);
         if (!active()) return;
-        if (result.changed || result.status === 'PAID') {
+        if (result.changed || result.bankSelectionReady || result.status === 'PAID') {
           closeSnap();
-          if (result.changed) {
+          if (result.changed || result.bankSelectionReady) {
             hosted = true;
             container.querySelector('[data-payment-link]')?.remove();
             change.hidden = true;

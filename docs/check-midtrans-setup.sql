@@ -7,7 +7,7 @@ SELECT
  ) AS migration_015_stock,
  coalesce(position('creation_rejected' IN pg_get_functiondef(
   to_regprocedure('public.tanj_midtrans_gateway(text,text,jsonb)')
- )) > 0,false) AS migration_015_gateway,
+ )) > 0,false) OR to_regprocedure('public.tanj_midtrans_gateway_before_reservation(text,text,jsonb)') IS NOT NULL AS migration_015_gateway,
  has_function_privilege('service_role',
   to_regprocedure('public.tanj_midtrans_gateway(text,text,jsonb)'), 'EXECUTE'
  ) AS service_role_gateway_access;
