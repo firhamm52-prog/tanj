@@ -107,6 +107,7 @@ function detail(o) {
       '<h2>Detail pesanan</h2><p>Pilih pesanan untuk memeriksa pembayaran.</p>';
     return;
   }
+  const automatic = o.payment?.provider === 'midtrans';
   $('detail').innerHTML =
     `<p>DETAIL ORDER</p><h2>${esc(o.id)}</h2><p>${esc(paymentLabels[orderStatus(o)])}</p><div class="amount">${money(o.total)}</div><p>Subtotal ${money(o.subtotal)} + ongkir ${money(o.shipping.fee)} + kode ${money(o.adjustment)}</p><p>${esc(o.customer.name)} &middot; ${esc(o.customer.phone)}<br>${esc(o.customer.address)}, ${esc(o.customer.district)}, ${esc(o.customer.city)} ${esc(o.customer.zip)}</p><ul>${o.items.map((i) => `<li>${esc(i.name)} / ${esc(i.color)} &times; ${i.qty}</li>`).join('')}</ul>${o.shipping.subsidy ? `<p>Ongkir kurir ${money(o.shipping.originalFee)} / subsidi TANJ ${money(o.shipping.subsidy)} / ongkir dibayar customer ${money(o.shipping.fee)}</p>` : ''}<h3>Bukti pembayaran</h3>${
       o.proofs.length
@@ -122,6 +123,15 @@ function detail(o) {
     }${!['PAID', 'CANCELLED'].includes(o.status) ? '<div class="actions"><button class="primary" id="approve">Approve pembayaran</button><button class="reject" id="reject">Reject</button></div><div id="review-form"></div>' : ''}<h3>Riwayat</h3><ol>${o.logs.map((l) => `<li>${new Date(l.at).toLocaleString('id-ID')} &middot; ${esc(l.note)}</li>`).join('')}</ol>`;
   $('approve')?.addEventListener('click', () => review(o, 'approve'));
   $('reject')?.addEventListener('click', () => review(o, 'reject'));
+  if (automatic) {
+    $('approve')?.closest('.actions')?.remove();
+    $('review-form')?.remove();
+    const notice = document.createElement('p');
+    notice.id = 'automatic-payment-notice';
+    notice.textContent =
+      'Pembayaran ini diverifikasi otomatis oleh Midtrans. Approve dan Reject manual tidak tersedia. Untuk membatalkan tagihan yang belum dibayar, periksa transaksi di dashboard Midtrans. Status TANJ diperbarui setelah konfirmasi Midtrans diterima.';
+    $('detail').querySelector('h3')?.before(notice);
+  }
   if (o.status === 'PAID' && !o.completedAt) trackingForm(o);
   if (o.completedAt) {
     const note = document.createElement('p');
@@ -158,6 +168,7 @@ function detail(o) {
   customerWhatsApp(o);
 }
 function review(o, action) {
+  if (o.payment?.provider === 'midtrans') return;
   if (action === 'approve' && o.status !== 'CHECKING') {
     $('review-error').textContent =
       'Customer belum mengonfirmasi pembayaran. Tunggu status Menunggu verifikasi.';

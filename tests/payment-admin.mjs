@@ -130,6 +130,23 @@ try {
   await page.locator('.order').waitFor();
   assert.match(await page.locator('#detail').textContent(), /Pembayaran ditolak/);
   await page.evaluate(() => {
+    const key = 'tanj-manual-payments-demo-v1';
+    const state = JSON.parse(localStorage.getItem(key));
+    state.orders.push({
+      ...structuredClone(state.orders[0]),
+      id: 'TANJ-GATEWAY',
+      status: 'WAITING_PAYMENT',
+      payment: { provider: 'midtrans' },
+    });
+    localStorage.setItem(key, JSON.stringify(state));
+    window.dispatchEvent(new Event('tanj-payments-change'));
+  });
+  await page.locator('[data-filter=WAITING_PAYMENT]').click();
+  await page.locator('[data-order="TANJ-GATEWAY"]').click();
+  await page.locator('#automatic-payment-notice').waitFor();
+  assert.equal(await page.locator('#approve, #reject, #review-form').count(), 0);
+  assert.match(await page.locator('#automatic-payment-notice').textContent(), /dashboard Midtrans/);
+  await page.evaluate(() => {
     const key = 'tanj-manual-payments-demo-v1',
       state = JSON.parse(localStorage.getItem(key));
     state.orders.push({
