@@ -243,10 +243,13 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
       if (
         order?.payment?.provider === 'midtrans' &&
         order.status === 'WAITING_PAYMENT' &&
-        embedded?.dataset.midtransOrder === order.id &&
-        embedded.dataset.version === String(order.version)
-      )
+        embedded?.dataset.midtransOrder === order.id
+      ) {
+        // Bank changes increment the order version. Keep the mounted checkout alive:
+        // its change handler replaces only the bank session, including during store notifications.
+        embedded.dataset.version = String(order.version);
         return;
+      }
       stopMidtrans();
       if (!order) {
         panel.innerHTML = `<button type="button" class="checkout-back" id="manual-back">← Kembali ke tas</button><h3 tabindex="-1">Pesanan saya</h3>${demoNotice}<p id="manual-payment-error" role="alert">${requested && selected === requested ? esc('Pesanan dari link ini belum tersedia untuk akun di browser ini. Pastikan akun sesuai dengan pemilik pesanan. Pesanan lama versi browser belum otomatis dipindahkan. Hubungi admin TANJ dengan nomor pesanan ' + requested + '.') : ''}</p><label for="customer-status-filter">Status pesanan</label><select id="customer-status-filter"><option value="all">Semua</option><option value="WAITING_PAYMENT">Menunggu pembayaran</option><option value="CHECKING">Menunggu verifikasi</option><option value="PAID">Payment berhasil</option><option value="REJECTED">Pembayaran ditolak</option><option value="CANCELLED">Dibatalkan</option></select><div class="manual-order-list">${
