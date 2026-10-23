@@ -14,6 +14,7 @@ test('method change verifies provider status and ownership before touching the s
     MIDTRANS_SERVER_KEY: 'server',
   };
   let state = 'missing',
+    providerHttpStatus = 404,
     own = true,
     changes = 0;
   const handler = createMidtransHandler({
@@ -23,7 +24,7 @@ test('method change verifies provider status and ownership before touching the s
       if (url.includes('/tb_t_order?')) return Response.json(own ? [{ id: oid }] : []);
       if (url.endsWith('/status'))
         return state === 'missing'
-          ? Response.json({ status_code: '404' }, { status: 404 })
+          ? Response.json({ status_code: '404' }, { status: providerHttpStatus })
           : Response.json({ order_id: oid, gross_amount: '1000', transaction_status: state });
       if (url.endsWith('/tanj_midtrans_gateway'))
         return Response.json({ status: state === 'settlement' ? 'PAID' : 'WAITING_PAYMENT' });
@@ -34,25 +35,31 @@ test('method change verifies provider status and ownership before touching the s
       throw Error(url);
     },
   });
-  const request = () =>
+  const request = (operation = 'change-method') =>
     handler(
-      new Request('https://edge.test/midtrans/change-method', {
+      new Request('https://edge.test/midtrans/' + operation, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer user' },
         body: JSON.stringify({ orderId: oid }),
       }),
     );
-  assert.equal((await request()).status, 200);
-  assert.equal(changes, 1);
+  for (providerHttpStatus of [404, 200]) {
+    assert.deepEqual(await (await request('status')).json(), {
+      status: 'WAITING_PAYMENT',
+      notStarted: true,
+    });
+    assert.equal((await request()).status, 200);
+  }
+  assert.equal(changes, 2);
   state = 'pending';
   assert.equal((await request()).status, 409);
-  assert.equal(changes, 1);
+  assert.equal(changes, 2);
   state = 'settlement';
   assert.equal((await (await request()).json()).status, 'PAID');
-  assert.equal(changes, 1);
+  assert.equal(changes, 2);
   own = false;
   assert.equal((await request()).status, 404);
-  assert.equal(changes, 1);
+  assert.equal(changes, 2);
 });
 
 test('automatic status polling has a separate budget from payment starts', async () => {

@@ -58,7 +58,7 @@ function createMidtransHandler({ env, fetcher = fetch }) {
       signal: AbortSignal.timeout(18e3)
     });
     const d = await r.json();
-    if (host === apiHost && r.status === 404 && String(d.status_code) === "404")
+    if (host === apiHost && [200, 404].includes(r.status) && String(d.status_code) === "404")
       return { notStarted: true };
     if (!r.ok || d.status_code && Number(d.status_code) >= 400) {
       const messages = Array.isArray(d.error_messages) ? d.error_messages.join("; ") : "";
