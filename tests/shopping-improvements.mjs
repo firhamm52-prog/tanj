@@ -132,6 +132,34 @@ try {
     await page.locator('#bag-modal').waitFor({ state: 'visible' });
     await page.locator('#bag-modal [data-utility-close]').click();
   }
+  // A zero stock count must override a stale inStock=true flag in every product view.
+  await context.route('**/web/data.js*', (route) =>
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: `import { freshSeed, storefront } from '/shared/seed.js';
+      export const isApi=false, usesCloudCMS=false;
+      export async function loadStorefront(){
+        const state=freshSeed();
+        state.products[0].stock=0; state.products[0].inStock=true;
+        state.hijabs[0].stock=0; state.hijabs[0].inStock=true;
+        return storefront(state);
+      }`,
+    }),
+  );
+  await page.reload();
+  await page.locator('.product-preview').first().click();
+  assert.match(await page.locator('#product-add').textContent(), /Sold out/i);
+  assert.equal(await page.locator('#product-add').isDisabled(), true);
+  assert.equal(await page.locator('#product-buy-now').isDisabled(), true);
+  assert.equal(await page.locator('#product-quantity').textContent(), '0');
+  assert.equal(
+    await page
+      .locator('#hijab-grid .hijab-card')
+      .first()
+      .getAttribute('class')
+      .then((c) => c.includes('is-sold-out')),
+    true,
+  );
   assert.deepEqual(errors, []);
   console.log(
     'PASS: CS WhatsApp, available product recommendations, switching products, X close, no horizontal overflow, primary Order button fits desktop/mobile including 320x568.',

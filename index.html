@@ -4811,7 +4811,11 @@
           ? url
           : '';
       };
-      const cmsAvailable = (item) => item?.inStock !== false;
+      const cmsAvailable = (item) =>
+        Boolean(item) &&
+        item.inStock !== false &&
+        Number.isSafeInteger(item.stock) &&
+        item.stock > 0;
       const cmsId = () => String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8);
       const idrMoney = (value) => 'Rp' + Number(value || 0).toLocaleString('id-ID');
       const cmsMoney = (value) =>
@@ -5173,7 +5177,7 @@
         document.querySelectorAll('#hijab-grid .hijab-card').forEach((card) => {
           const item = cmsState.hijabs.find((x) => x.id === card.dataset.productId);
           if (!item) return;
-          const sold = item.inStock === false,
+          const sold = !cmsAvailable(item),
             link = card.querySelector('a'),
             price = card.querySelector('.hijab-price');
           card.classList.toggle('is-sold-out', sold);
@@ -5647,8 +5651,9 @@
         productFocus?.focus();
       }
       function renderProduct() {
-        const item = activeVariant;
+        const item = findProduct(activeVariant?.id);
         if (!item) return;
+        activeVariant = item;
         const remaining = remainingStock(item);
         productQty = remaining ? Math.min(Math.max(1, productQty), remaining) : 0;
         document.getElementById('product-minus').disabled = productQty <= 1;
@@ -5671,7 +5676,7 @@
           ? 'Tambahkan ke tas '
           : stockLimit(item)
             ? 'Semua stok sudah di tas '
-            : 'Stok habis ';
+            : 'Sold out ';
         productImage.src = cmsAssetSrc(item.model) || cmsAssetSrc(item.product);
         productImage.alt = 'Model mengenakan ' + productFullName(item);
         productColors.replaceChildren();
