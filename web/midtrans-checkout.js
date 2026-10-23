@@ -100,7 +100,7 @@ export function mountMidtransCheckout(
       mountedSnap = snap;
       snapOwner = owner;
       try {
-        snap.embed(data.snapToken, {
+        await snap.embed(data.snapToken, {
           embedId: frame.id,
           onSuccess: verify,
           onPending: verify,

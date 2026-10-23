@@ -118,7 +118,7 @@ try {
     window.stop = window.mount(document.getElementById('checkout'), 'TANJ-test', {
       ...window.checkoutOptions,
       load: async () => ({
-        embed() {
+        async embed() {
           throw Error(
             'snap.embed is not allowed to be called in this state. Invalid state transition from PopupInView to PopupInView',
           );

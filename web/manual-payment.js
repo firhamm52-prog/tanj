@@ -1,4 +1,4 @@
-import { mountMidtransCheckout } from './midtrans-checkout.js?v=snap-lifecycle-8';
+import { mountMidtransCheckout } from './midtrans-checkout.js?v=snap-lifecycle-9';
 import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js';
 import { cloudEnabled } from './supabase-payments.js?v=improve-2';
 import { cropQrisArtwork } from './qris-crop.js';
