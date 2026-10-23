@@ -27,7 +27,8 @@ export async function midtransRequest(operation, orderId) {
     signal: AbortSignal.timeout(35000),
   });
   const d = await r.json();
-  if (!r.ok) throw Error(d.error || 'Pembayaran belum dapat diproses.');
+  if (!r.ok)
+    throw Object.assign(Error(d.error || 'Pembayaran belum dapat diproses.'), { status: r.status });
   return d;
 }
 export async function openMidtrans(orderId) {

@@ -140,14 +140,18 @@ try {
   await page.evaluate(() => {
     window.changes = 0;
     window.changeVerified = 0;
+    window.failChange = true;
     window.stop = window.mount(document.getElementById('checkout'), 'TANJ-test', {
       ...window.checkoutOptions,
       canChangeMethod: true,
       request: async (operation, id) => {
         if (operation === 'change-method') {
           window.changes++;
+          if (window.failChange) throw Error('Database metode pembayaran belum siap.');
           return { changed: true };
         }
+        if (operation === 'status')
+          throw Object.assign(Error('Status pembayaran belum dapat disimpan.'), { status: 409 });
         return window.checkoutOptions.request(operation, id);
       },
       onVerified: async () => {
@@ -156,10 +160,30 @@ try {
     });
   });
   await page.locator('iframe[title="QRIS dan VA"]').waitFor();
+  await page.clock.fastForward(5000);
+  await page
+    .getByText('Pengecekan status belum berhasil: Status pembayaran belum dapat disimpan.')
+    .waitFor();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Ubah metode pembayaran', exact: true }).click();
+  await page
+    .locator('[data-method-change]')
+    .filter({ hasText: 'Database metode pembayaran belum siap.' })
+    .waitFor();
+  assert.equal(await page.locator('iframe[title="QRIS dan VA"]').count(), 1);
+  assert.equal(await page.evaluate(() => window.changeVerified), 0);
+  await page.evaluate(() => {
+    window.failChange = false;
+  });
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Ubah metode pembayaran', exact: true }).click();
   await page.waitForFunction(() => window.changeVerified === 1);
-  assert.equal(await page.evaluate(() => window.changes), 1);
+  await page.locator('iframe[title="QRIS dan VA"]').waitFor();
+  assert.equal(await page.evaluate(() => window.changes), 2);
+  assert.equal(
+    await page.getByRole('button', { name: 'Ubah metode pembayaran', exact: true }).isVisible(),
+    false,
+  );
   await page.evaluate(() => window.stop());
   console.log(
     'PASS: automatic embedded checkout, upload-free public Client Key, retry same order, server-verified payment callbacks, mobile viewport. Provider is simulated.',

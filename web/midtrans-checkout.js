@@ -1,4 +1,4 @@
-import { midtransRequest } from './midtrans.js';
+import { midtransRequest } from './midtrans.js?v=change-feedback-12';
 
 let snapScript;
 let snapOwner;
@@ -53,6 +53,10 @@ export function mountMidtransCheckout(
     change.type = 'button';
     change.className = 'shop-outline';
     change.textContent = 'Ubah metode pembayaran';
+    const changeNotice = document.createElement('p');
+    changeNotice.dataset.methodChange = '';
+    changeNotice.setAttribute('role', 'status');
+    changeNotice.hidden = true;
     change.onclick = async () => {
       if (
         busy ||
@@ -64,35 +68,47 @@ export function mountMidtransCheckout(
         return;
       busy = true;
       change.disabled = true;
+      changeNotice.hidden = false;
+      changeNotice.textContent = 'Memeriksa tagihan dan mengubah metode pembayaran…';
+      verification.hidden = true;
+      let reopen = false;
       try {
         const result = await request('change-method', orderId);
         if (!active()) return;
         if (result.changed || result.status === 'PAID') {
           closeSnap();
+          if (result.changed) {
+            change.hidden = true;
+            reopen = true;
+            changeNotice.textContent =
+              'Metode pembayaran diubah menjadi Virtual Account. Menyiapkan pembayaran…';
+          }
           await onVerified();
-        }
+        } else throw Error('Perubahan metode pembayaran belum dikonfirmasi. Coba kembali.');
       } catch (error) {
-        if (active()) message.textContent = error.message;
+        if (active()) changeNotice.textContent = error.message;
       } finally {
         busy = false;
         change.disabled = false;
+        if (reopen && active()) void start();
       }
     };
-    container.append(change);
+    container.append(change, changeNotice);
   }
   const verification = container.querySelector('[data-verification]');
   const active = () => !stopped && container.isConnected;
   async function verify() {
-    if (!active() || document.hidden || container.closest('[hidden]') || verifying) return;
+    if (!active() || busy || document.hidden || container.closest('[hidden]') || verifying) return;
     verifying = true;
     try {
       const result = await request('status', orderId);
       if (active()) verification.hidden = true;
       if (active() && ['PAID', 'CANCELLED'].includes(result.status)) await onVerified();
-    } catch {
+    } catch (error) {
       if (active()) {
-        verification.textContent =
-          'Status pembayaran akan diperiksa kembali otomatis saat koneksi tersedia.';
+        verification.textContent = error.status
+          ? 'Pengecekan status belum berhasil: ' + error.message
+          : 'Status pembayaran akan diperiksa kembali otomatis saat koneksi tersedia.';
         verification.hidden = false;
       }
     } finally {
