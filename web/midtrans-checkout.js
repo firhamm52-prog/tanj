@@ -1,30 +1,59 @@
 import { midtransRequest } from './midtrans.js?v=change-feedback-12';
 
-let snapScript;
 let snapOwner;
-export function reloadPaymentOrder(orderId) {
-  const url = new URL(location.href);
-  url.searchParams.set('order', orderId);
-  url.hash = 'pesanan';
-  history.replaceState(history.state, '', url);
-  location.reload();
-}
-export function loadSnap(production, clientKey) {
-  return (snapScript ||= new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = production
-      ? 'https://app.midtrans.com/snap/snap.js'
-      : 'https://app.sandbox.midtrans.com/snap/snap.js';
-    script.dataset.clientKey = clientKey;
-    script.onload = () =>
-      window.snap?.embed ? resolve(window.snap) : reject(Error('Pembayaran belum dapat dimuat.'));
-    script.onerror = () => {
-      script.remove();
-      snapScript = null;
-      reject(Error('Koneksi pembayaran terputus. Coba muat ulang pembayaran.'));
-    };
-    document.head.append(script);
-  }));
+let activeSnap;
+export async function loadSnap(production, clientKey) {
+  let iframe, sdk, cancelLoad;
+  return {
+    async embed(token, options) {
+      // Each session gets its own SDK window; removing it cannot hide a newer session.
+      const host = document.getElementById(options.embedId);
+      iframe = document.createElement('iframe');
+      iframe.title = 'QRIS dan VA';
+      iframe.style.cssText = 'display:block;width:100%;height:700px;min-height:560px;border:0';
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(Error('Pembayaran belum dapat dimuat. Coba lagi.')),
+          20000,
+        );
+        cancelLoad = () => {
+          clearTimeout(timer);
+          reject(Error('Tampilan pembayaran ditutup.'));
+        };
+        iframe.onload = () => {
+          if (!iframe.isConnected) return;
+          const doc = iframe.contentDocument;
+          const script = doc.createElement('script');
+          script.src = production
+            ? 'https://app.midtrans.com/snap/snap.js'
+            : 'https://app.sandbox.midtrans.com/snap/snap.js';
+          script.dataset.clientKey = clientKey;
+          script.onload = () => {
+            clearTimeout(timer);
+            cancelLoad = null;
+            sdk = iframe.contentWindow.snap;
+            sdk?.embed ? resolve() : reject(Error('Pembayaran belum dapat dimuat.'));
+          };
+          script.onerror = () => {
+            clearTimeout(timer);
+            cancelLoad = null;
+            reject(Error('Koneksi pembayaran terputus. Coba lagi.'));
+          };
+          doc.head.append(script);
+        };
+        iframe.srcdoc =
+          '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;width:100%;height:100%}#snap-root{width:100%;height:100%}</style></head><body><div id="snap-root"></div></body></html>';
+        host.replaceChildren(iframe);
+      });
+      await sdk.embed(token, { ...options, embedId: 'snap-root' });
+    },
+    hide() {
+      cancelLoad?.();
+      cancelLoad = null;
+      sdk?.hide?.();
+      iframe?.remove();
+    },
+  };
 }
 
 export function mountMidtransCheckout(
@@ -36,7 +65,6 @@ export function mountMidtransCheckout(
     onVerified = async () => {},
     canChangeMethod = false,
     canChangeBank = false,
-    reloadOrder = reloadPaymentOrder,
     redirect = (url) => location.assign(url),
   } = {},
 ) {
@@ -48,6 +76,7 @@ export function mountMidtransCheckout(
   function closeSnap() {
     if (snapOwner === owner) {
       snapOwner = null;
+      activeSnap = null;
       mountedSnap?.hide?.();
     }
   }
@@ -75,15 +104,17 @@ export function mountMidtransCheckout(
         ? 'Memeriksa tagihan dan mengubah metode pembayaran…'
         : 'Mengganti bank pembayaran. Jangan bayar VA lama selama proses ini…';
       verification.hidden = true;
+      let reopen = false;
       try {
         const result = await request(canChangeMethod ? 'change-method' : 'change-bank', orderId);
         if (!active()) return;
         if (result.changed || result.bankSelectionReady || result.status === 'PAID') {
           closeSnap();
           if (result.changed || result.bankSelectionReady) {
-            change.hidden = true;
             changeNotice.textContent = 'Menampilkan pilihan bank kembali pada pesanan ini…';
-            reloadOrder(orderId);
+            reopen = true;
+            change.hidden = canChangeMethod;
+            await onVerified();
           } else await onVerified();
         } else throw Error('Perubahan metode pembayaran belum dikonfirmasi. Coba kembali.');
       } catch (error) {
@@ -91,6 +122,7 @@ export function mountMidtransCheckout(
       } finally {
         busy = false;
         change.disabled = false;
+        if (reopen && active()) void start();
       }
     };
     container.append(change, changeNotice);
@@ -145,8 +177,9 @@ export function mountMidtransCheckout(
       }
       const snap = await load(data.production, data.clientKey);
       if (!active()) return;
-      if (snapOwner) snap.hide?.();
+      if (snapOwner) activeSnap?.hide?.();
       mountedSnap = snap;
+      activeSnap = snap;
       snapOwner = owner;
       try {
         await snap.embed(data.snapToken, {
@@ -171,9 +204,8 @@ export function mountMidtransCheckout(
           throw error;
         closeSnap();
         message.textContent =
-          'Pembayaran perlu dimuat ulang. Tekan Muat ulang pembayaran untuk membuka pesanan yang sama.';
+          'Pembayaran belum dapat ditampilkan. Tekan Muat ulang pembayaran untuk mencoba kembali.';
         retry.hidden = false;
-        retry.onclick = () => reloadOrder(orderId);
         return;
       }
       message.textContent = 'Pilih QRIS atau Virtual Account untuk membayar.';

@@ -36,10 +36,11 @@ try {
       contentType: 'text/javascript',
       body: `window.snap={embed(token, options) {
       if(window.snapActive) throw Error('Invalid state transition from PopupInView to PopupInView');
-      window.snapActive=true; window.onPayError=options.onError;
-      window.embeddedToken=token; window.onPay=options.onSuccess;
+      window.snapActive=true; window.parent.onPayError=options.onError;
+      window.parent.embeddedToken=token; window.parent.onPay=options.onSuccess;
+      window.parent.embedCount=(window.parent.embedCount||0)+1;
       document.getElementById(options.embedId).innerHTML='<iframe title="QRIS dan VA"></iframe>';
-    }, hide(){ window.snapActive=false; window.hideCount=(window.hideCount||0)+1;
+    }, hide(){ window.snapActive=false; window.parent.hideCount=(window.parent.hideCount||0)+1;
       document.querySelectorAll('.midtrans-embed iframe').forEach(frame=>frame.remove());
     }};`,
     }),
@@ -81,16 +82,21 @@ try {
   await page.getByRole('button', { name: 'Muat ulang pembayaran' }).click();
   await page.locator('iframe[title="QRIS dan VA"]').waitFor();
   assert.equal(
-    await page.locator('script[data-client-key]').getAttribute('data-client-key'),
+    await page
+      .frameLocator('iframe[title="QRIS dan VA"]')
+      .locator('script[data-client-key]')
+      .getAttribute('data-client-key'),
     'PUBLIC-client-key',
   );
   assert.equal(
     await page.evaluate(() => window.calls.filter((c) => c.operation === 'start').length),
     2,
   );
+  await page.waitForFunction(() => window.embedCount === 1);
   await page.evaluate(() => window.onPayError());
   await page.getByRole('button', { name: 'Muat ulang pembayaran' }).click();
   await page.locator('iframe[title="QRIS dan VA"]').waitFor();
+  await page.waitForFunction(() => window.embedCount === 2);
   assert.equal(await page.evaluate(() => window.hideCount), 1);
   await page.evaluate(() => {
     window.stop();
@@ -101,6 +107,7 @@ try {
     );
   });
   await page.locator('iframe[title="QRIS dan VA"]').waitFor();
+  await page.waitForFunction(() => window.embedCount === 3);
   assert.equal(await page.evaluate(() => window.hideCount), 2);
   await page.evaluate(async () => {
     await window.onPay();
@@ -129,14 +136,14 @@ try {
         },
         hide() {},
       }),
-      reloadOrder: (id) => {
-        window.recoveryOrder = id;
-      },
     });
   });
-  await page.getByRole('button', { name: 'Muat ulang pembayaran' }).click();
-  await page.waitForFunction(() => Boolean(window.recoveryOrder));
-  assert.equal(await page.evaluate(() => window.recoveryOrder), 'TANJ-test');
+  await page
+    .getByText(
+      'Pembayaran belum dapat ditampilkan. Tekan Muat ulang pembayaran untuk mencoba kembali.',
+    )
+    .waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Muat ulang pembayaran' }).isVisible(), true);
   await page.evaluate(() => window.stop());
   assert.deepEqual(errors, []);
   await page.evaluate(() => {
@@ -146,9 +153,6 @@ try {
     window.stop = window.mount(document.getElementById('checkout'), 'TANJ-test', {
       ...window.checkoutOptions,
       canChangeMethod: true,
-      reloadOrder: (id) => {
-        window.changeReload = id;
-      },
       request: async (operation, id) => {
         if (operation === 'change-method') {
           window.changes++;
@@ -157,7 +161,9 @@ try {
         }
         if (operation === 'status')
           throw Object.assign(Error('Status pembayaran belum dapat disimpan.'), { status: 409 });
-        return window.checkoutOptions.request(operation, id);
+        const data = await window.checkoutOptions.request(operation, id);
+        if (operation === 'start' && window.changes === 2) data.snapToken = 'qris-to-va-token';
+        return data;
       },
       onVerified: async () => {
         window.changeVerified++;
@@ -180,10 +186,10 @@ try {
     window.failChange = false;
   });
   await page.getByRole('button', { name: 'Ubah metode pembayaran', exact: true }).click();
-  await page.waitForFunction(() => window.changeReload === 'TANJ-test');
-  assert.equal(await page.locator('iframe').count(), 0);
+  await page.waitForFunction(() => window.embeddedToken === 'qris-to-va-token');
+  assert.equal(await page.locator('iframe').count(), 1);
   assert.equal(await page.locator('[data-payment-link]').count(), 0);
-  assert.equal(await page.evaluate(() => window.changeVerified), 0);
+  assert.equal(await page.evaluate(() => window.changeVerified), 1);
   assert.equal(await page.evaluate(() => window.changes), 2);
   assert.equal(
     await page.getByRole('button', { name: 'Ubah metode pembayaran', exact: true }).isVisible(),
@@ -201,32 +207,23 @@ try {
           window.bankChanges.push(id);
           return { changed: true };
         }
-        return window.checkoutOptions.request(operation, id);
+        const data = await window.checkoutOptions.request(operation, id);
+        if (operation === 'start' && window.bankChanges.length) data.snapToken = 'new-bank-token';
+        return data;
       },
       onVerified: async () => {
         window.bankRefreshed++;
       },
     });
   });
-  await page.locator('iframe[title="QRIS dan VA"]').waitFor();
+  await page.waitForFunction(() => window.embeddedToken === 'test-token');
+  const samePage = page.url();
   await page.getByRole('button', { name: 'Ubah bank account', exact: true }).click();
-  await page.waitForURL('**/fixture?order=TANJ-test#pesanan');
+  await page.waitForFunction(() => window.embeddedToken === 'new-bank-token');
+  assert.equal(page.url(), samePage, 'changing bank must not navigate or reload TANJ');
+  assert.deepEqual(await page.evaluate(() => window.bankChanges), ['TANJ-test']);
+  assert.equal(await page.evaluate(() => window.bankRefreshed), 1);
   assert.equal(page.context().pages().length, 1);
-  await page.evaluate(async () => {
-    const { mountMidtransCheckout } = await import('/web/midtrans-checkout.js');
-    window.stop = mountMidtransCheckout(document.getElementById('checkout'), 'TANJ-test', {
-      canChangeBank: true,
-      request: async (operation) =>
-        operation === 'status'
-          ? { status: 'WAITING_PAYMENT' }
-          : {
-              snapToken: 'new-bank-token',
-              clientKey: 'PUBLIC-client-key',
-              production: false,
-              redirectUrl: 'https://app.sandbox.midtrans.com/snap/v3/redirection/new-bank-token',
-            },
-    });
-  });
   await page.locator('iframe[title="QRIS dan VA"]').waitFor();
   assert.equal(await page.evaluate(() => window.embeddedToken), 'new-bank-token');
   assert.equal(
