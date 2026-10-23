@@ -31,8 +31,12 @@ try {
     route.fulfill({
       contentType: 'text/javascript',
       body: `window.snap={embed(token, options) {
+      if(window.snapActive) throw Error('Invalid state transition from PopupInView to PopupInView');
+      window.snapActive=true; window.onPayError=options.onError;
       window.embeddedToken=token; window.onPay=options.onSuccess;
       document.getElementById(options.embedId).innerHTML='<iframe title="QRIS dan VA"></iframe>';
+    }, hide(){ window.snapActive=false; window.hideCount=(window.hideCount||0)+1;
+      document.querySelectorAll('.midtrans-embed iframe').forEach(frame=>frame.remove());
     }};`,
     }),
   );
@@ -45,25 +49,29 @@ try {
     window.verified = 0;
     window.fail = true;
     window.paymentState = 'WAITING_PAYMENT';
-    window.stop = mountMidtransCheckout(document.getElementById('checkout'), 'TANJ-test', {
-      request: async (operation, orderId) => {
-        window.calls.push({ operation, orderId });
-        if (operation === 'status') return { status: window.paymentState };
-        if (window.fail) {
-          window.fail = false;
-          throw Error('Koneksi terputus');
-        }
-        return {
-          snapToken: 'test-token',
-          clientKey: 'PUBLIC-client-key',
-          production: false,
-          redirectUrl: 'https://app.sandbox.midtrans.com/snap/v3/redirection/test-token',
-        };
-      },
-      onVerified: async () => {
-        window.verified++;
-      },
-    });
+    window.stop = mountMidtransCheckout(
+      document.getElementById('checkout'),
+      'TANJ-test',
+      (window.checkoutOptions = {
+        request: async (operation, orderId) => {
+          window.calls.push({ operation, orderId });
+          if (operation === 'status') return { status: window.paymentState };
+          if (window.fail) {
+            window.fail = false;
+            throw Error('Koneksi terputus');
+          }
+          return {
+            snapToken: 'test-token',
+            clientKey: 'PUBLIC-client-key',
+            production: false,
+            redirectUrl: 'https://app.sandbox.midtrans.com/snap/v3/redirection/test-token',
+          };
+        },
+        onVerified: async () => {
+          window.verified++;
+        },
+      }),
+    );
   });
   await page.getByText('Koneksi terputus').waitFor();
   await page.getByRole('button', { name: 'Muat ulang pembayaran' }).click();
@@ -76,6 +84,20 @@ try {
     await page.evaluate(() => window.calls.filter((c) => c.operation === 'start').length),
     2,
   );
+  await page.evaluate(() => window.onPayError());
+  await page.getByRole('button', { name: 'Muat ulang pembayaran' }).click();
+  await page.locator('iframe[title="QRIS dan VA"]').waitFor();
+  assert.equal(await page.evaluate(() => window.hideCount), 1);
+  await page.evaluate(() => {
+    window.stop();
+    window.stop = window.mount(
+      document.getElementById('checkout'),
+      'TANJ-test',
+      window.checkoutOptions,
+    );
+  });
+  await page.locator('iframe[title="QRIS dan VA"]').waitFor();
+  assert.equal(await page.evaluate(() => window.hideCount), 2);
   await page.evaluate(async () => {
     await window.onPay();
   });
@@ -91,6 +113,28 @@ try {
   await page.waitForFunction(() => window.verified === 1);
   assert.equal(await page.evaluate(() => window.verified), 1);
   assert.ok(await page.evaluate(() => window.calls.every((c) => c.orderId === 'TANJ-test')));
+  await page.evaluate(() => window.stop());
+  await page.evaluate(() => {
+    window.stop = window.mount(document.getElementById('checkout'), 'TANJ-test', {
+      ...window.checkoutOptions,
+      load: async () => ({
+        embed() {
+          throw Error(
+            'snap.embed is not allowed to be called in this state. Invalid state transition from PopupInView to PopupInView',
+          );
+        },
+        hide() {},
+      }),
+      redirect: (url) => {
+        window.recoveryUrl = url;
+      },
+    });
+  });
+  await page.waitForFunction(() => Boolean(window.recoveryUrl));
+  assert.equal(
+    await page.evaluate(() => window.recoveryUrl),
+    'https://app.sandbox.midtrans.com/snap/v3/redirection/test-token',
+  );
   await page.evaluate(() => window.stop());
   assert.deepEqual(errors, []);
   console.log(

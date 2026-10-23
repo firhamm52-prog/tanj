@@ -1,6 +1,7 @@
 import { midtransRequest } from './midtrans.js';
 
 let snapScript;
+let snapOwner;
 export function loadSnap(production, clientKey) {
   return (snapScript ||= new Promise((resolve, reject) => {
     const script = document.createElement('script');
@@ -32,6 +33,14 @@ export function mountMidtransCheckout(
   let stopped = false,
     busy = false,
     verifying = false;
+  const owner = {};
+  let mountedSnap;
+  function closeSnap() {
+    if (snapOwner === owner) {
+      snapOwner = null;
+      mountedSnap?.hide?.();
+    }
+  }
   container.innerHTML =
     '<p role="status">Menyiapkan QRIS dan Virtual Account…</p><div class="midtrans-embed"></div><p data-verification role="status" hidden></p><button type="button" class="shop-outline" hidden>Muat ulang pembayaran</button>';
   const message = container.querySelector('[role=status]');
@@ -87,17 +96,34 @@ export function mountMidtransCheckout(
       }
       const snap = await load(data.production, data.clientKey);
       if (!active()) return;
-      snap.embed(data.snapToken, {
-        embedId: frame.id,
-        onSuccess: verify,
-        onPending: verify,
-        onError: () => {
-          if (active()) {
-            message.textContent = 'Pembayaran belum selesai. Status akan diperiksa otomatis.';
-            retry.hidden = false;
-          }
-        },
-      });
+      if (snapOwner) snap.hide?.();
+      mountedSnap = snap;
+      snapOwner = owner;
+      try {
+        snap.embed(data.snapToken, {
+          embedId: frame.id,
+          onSuccess: verify,
+          onPending: verify,
+          onError: () => {
+            if (active()) {
+              message.textContent = 'Pembayaran belum selesai. Status akan diperiksa otomatis.';
+              retry.hidden = false;
+            }
+          },
+          onClose: () => {
+            if (active()) {
+              retry.hidden = false;
+              message.textContent = 'Pembayaran belum selesai. Buka kembali untuk melanjutkan.';
+            }
+          },
+        });
+      } catch (error) {
+        if (!/invalid state transition|not allowed to be called in this state/i.test(error.message))
+          throw error;
+        closeSnap();
+        redirect(url.href);
+        return;
+      }
       message.textContent = 'Pilih QRIS atau Virtual Account untuk membayar.';
     } catch (error) {
       if (active()) {
@@ -121,6 +147,7 @@ export function mountMidtransCheckout(
   void start();
   return () => {
     stopped = true;
+    closeSnap();
     clearInterval(timer);
     window.removeEventListener('focus', resume);
     document.removeEventListener('visibilitychange', resume);
