@@ -28,6 +28,7 @@ export function mountMidtransCheckout(
     load = loadSnap,
     onVerified = async () => {},
     canChangeMethod = false,
+    preferHosted = false,
     redirect = (url) => location.assign(url),
   } = {},
 ) {
@@ -36,6 +37,7 @@ export function mountMidtransCheckout(
     verifying = false;
   const owner = {};
   let mountedSnap;
+  let hosted = preferHosted;
   function closeSnap() {
     if (snapOwner === owner) {
       snapOwner = null;
@@ -78,6 +80,8 @@ export function mountMidtransCheckout(
         if (result.changed || result.status === 'PAID') {
           closeSnap();
           if (result.changed) {
+            hosted = true;
+            container.querySelector('[data-payment-link]')?.remove();
             change.hidden = true;
             reopen = true;
             changeNotice.textContent =
@@ -138,6 +142,27 @@ export function mountMidtransCheckout(
         !url.pathname.startsWith('/snap/')
       )
         throw Error('Tautan pembayaran tidak valid.');
+      let paymentLink = container.querySelector('[data-payment-link]');
+      if (!paymentLink) {
+        paymentLink = document.createElement('a');
+        paymentLink.dataset.paymentLink = '';
+        paymentLink.className = 'shop-outline';
+        paymentLink.target = '_blank';
+        paymentLink.rel = 'noopener noreferrer';
+        container.append(paymentLink);
+      }
+      paymentLink.href = url.href;
+      paymentLink.textContent = hosted
+        ? 'Lanjutkan pembayaran Virtual Account'
+        : 'Buka halaman pembayaran Midtrans';
+      if (hosted) {
+        closeSnap();
+        frame.replaceChildren();
+        frame.hidden = true;
+        message.textContent =
+          'Virtual Account siap. Klik tombol di bawah untuk memilih bank dan melanjutkan pembayaran di Midtrans. Kembali ke TANJ untuk melihat statusnya.';
+        return;
+      }
       // Hosted checkout remains available while the merchant configures the public Client Key.
       if (!data.snapToken || !data.clientKey) {
         redirect(url.href);

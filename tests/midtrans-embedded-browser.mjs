@@ -178,12 +178,33 @@ try {
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Ubah metode pembayaran', exact: true }).click();
   await page.waitForFunction(() => window.changeVerified === 1);
-  await page.locator('iframe[title="QRIS dan VA"]').waitFor();
+  await page
+    .getByRole('link', { name: 'Lanjutkan pembayaran Virtual Account', exact: true })
+    .waitFor();
+  assert.equal(await page.locator('iframe').count(), 0);
+  assert.equal(
+    await page.locator('[data-payment-link]').getAttribute('href'),
+    'https://app.sandbox.midtrans.com/snap/v3/redirection/test-token',
+  );
   assert.equal(await page.evaluate(() => window.changes), 2);
   assert.equal(
     await page.getByRole('button', { name: 'Ubah metode pembayaran', exact: true }).isVisible(),
     false,
   );
+  await page.evaluate(() => window.stop());
+  await page.evaluate(() => {
+    window.stop = window.mount(document.getElementById('checkout'), 'TANJ-test', {
+      ...window.checkoutOptions,
+      preferHosted: true,
+      load: async () => {
+        throw Error('Changed orders must not embed Snap again');
+      },
+    });
+  });
+  await page
+    .getByRole('link', { name: 'Lanjutkan pembayaran Virtual Account', exact: true })
+    .waitFor();
+  assert.equal(await page.locator('iframe').count(), 0);
   await page.evaluate(() => window.stop());
   console.log(
     'PASS: automatic embedded checkout, upload-free public Client Key, retry same order, server-verified payment callbacks, mobile viewport. Provider is simulated.',
