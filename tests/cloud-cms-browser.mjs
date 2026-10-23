@@ -1,7 +1,8 @@
 import { PGlite } from '@electric-sql/pglite';
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
-import { readFile, mkdir } from 'node:fs/promises';
+import { readFile, mkdir, readdir } from 'node:fs/promises';
+import { storageFixture } from './storage-fixture.mjs';
 import { resolve, extname } from 'node:path';
 import assert from 'node:assert/strict';
 const db = new PGlite(),
@@ -31,23 +32,10 @@ try {
   await db.exec(
     `create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`,
   );
-  for (const file of [
-    '202610160001_accounts.sql',
-    '202610160002_orders.sql',
-    '202610160003_catalog.sql',
-    '202610160004_review_tracking.sql',
-    '202610160005_payment_confirmation_guard.sql',
-    '202610160006_signup_email_check.sql',
-    '202610170007_shared_cms.sql',
-    '202610170008_biteship_shipping.sql',
-    '202610180008_hijab_checkout.sql',
-    '202610180009_order_completion.sql',
-    '202610180010_clothing_shipping_subsidy.sql',
-    '202610200011_cms_publish_prices.sql',
-    '202610200012_cms_publish_safe_updates.sql',
-    '202610220016_cms_hijab_stock.sql',
-    '202610220017_cms_new_products.sql',
-  ])
+  await storageFixture(db);
+  for (const file of (await readdir('supabase/migrations'))
+    .filter((f) => f.endsWith('.sql'))
+    .sort())
     await db.exec(await readFile('supabase/migrations/' + file, 'utf8'));
   await db.query(
     `insert into auth.users(id,email) values($1,'owner@example.com'),($2,'buyer@example.com')`,
@@ -276,6 +264,8 @@ try {
   await admin.page.locator('#edit-form [name=name]').fill('New Outer Olive');
   await admin.page.locator('#edit-form [name=colorName]').fill('Olive');
   await admin.page.locator('#edit-form [name=price]').fill('250000');
+  await admin.page.locator('#edit-form summary').filter({ hasText: 'Atur Diskon Produk' }).click();
+  await admin.page.locator('#edit-form [name=discountAmount]').fill('50000');
   await admin.page.locator('#edit-form [name=stock]').fill('3');
   await admin.page.locator('#edit-form [name=status]').selectOption('published');
   await admin.page.locator('#edit-form [name=publish]').click();
@@ -284,6 +274,10 @@ try {
     .locator('.card')
     .filter({ hasText: 'New Outer Olive' })
     .waitFor({ state: 'attached' });
+  const discountedCard = customer.page.locator('.card').filter({ hasText: 'New Outer Olive' });
+  await discountedCard.locator('.price del').waitFor({ state: 'attached' });
+  assert.match(await discountedCard.locator('.price del').textContent(), /250/);
+  assert.match(await discountedCard.locator('.price').textContent(), /200/);
   await admin.page.locator('[data-tab=site]').click();
   await admin.page.locator('[data-kind=settings]').click();
   await admin.page.locator('#edit-form [name=maxQty]').fill('2');

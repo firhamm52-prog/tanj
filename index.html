@@ -4656,10 +4656,10 @@
       tanjHeroVideo.addEventListener('loadedmetadata', slowTanjHero);
     </script>
     <script type="module">
-      import { initManualPayment } from './web/manual-payment.js?v=payment-labels-19';
+      import { initManualPayment } from './web/manual-payment.js?v=product-discounts-20';
       import { mountShoppingImprovements } from './web/shopping-improvements.js?v=cloud-cms-7';
       import { applySitePreferences, sitePreferences } from './web/site-preferences.js';
-      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=cloud-cms-3';
+      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=product-discounts-20';
       import {
         DEFAULT_PRODUCT_PRICE,
         PUBLISHED_KEY,
@@ -4818,6 +4818,17 @@
         item.stock > 0;
       const cmsId = () => String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8);
       const idrMoney = (value) => 'Rp' + Number(value || 0).toLocaleString('id-ID');
+      function renderProductPrice(el, item, qty = 1) {
+        if (!el || !item) return;
+        el.replaceChildren();
+        if (Number(item.originalPrice) > Number(item.price)) {
+          const old = document.createElement('del');
+          old.textContent = cmsMoney(item.originalPrice * qty);
+          old.style.cssText = 'opacity:.6;font-size:.85em;margin-right:8px';
+          el.append(old, document.createTextNode(' '));
+        }
+        el.append(document.createTextNode(cmsMoney(item.price * qty)));
+      }
       const cmsMoney = (value) =>
         region.currency === 'MYR'
           ? '≈ RM' +
@@ -5059,7 +5070,7 @@
             size.textContent = 'All Size';
             const price = document.createElement('div');
             price.className = 'price';
-            price.textContent = cmsMoney(item.price);
+            renderProductPrice(price, item);
             const sales = document.createElement('span');
             sales.className = 'card-sold';
             sales.textContent =
@@ -5181,7 +5192,7 @@
             link = card.querySelector('a'),
             price = card.querySelector('.hijab-price');
           card.classList.toggle('is-sold-out', sold);
-          price.textContent = cmsMoney(item.price);
+          renderProductPrice(price, item);
           card.querySelector('.hijab-caption h3').textContent = item.name;
           const photo = card.querySelector('.hijab-media img');
           if (photo) {
@@ -5350,7 +5361,7 @@
           const title = document.createElement('span');
           title.textContent = c.querySelector('.card-title').textContent;
           const price = document.createElement('span');
-          price.textContent = c.querySelector('.price').textContent;
+          price.replaceChildren(...[...c.querySelector('.price').childNodes].map(n => n.cloneNode(true)));
           a.append(title, price);
           a.addEventListener('click', () => closeUtility(searchModal));
           results.append(a);
@@ -5430,7 +5441,7 @@
               const selectedItem = cmsState.products.find((p) => p.id === source.dataset.productId);
               tile.dataset.productId = selectedItem?.id || '';
               tile.classList.toggle('is-sold-out', !cmsAvailable(selectedItem));
-              price.textContent = source.querySelector('.price').textContent;
+              price.replaceChildren(...[...source.querySelector('.price').childNodes].map(n => n.cloneNode(true)));
               colors
                 .querySelectorAll('.color-swatch')
                 .forEach((b, i) => b.setAttribute('aria-pressed', String(i === index)));
@@ -5660,7 +5671,7 @@
           : collection?.id === 'base-0'
             ? productFullName(item)
             : collection?.name || 'Koleksi TANJ';
-        document.getElementById('product-modal-price').textContent = cmsMoney(item.price);
+        renderProductPrice(document.getElementById('product-modal-price'), item);
         document.getElementById('product-modal-color-name').textContent =
           item.colorName || item.name;
         document.getElementById('product-quantity').textContent = productQty;
@@ -5778,7 +5789,7 @@
             ' · All Size' +
             (sitePreferences().showStock ? ' · Stok: ' + item.stock : '');
           const price = document.createElement('strong');
-          price.textContent = cmsMoney(item.price * line.qty);
+          renderProductPrice(price, item, line.qty);
           const actions = document.createElement('div');
           actions.className = 'bag-line-actions';
           const qty = document.createElement('div');
@@ -6113,11 +6124,11 @@
           const item = cmsState.products.find(
             (p) => p.id === el.closest('.card').dataset.productId,
           );
-          if (item) el.textContent = cmsMoney(item.price);
+          if (item) renderProductPrice(el, item);
         });
         document.querySelectorAll('.catalog-tile').forEach((tile) => {
           const item = cmsState.products.find((p) => p.id === tile.dataset.productId);
-          if (item) tile.querySelector('.catalog-price').textContent = cmsMoney(item.price);
+          if (item) renderProductPrice(tile.querySelector('.catalog-price'), item);
         });
         applyLanguageExtras();
         if (typeof renderCart === 'function') renderCart();

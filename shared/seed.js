@@ -111,9 +111,19 @@ export function storefront(state) {
     ...state,
     products: state.products
       .filter((p) => p.status !== 'draft')
-      .map((p) => ({ ...p, inStock: p.stock > 0 })),
+      .map((p) => ({
+        ...p,
+        originalPrice: p.price,
+        price: p.price - (p.discountAmount || 0),
+        inStock: p.stock > 0,
+      })),
     hijabs: state.hijabs
       .filter((p) => p.status !== 'draft')
-      .map((p) => ({ ...p, inStock: p.stock > 0 })),
+      .map((p) => ({
+        ...p,
+        originalPrice: p.price,
+        price: p.price - (p.discountAmount || 0),
+        inStock: p.stock > 0,
+      })),
   };
 }

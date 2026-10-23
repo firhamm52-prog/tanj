@@ -25,6 +25,10 @@ export function media(value) {
 export function validate(kind, raw) {
   if (kind === 'settings') return validateSiteSettings(raw);
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('Data tidak valid.');
+  if (['products', 'hijabs'].includes(kind)) {
+    const discount = number(raw.discountAmount ?? 0, 'Diskon produk', 1000000000);
+    if (discount && discount >= raw.price) fail('Diskon produk harus lebih kecil dari harga asli.');
+  }
   if (kind === 'collections')
     return {
       name: text(raw.name, 'Nama koleksi'),
@@ -40,6 +44,7 @@ export function validate(kind, raw) {
       colorName: text(raw.colorName, 'Nama warna'),
       color: raw.color,
       price: number(raw.price, 'Harga', 1000000000),
+      discountAmount: raw.discountAmount ?? 0,
       stock,
       sold: number(raw.sold ?? 0, 'Jumlah terjual', 1000000000),
       inStock: stock > 0,
@@ -62,6 +67,7 @@ export function validate(kind, raw) {
       color: text(raw.color, 'Warna'),
       image: media(raw.image),
       price: number(raw.price, 'Harga', 1000000000),
+      discountAmount: raw.discountAmount ?? 0,
       stock,
       inStock: stock > 0,
     };

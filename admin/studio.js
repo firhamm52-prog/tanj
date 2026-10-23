@@ -13,7 +13,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=cms-products-4';
+} from '../web/data.js?v=product-discounts-20';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(
@@ -158,10 +158,10 @@ function collectionName(item) {
   return state.collections.find((c) => c.id === item.collectionId)?.name || item.collection || '';
 }
 function editButton(kind, id, label = 'Edit') {
-  return `<button class="small-button" data-action="edit" data-kind="${kind}" data-id="${esc(id)}">${label}</button>`;
+  return `<button class="small-button" data-action="${label === 'Atur Diskon Produk' ? 'discount' : 'edit'}" data-kind="${kind}" data-id="${esc(id)}">${label}</button>`;
 }
 function actions(kind, item) {
-  return `<div class="row-actions">${editButton(kind, item.id)}${kind === 'hijabs' ? '' : `<button class="small-button" data-action="delete" data-kind="${kind}" data-id="${esc(item.id)}" aria-label="Hapus ${esc(item.name || item.caption)}">Hapus</button>`}</div>`;
+  return `<div class="row-actions">${editButton(kind, item.id)}${['products', 'hijabs'].includes(kind) ? editButton(kind, item.id, 'Atur Diskon Produk') : ''}${kind === 'hijabs' ? '' : `<button class="small-button" data-action="delete" data-kind="${kind}" data-id="${esc(item.id)}" aria-label="Hapus ${esc(item.name || item.caption)}">Hapus</button>`}</div>`;
 }
 function render() {
   requireAdmin();
@@ -257,6 +257,11 @@ $('#workspace').addEventListener('click', (event) => {
       render();
     }
     if (action === 'new' || action === 'edit') openEditor(kind, id);
+    if (action === 'discount') {
+      openEditor(kind, id);
+      $('#editor-fields details').open = true;
+      $('#edit-form [name=discountAmount]').focus();
+    }
     if (action === 'delete') {
       if (
         !confirm('Hapus konten ini dari draf? Perubahan tampil di website setelah dipublikasikan.')
@@ -424,6 +429,9 @@ function openEditor(kind, id) {
         ['video', 'Video'],
       ]) + field('media', 'URL media', item.media || 'assets/campaign-beige.webp', 'text', true);
   }
+  if (['products', 'hijabs'].includes(kind)) {
+    fields += `<details class="full" ${item.discountAmount ? 'open' : ''}><summary>Atur Diskon Produk</summary>${field('discountAmount', 'Potongan per produk (Rp), 0 untuk nonaktif', item.discountAmount || 0, 'number', false, 'min="0" max="1000000000" step="1"')}<p>Harga asli tetap tampil dicoret. Simpan dan publikasikan untuk mengaktifkan harga diskon.</p></details>`;
+  }
   $('#editor-fields').innerHTML = fields;
   $('#editor').showModal();
 }
@@ -494,6 +502,7 @@ $('#edit-form').addEventListener('submit', async (event) => {
     const data = Object.fromEntries(new FormData(event.currentTarget));
     if (['products', 'hijabs'].includes(kind)) {
       data.price = Number(data.price);
+      data.discountAmount = Number(data.discountAmount || 0);
       data.stock = Number(data.stock);
       if (kind === 'products') data.sold = Number(data.sold);
     }

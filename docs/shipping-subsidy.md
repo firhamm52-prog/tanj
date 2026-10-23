@@ -1,5 +1,7 @@
 # Subsidi ongkir baju TANJ
 
+Status terbaru: promo ini dinonaktifkan untuk pesanan baru lewat migrasi `202610240024_product_discounts.sql`. Diskon ongkir menjadi Rp0. Rincian di bawah merupakan aturan sebelumnya; lihat `product-discounts.md` untuk pengaturan terbaru.
+
 - Minimal 2 baju dalam satu pesanan, boleh berbeda model/warna.
 - Subsidi maksimal Rp20.000 per pesanan dan tidak melebihi ongkir asli.
 - Hijab tidak dihitung untuk memenuhi syarat. Pesanan campuran memenuhi syarat bila jumlah bajunya minimal 2.

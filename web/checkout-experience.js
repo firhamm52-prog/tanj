@@ -395,24 +395,28 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
         : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee;
     const catalog = await getCatalog();
     const discount = shippingSubsidy(getItems(), catalog, fee);
+    const productDiscount = getItems().reduce((sum, line) => {
+      const item = catalog.find((p) => p.id === line.id);
+      return (
+        sum + Math.max(0, (item?.originalPrice ?? item?.price ?? 0) - (item?.price ?? 0)) * line.qty
+      );
+    }, 0);
     $('checkout-price-summary').innerHTML =
       `<p><span>Subtotal · ${getItems().reduce((n, i) => n + i.qty, 0)} barang</span><strong>${money(getSubtotal())}</strong></p><p><span>Ongkir · ${esc(shippingLabel)}</span><strong>${selectedAddress ? (liveShipping && !liveChoice ? 'Pilih kurir' : money(fee)) : 'Pilih alamat'}</strong></p><p class="checkout-grand-total"><span>${payment.id.startsWith('midtrans') ? 'Total pembayaran' : 'Total sebelum kode unik'}</span><strong>${liveShipping && !liveChoice ? 'Pilih kurir untuk total' : money(getSubtotal() + fee)}</strong></p>${payment.id.startsWith('midtrans') ? '' : '<small>Kode unik akan ditambahkan setelah pesanan dibuat.</small>'}`;
     const total = $('checkout-price-summary').querySelector('.checkout-grand-total strong');
+    $('checkout-price-summary').querySelector('p strong').textContent = money(
+      getSubtotal() + productDiscount,
+    );
     if (selectedAddress && !(liveShipping && !liveChoice)) {
       total.textContent = money(getSubtotal() + discount.fee);
-      if (discount.subsidy) {
-        const row = document.createElement('p');
-        row.innerHTML =
-          '<span>Subsidi ongkir TANJ · minimal 2 baju</span><strong>−' +
-          money(discount.subsidy) +
-          '</strong>';
-        total.parentElement.before(row);
-      }
     }
-    const promo = document.createElement('small');
-    promo.textContent =
-      'Beli minimal 2 baju, dapat potongan ongkir hingga Rp20.000. Hijab tidak termasuk promo.';
-    $('checkout-price-summary').append(promo);
+    const savings = document.createElement('p');
+    savings.innerHTML = '<span>Diskon Produk</span><strong>' + money(productDiscount) + '</strong>';
+    total.parentElement.before(savings);
+    const shippingDiscount = document.createElement('p');
+    shippingDiscount.innerHTML =
+      '<span>Diskon Ongkir</span><strong>' + money(discount.subsidy) + '</strong>';
+    total.parentElement.before(shippingDiscount);
     $('checkout-selected-items').innerHTML = getItems()
       .map((line) => {
         const item = catalog.find((i) => i.id === line.id);

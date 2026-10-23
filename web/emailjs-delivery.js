@@ -36,7 +36,8 @@ export function emailTemplateParams(order, baseUrl) {
     order_items: order.items
       .map((i) => `${i.name} / ${i.color || '-'} / All Size x ${i.qty} — ${money(i.qty * i.price)}`)
       .join('\n'),
-    order_subtotal: money(order.subtotal),
+    order_subtotal: money(order.originalSubtotal ?? order.subtotal),
+    product_discount: money(order.productDiscount || 0),
     shipping_fee: money(order.shipping.fee),
     has_shipping_discount: Number(order.shipping.subsidy) > 0,
     original_shipping_fee: money(order.shipping.originalFee ?? order.shipping.fee),

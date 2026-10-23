@@ -59,7 +59,11 @@ export async function publishCloudContent() {
   const expectedPrices = Object.fromEntries(
     ['products', 'hijabs'].map((kind) => [
       kind,
-      draft[kind].map(({ id, price, status }) => ({ id, price, status })),
+      draft[kind].map(({ id, price, status, discountAmount = 0 }) => ({
+        id,
+        price: price - discountAmount,
+        status,
+      })),
     ]),
   );
   draft = await call('tanj_cms_publish', { expected_revision: draft.revision });

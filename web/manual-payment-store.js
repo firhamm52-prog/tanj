@@ -144,6 +144,7 @@ export async function createPayment(customer, lines, catalog) {
         color: item.colorName || '',
         qty: line.qty,
         price: item.price,
+        originalPrice: item.originalPrice ?? item.price,
       };
     });
     Object.assign(shipping, shippingSubsidy(lines, catalog, shipping.fee));
@@ -193,6 +194,8 @@ export async function createPayment(customer, lines, catalog) {
       items,
       shipping,
       subtotal,
+      originalSubtotal: items.reduce((sum, i) => sum + i.originalPrice * i.qty, 0),
+      productDiscount: items.reduce((sum, i) => sum + (i.originalPrice - i.price) * i.qty, 0),
       code,
       adjustment,
       total: base + adjustment,
