@@ -6,6 +6,54 @@ import { storageFixture } from './storage-fixture.mjs';
 import { createMidtransHandler } from '../supabase/functions/_shared/midtrans-handler.js';
 const oid = 'TANJ-44444444-4444-4444-8444-444444444444';
 const buyer = '11111111-1111-4111-8111-111111111111';
+test('method change verifies provider status and ownership before touching the session', async () => {
+  const values = {
+    SUPABASE_URL: 'https://db.test',
+    SUPABASE_SERVICE_ROLE_KEY: 'private',
+    SUPABASE_ANON_KEY: 'public',
+    MIDTRANS_SERVER_KEY: 'server',
+  };
+  let state = 'missing',
+    own = true,
+    changes = 0;
+  const handler = createMidtransHandler({
+    env: (k) => values[k],
+    fetcher: async (url) => {
+      if (url.endsWith('/auth/v1/user')) return Response.json({ id: buyer });
+      if (url.includes('/tb_t_order?')) return Response.json(own ? [{ id: oid }] : []);
+      if (url.endsWith('/status'))
+        return state === 'missing'
+          ? Response.json({ status_code: '404' }, { status: 404 })
+          : Response.json({ order_id: oid, gross_amount: '1000', transaction_status: state });
+      if (url.endsWith('/tanj_midtrans_gateway'))
+        return Response.json({ status: state === 'settlement' ? 'PAID' : 'WAITING_PAYMENT' });
+      if (url.endsWith('/tanj_midtrans_change_to_va')) {
+        changes++;
+        return Response.json({});
+      }
+      throw Error(url);
+    },
+  });
+  const request = () =>
+    handler(
+      new Request('https://edge.test/midtrans/change-method', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer user' },
+        body: JSON.stringify({ orderId: oid }),
+      }),
+    );
+  assert.equal((await request()).status, 200);
+  assert.equal(changes, 1);
+  state = 'pending';
+  assert.equal((await request()).status, 409);
+  assert.equal(changes, 1);
+  state = 'settlement';
+  assert.equal((await (await request()).json()).status, 'PAID');
+  assert.equal(changes, 1);
+  own = false;
+  assert.equal((await request()).status, 404);
+  assert.equal(changes, 1);
+});
 
 test('automatic status polling has a separate budget from payment starts', async () => {
   const values = {
@@ -124,6 +172,24 @@ test('private gateway transitions verify amounts and release stock once', async 
     const available = async () =>
       (await db.query("select stock from public.tb_m_product where id='base-0-1'")).rows[0].stock;
     assert.equal(await available(), 1, 'creating an order does not reserve inventory');
+    await as('authenticated');
+    await assert.rejects(
+      db.query('select public.tanj_midtrans_change_to_va($1)', [actual.id]),
+      /permission denied/,
+    );
+    await as('service_role');
+    const changed = (await db.query('select public.tanj_midtrans_change_to_va($1) d', [actual.id]))
+      .rows[0].d;
+    assert.equal(changed.payment.channel, 'va');
+    assert.equal(changed.total, actual.total);
+    assert.equal(changed.deadline, actual.deadline);
+    await assert.rejects(
+      db.query('select public.tanj_midtrans_change_to_va($1)', [actual.id]),
+      /tidak dapat diubah/,
+    );
+    await db.exec('reset role');
+    assert.equal(await available(), 1);
+    await db.query('update public.tb_t_order set data=$2 where id=$1', [actual.id, actual]);
     const otherBuyer = '22222222-2222-4222-8222-222222222222';
     const otherQuote = crypto.randomUUID();
     await db.query("insert into auth.users(id,email) values($1,'other@example.com')", [otherBuyer]);
@@ -139,6 +205,25 @@ test('private gateway transitions verify amounts and release stock once', async 
         checkoutArgs[2],
       ])
     ).rows[0].d;
+    await as('authenticated');
+    await db.query('select public.tanj_midtrans_prepare($1)', [actual.id]);
+    await as('service_role');
+    await assert.rejects(
+      db.query('select public.tanj_midtrans_change_to_va($1)', [actual.id]),
+      /sedang disiapkan/,
+    );
+    await db.exec('reset role');
+    await db.query(
+      "update public.tb_t_midtrans set lease_until=now()-interval '1 second' where order_id=$1",
+      [actual.id],
+    );
+    await as('service_role');
+    const reservedChange = (
+      await db.query('select public.tanj_midtrans_change_to_va($1) d', [actual.id])
+    ).rows[0].d;
+    assert.equal(reservedChange.deadline, actual.deadline);
+    await db.exec('reset role');
+    assert.equal(await available(), 0, 'method change keeps the existing stock reservation');
     await as('authenticated');
     await db.query('select public.tanj_midtrans_prepare($1)', [actual.id]);
     await as('authenticated', otherBuyer);

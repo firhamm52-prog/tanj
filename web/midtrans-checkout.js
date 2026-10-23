@@ -27,6 +27,7 @@ export function mountMidtransCheckout(
     request = midtransRequest,
     load = loadSnap,
     onVerified = async () => {},
+    canChangeMethod = false,
     redirect = (url) => location.assign(url),
   } = {},
 ) {
@@ -47,6 +48,38 @@ export function mountMidtransCheckout(
   const frame = container.querySelector('.midtrans-embed');
   frame.id = 'midtrans-' + crypto.randomUUID();
   const retry = container.querySelector('button');
+  if (canChangeMethod) {
+    const change = document.createElement('button');
+    change.type = 'button';
+    change.className = 'shop-outline';
+    change.textContent = 'Ubah metode pembayaran';
+    change.onclick = async () => {
+      if (
+        busy ||
+        !active() ||
+        !window.confirm(
+          'Ubah pembayaran QRIS menjadi Virtual Account? Server akan memeriksa apakah tagihan masih dapat diubah.',
+        )
+      )
+        return;
+      busy = true;
+      change.disabled = true;
+      try {
+        const result = await request('change-method', orderId);
+        if (!active()) return;
+        if (result.changed || result.status === 'PAID') {
+          closeSnap();
+          await onVerified();
+        }
+      } catch (error) {
+        if (active()) message.textContent = error.message;
+      } finally {
+        busy = false;
+        change.disabled = false;
+      }
+    };
+    container.append(change);
+  }
   const verification = container.querySelector('[data-verification]');
   const active = () => !stopped && container.isConnected;
   async function verify() {

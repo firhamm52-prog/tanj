@@ -29,6 +29,10 @@ Check that the Snap amount equals the stored order total; a success redirect alo
 
 ## Operational behavior
 
+### Change an unused QRIS session to VA (022)
+
+Install `supabase/migrations/202610240022_change_payment_method.sql` once after 021 and deploy the rebuilt `supabase/dashboard/midtrans.ts`. Pending QRIS orders show **Ubah metode pembayaran**, offering Virtual Account while QRIS is paused. The Edge Function authenticates the owner and checks authoritative Midtrans status first. A pending/terminal provider transaction cannot be switched; already paid transactions are reconciled instead. Only a not-started provider response permits the private database change, which preserves inventory, total and deadline and clears the old local token references. The next Snap creation uses the same provider order ID, so Midtrans invalidates an unused old token or rejects recreation if a concurrent payment has already utilized it. An interrupted replacement retains the reservation; uncertain or rejected replacement creation must not release inventory while the previous token might still exist. Customer retries reuse the same order. Historical VA orders cannot be switched through this recovery action. This is not cancellation or refund.
+
 The customer-facing **Cek status pembayaran** button has been removed. Active Midtrans payment screens check authoritative status every 5 seconds and immediately on returning to the browser tab. After verified payment and order refresh, the screen changes to **Pembayaran berhasil** automatically, without reloading the whole page or relying on the customer's claim. Temporary verification errors leave the bill visible and retry automatically. The 5-second update needs a Midtrans Edge Function redeploy to allow 30 status checks/minute per user independently of the 12 payment-start attempts/minute. No SQL changes are needed.
 
 ### Two payment choices (021)

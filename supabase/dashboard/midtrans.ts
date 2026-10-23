@@ -132,7 +132,7 @@ function createMidtransHandler({ env, fetcher = fetch }) {
         fail(400, "JSON tidak valid.");
       }
       const webhook = path.endsWith("/notification");
-      if (!webhook && !path.endsWith("/start") && !path.endsWith("/status"))
+      if (!webhook && !path.endsWith("/start") && !path.endsWith("/status") && !path.endsWith("/change-method"))
         fail(404, "Endpoint tidak ditemukan.");
       const oid = webhook ? input.order_id : input.orderId;
       if (webhook && typeof oid === "string" && !oid.startsWith("TANJ-"))
@@ -185,6 +185,23 @@ function createMidtransHandler({ env, fetcher = fetch }) {
         if (!rr.ok || !(await rr.json()).some((o) => o.id === oid))
           fail(404, "Pesanan tidak ditemukan.");
       }
+      if (path.endsWith("/change-method")) {
+        const existing = await provider(apiHost, "/v2/" + encodeURIComponent(oid) + "/status");
+        if (!existing.notStarted) {
+          const result2 = await rpc("tanj_midtrans_gateway", {
+            oid,
+            operation: "status",
+            details: existing
+          });
+          if (result2.status === "PAID") return json(200, result2);
+          fail(
+            409,
+            "Kode pembayaran sudah aktif atau transaksi sudah berakhir. Metode pembayaran tidak dapat diubah."
+          );
+        }
+        await rpc("tanj_midtrans_change_to_va", { oid });
+        return json(200, { changed: true });
+      }
       if (path.endsWith("/start")) {
         const prepared = await rpc("tanj_midtrans_prepare", { oid }, token);
         if (prepared.redirect_url)
@@ -232,7 +249,7 @@ function createMidtransHandler({ env, fetcher = fetch }) {
               return json(200, { ...result2, paymentPending: result2.status !== "PAID" });
             }
           }
-          if (e.creationRejected) {
+          if (e.creationRejected && !o.payment?.methodChanged) {
             try {
               await rpc("tanj_midtrans_gateway", {
                 oid,

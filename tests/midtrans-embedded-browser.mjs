@@ -137,6 +137,30 @@ try {
   );
   await page.evaluate(() => window.stop());
   assert.deepEqual(errors, []);
+  await page.evaluate(() => {
+    window.changes = 0;
+    window.changeVerified = 0;
+    window.stop = window.mount(document.getElementById('checkout'), 'TANJ-test', {
+      ...window.checkoutOptions,
+      canChangeMethod: true,
+      request: async (operation, id) => {
+        if (operation === 'change-method') {
+          window.changes++;
+          return { changed: true };
+        }
+        return window.checkoutOptions.request(operation, id);
+      },
+      onVerified: async () => {
+        window.changeVerified++;
+      },
+    });
+  });
+  await page.locator('iframe[title="QRIS dan VA"]').waitFor();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Ubah metode pembayaran', exact: true }).click();
+  await page.waitForFunction(() => window.changeVerified === 1);
+  assert.equal(await page.evaluate(() => window.changes), 1);
+  await page.evaluate(() => window.stop());
   console.log(
     'PASS: automatic embedded checkout, upload-free public Client Key, retry same order, server-verified payment callbacks, mobile viewport. Provider is simulated.',
   );
