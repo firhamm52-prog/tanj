@@ -747,6 +747,61 @@ dialog form {
   color: var(--muted);
   margin-top: 6px;
 }
+.cms-crop-dialog {
+  width: min(560px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 24px;
+  overflow: auto;
+}
+.cms-crop-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 23px;
+}
+.cms-crop-dialog > p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.cms-crop-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #e9e5df;
+  border: 1px solid #d8d2ca;
+  padding: 8px;
+  margin: 16px 0;
+}
+.cms-crop-stage canvas {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 48dvh;
+  background: white;
+  touch-action: none;
+  cursor: grab;
+}
+.cms-crop-stage canvas:active {
+  cursor: grabbing;
+}
+.cms-crop-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.cms-crop-controls label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+.cms-crop-controls input,
+.cms-crop-controls select {
+  width: 100%;
+  min-width: 0;
+}
+.cms-crop-dialog [data-error] {
+  color: #a32828;
+}
 .upload-preview {
   display: block;
   width: 140px;

@@ -3,6 +3,7 @@ import { mountManualAdmin } from './manual-payments.js?v=owner-ui-3';
 import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=improve-2';
 import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js';
 import { uploadCmsImage } from '../web/cms-upload.js';
+import { cropCmsImage } from '../web/cms-image-crop.js?v=crop-1';
 let uploadingImage = false;
 import {
   isApi,
@@ -459,7 +460,14 @@ $('#edit-form').addEventListener('change', async (event) => {
   error('', '#editor-error');
   try {
     requireAdmin();
-    const url = await uploadCmsImage(picker.files[0]);
+    status.textContent = 'Atur posisi foto sebelum diunggah.';
+    const cropped = await cropCmsImage(picker.files[0]);
+    if (!cropped) {
+      status.textContent = 'Upload dibatalkan.';
+      return;
+    }
+    status.textContent = 'Mengunggah hasil crop…';
+    const url = await uploadCmsImage(cropped);
     if (editing !== editor || !field.isConnected) return;
     field.value = url;
     preview.src = url;

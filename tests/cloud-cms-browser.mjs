@@ -218,9 +218,11 @@ try {
   const uploadPicker = admin.page.locator('[data-upload-target=image]');
   const photoFile = { name: 'device-photo.png', mimeType: 'image/png', buffer: photoBytes };
   await uploadPicker.setInputFiles(photoFile);
+  await admin.page.getByRole('button', { name: 'Pakai foto & upload', exact: true }).click();
   await admin.page.locator('#editor-error').filter({ hasText: 'Foto gagal diunggah' }).waitFor();
   assert.equal(await admin.page.locator('#edit-form [name=image]').inputValue(), '');
   await uploadPicker.setInputFiles(photoFile);
+  await admin.page.getByRole('button', { name: 'Pakai foto & upload', exact: true }).click();
   await admin.page
     .locator('.upload-control [role=status]')
     .filter({ hasText: 'Foto terunggah' })
