@@ -35,9 +35,28 @@ test('published discounts drive checkout totals, snapshot savings and preserve l
       discountAmount: 25000,
       stock: 10,
       status: 'published',
+      gallery: ['assets/look-2.webp', 'assets/campaign-beige.webp'],
     });
     assert.throws(() => validate('products', { ...item, discountAmount: 100000 }), /lebih kecil/);
+    assert.throws(
+      () => validate('products', { ...item, gallery: ['javascript:alert(1)'] }),
+      /HTTPS/,
+    );
+    assert.throws(
+      () => validate('products', { ...item, gallery: Array(11).fill('assets/look-2.webp') }),
+      /10 foto/,
+    );
     await db.exec('set role authenticated');
+    await assert.rejects(
+      rpc('tanj_cms_save', [
+        'products',
+        product.id,
+        { ...item, gallery: ['javascript:alert(1)'] },
+        draft.revision,
+        product.stock,
+      ]),
+      /galeri/,
+    );
     await assert.rejects(
       rpc('tanj_cms_save', [
         'products',
@@ -63,6 +82,7 @@ test('published discounts drive checkout totals, snapshot savings and preserve l
     const published = (await rpc('tanj_cms_storefront')).products.find((p) => p.id === product.id);
     assert.equal(published.price, 75000);
     assert.equal(published.originalPrice, 100000);
+    assert.deepEqual(published.gallery, item.gallery);
     await db.exec('reset role');
     assert.equal(
       (await db.query('select price from public.tb_m_product where id=$1', [product.id])).rows[0]

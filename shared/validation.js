@@ -28,6 +28,12 @@ export function validate(kind, raw) {
   if (['products', 'hijabs'].includes(kind)) {
     const discount = number(raw.discountAmount ?? 0, 'Diskon produk', 1000000000);
     if (discount && discount >= raw.price) fail('Diskon produk harus lebih kecil dari harga asli.');
+    if (raw.gallery !== undefined && (!Array.isArray(raw.gallery) || raw.gallery.length > 10))
+      fail('Galeri maksimal 10 foto.');
+    for (const url of raw.gallery || []) {
+      media(url);
+      if (/\.(mp4|webm|ogg)(?:[?#]|$)/i.test(url)) fail('Galeri hanya menerima foto.');
+    }
   }
   if (kind === 'collections')
     return {
@@ -50,6 +56,7 @@ export function validate(kind, raw) {
       inStock: stock > 0,
       status: raw.status,
       model: media(raw.model),
+      gallery: [...new Set(raw.gallery || [])],
       product: media(raw.product),
     };
   }
@@ -66,6 +73,7 @@ export function validate(kind, raw) {
       status,
       color: text(raw.color, 'Warna'),
       image: media(raw.image),
+      gallery: [...new Set(raw.gallery || [])],
       price: number(raw.price, 'Harga', 1000000000),
       discountAmount: raw.discountAmount ?? 0,
       stock,

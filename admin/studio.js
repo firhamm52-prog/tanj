@@ -4,6 +4,7 @@ import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-sessio
 import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js';
 import { uploadCmsImage } from '../web/cms-upload.js';
 import { cropCmsImage } from '../web/cms-image-crop.js?v=crop-1';
+import { mountProductGalleryEditor } from './product-gallery-editor.js?v=gallery-1';
 let uploadingImage = false;
 import {
   isApi,
@@ -14,7 +15,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=product-discounts-20';
+} from '../web/data.js?v=gallery-1';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(
@@ -434,6 +435,20 @@ function openEditor(kind, id) {
     fields += `<details class="full" ${item.discountAmount ? 'open' : ''}><summary>Atur Diskon Produk</summary>${field('discountAmount', 'Potongan per produk (Rp), 0 untuk nonaktif', item.discountAmount || 0, 'number', false, 'min="0" max="1000000000" step="1"')}<p>Harga asli tetap tampil dicoret. Simpan dan publikasikan untuk mengaktifkan harga diskon.</p></details>`;
   }
   $('#editor-fields').innerHTML = fields;
+  if (['products', 'hijabs'].includes(kind)) {
+    const gallery = document.createElement('section');
+    gallery.className = 'full cms-gallery-editor';
+    $('#editor-fields').append(gallery);
+    mountProductGalleryEditor(gallery, item, {
+      requireAdmin,
+      onBusy: (value) => {
+        uploadingImage = value;
+      },
+      onDirty: () => {
+        if (editing) editing.dirty = true;
+      },
+    });
+  }
   $('#editor').showModal();
 }
 function closeEditor() {
@@ -470,6 +485,7 @@ $('#edit-form').addEventListener('change', async (event) => {
     const url = await uploadCmsImage(cropped);
     if (editing !== editor || !field.isConnected) return;
     field.value = url;
+    field.dispatchEvent(new Event('change', { bubbles: true }));
     preview.src = url;
     preview.hidden = false;
     editing.dirty = true;
@@ -511,6 +527,7 @@ $('#edit-form').addEventListener('submit', async (event) => {
     if (['products', 'hijabs'].includes(kind)) {
       data.price = Number(data.price);
       data.discountAmount = Number(data.discountAmount || 0);
+      data.gallery = JSON.parse(data.gallery || '[]');
       data.stock = Number(data.stock);
       if (kind === 'products') data.sold = Number(data.sold);
     }

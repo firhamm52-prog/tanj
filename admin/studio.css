@@ -747,6 +747,44 @@ dialog form {
   color: var(--muted);
   margin-top: 6px;
 }
+.cms-gallery-editor {
+  border-top: 1px solid #d8d2ca;
+  padding-top: 20px;
+}
+.cms-gallery-editor h3 {
+  margin: 0 0 8px;
+}
+.cms-gallery-editor > p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.cms-gallery-list {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+.cms-gallery-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cms-gallery-item img {
+  width: 52px;
+  height: 70px;
+  object-fit: contain;
+  background: white;
+  border: 1px solid #d8d2ca;
+}
+.cms-gallery-item span {
+  flex: 1;
+  min-width: 70px;
+  font-size: 12px;
+}
+.cms-gallery-item button {
+  padding: 8px 10px;
+  font-size: 12px;
+}
 .cms-crop-dialog {
   width: min(560px, calc(100vw - 24px));
   max-height: calc(100dvh - 24px);

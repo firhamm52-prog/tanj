@@ -233,6 +233,22 @@ try {
     /^https:\/\/cms.test\/storage\/v1\/object\/public\/cms-media\/products\//,
   );
   await admin.page.locator('.upload-preview').waitFor({ state: 'visible' });
+  await admin.page
+    .locator('[data-gallery-upload]')
+    .setInputFiles([photoFile, { ...photoFile, name: 'detail-photo.png' }]);
+  await admin.page.getByRole('button', { name: 'Pakai foto & upload', exact: true }).click();
+  await admin.page.getByRole('button', { name: 'Pakai foto & upload', exact: true }).click();
+  await admin.page
+    .locator('[data-gallery-status]')
+    .filter({ hasText: '2 foto ditambahkan' })
+    .waitFor();
+  const galleryUrls = JSON.parse(await admin.page.locator('[name=gallery]').inputValue());
+  assert.equal(galleryUrls.length, 3);
+  await admin.page.getByRole('button', { name: 'Majukan foto 3', exact: true }).click();
+  assert.equal(
+    JSON.parse(await admin.page.locator('[name=gallery]').inputValue())[1],
+    galleryUrls[2],
+  );
   await admin.page.locator('#edit-form [type=submit]:not([name=publish])').click();
   await admin.page.locator('#editor').waitFor({ state: 'hidden' });
   await admin.page.locator('#publish').click();
@@ -259,6 +275,12 @@ try {
   await newHijab.locator('a').click();
   await customer.page.locator('#product-modal').waitFor({ state: 'visible' });
   assert.match(await customer.page.locator('#product-modal').textContent(), /Pashmina Olive/);
+  assert.equal(await customer.page.locator('.product-gallery-thumbs button').count(), 3);
+  await customer.page.getByRole('button', { name: 'Lihat foto 2', exact: true }).click();
+  assert.equal(
+    await customer.page.locator('#product-modal-image').getAttribute('src'),
+    galleryUrls[2],
+  );
   await customer.page.goto(url);
   // Clothing creation uses the same CMS stock controller.
   await admin.page.locator('[data-tab=products]').click();
