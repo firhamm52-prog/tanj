@@ -59,6 +59,15 @@ try {
   );
   await page.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: 'domcontentloaded' });
   await requested;
+  const heroRatio = await page.locator('.video-hero').evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    return rect.width / rect.height;
+  });
+  assert.ok(Math.abs(heroRatio - 16 / 9) < 0.02, 'website hero is landscape on mobile');
+  assert.equal(
+    await page.locator('.brand-video').evaluate((el) => getComputedStyle(el).objectFit),
+    'contain',
+  );
   assert.equal(await page.locator('.brand-video source').getAttribute('src'), null);
   assert.equal(await page.locator('.brand-video').getAttribute('poster'), null);
   assert.equal(

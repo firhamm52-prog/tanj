@@ -116,7 +116,29 @@ try {
     .locator('.product-panel')
     .screenshot({ path: 'test-results/product-gallery-desktop.png' });
   await page.setViewportSize({ width: 390, height: 844 });
-  await assertThumbnailRail();
+  await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.product-gallery-thumbs button')).opacity)<0.99);
+  const mobileGallery = await page.locator('.has-product-gallery').evaluate((root) => {
+    const main = root.querySelector('.product-gallery-main').getBoundingClientRect();
+    const rail = root.querySelector('.product-gallery-thumbs');
+    const rect = rail.getBoundingClientRect();
+    return {
+      width: root.clientWidth,
+      mainWidth: main.width,
+      height: main.height,
+      left: rect.left >= main.left && rect.right < main.left + main.width / 2,
+      inside: rect.top >= main.top && rect.bottom <= main.bottom,
+      direction: getComputedStyle(rail).flexDirection,
+      opacity: Number(getComputedStyle(rail.querySelector('button')).opacity),
+    };
+  });
+  assert.ok(Math.abs(mobileGallery.width - mobileGallery.mainWidth) < 1);
+  assert.ok(mobileGallery.height > 500, 'mobile main photo uses a larger area');
+  assert.ok(
+    mobileGallery.left && mobileGallery.inside,
+    'mobile thumbnails stay on the left inside the photo area',
+  );
+  assert.equal(mobileGallery.direction, 'column');
+  assert.ok(mobileGallery.opacity > 0 && mobileGallery.opacity < 1);
   const main = page.locator('.product-gallery-main');
   await main.dispatchEvent('pointerdown', { clientX: 300, clientY: 120 });
   await main.dispatchEvent('pointerup', { clientX: 100, clientY: 125 });
