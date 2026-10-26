@@ -1903,12 +1903,17 @@
         height: 76px;
         padding: 2px;
         border: 1px solid transparent;
-        background: #ffffffe6;
+        background: transparent;
+        opacity: 0.35;
+        transition: opacity 0.2s ease;
         cursor: pointer;
       }
       .product-gallery-thumbs button[aria-pressed='true'] {
-        border-color: #302b26;
+        border-left-color: #302b2680;
+        opacity: 0.55;
       }
+      .product-gallery-thumbs button:hover,
+      .product-gallery-thumbs button:focus-visible { opacity: 1; }
       #product-modal .product-panel-photo .product-gallery-thumbs img {
         width: 100%;
         height: 100%;
