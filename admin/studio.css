@@ -851,6 +851,13 @@ dialog form {
 .upload-preview[hidden] {
   display: none;
 }
+.upload-control video.upload-preview {
+  width: min(100%, 360px);
+  height: auto;
+  max-height: 260px;
+  object-fit: contain;
+  background: #1d1b19;
+}
 .checkbox-label {
   display: flex;
   align-items: center;

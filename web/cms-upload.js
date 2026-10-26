@@ -1,4 +1,30 @@
 const extensions = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+export async function uploadCmsVideo(
+  file,
+  {
+    getClient = async () => (await import('./supabase-customer.js?v=improve-2')).cloudClient(),
+  } = {},
+) {
+  const extension = { 'video/mp4': 'mp4', 'video/webm': 'webm' }[file?.type];
+  if (!extension) throw Error('Pilih video MP4 atau WebM.');
+  if (!file.size || file.size > 50 * 1024 * 1024) throw Error('Ukuran video maksimal 50 MB.');
+  const client = await getClient();
+  const bucket = client.storage.from('cms-videos');
+  const path = 'content/' + crypto.randomUUID() + '.' + extension;
+  const { error } = await bucket.upload(path, file, {
+    contentType: file.type,
+    cacheControl: '31536000',
+    upsert: false,
+  });
+  if (error)
+    throw Error(
+      'Video gagal diunggah. Pastikan sesi admin aktif dan SQL 026 untuk upload video sudah dijalankan.',
+    );
+  const { data } = bucket.getPublicUrl(path);
+  if (!data?.publicUrl?.startsWith('https://'))
+    throw Error('URL video belum tersedia. Coba unggah lagi.');
+  return data.publicUrl;
+}
 export async function uploadCmsImage(
   file,
   {

@@ -1,4 +1,4 @@
-export async function cropCmsImage(file) {
+export async function cropCmsImage(file, { initialRatio = 3 / 4 } = {}) {
   if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type))
     throw Error('Pilih foto JPG, PNG atau WebP.');
   if (!file.size || file.size > 5 * 1024 * 1024) throw Error('Ukuran foto maksimal 5 MB.');
@@ -17,7 +17,7 @@ export async function cropCmsImage(file) {
   dialog.innerHTML = `<h2 id="cms-crop-title">Atur foto sebelum upload</h2>
     <p>Geser foto untuk mengatur posisi. Gunakan zoom untuk memperbesar atau memperkecil.</p>
     <div class="cms-crop-stage"><canvas tabindex="0" aria-label="Geser foto, atau gunakan tombol panah untuk mengatur posisi"></canvas></div>
-    <div class="cms-crop-controls"><label>Bentuk foto<select data-ratio><option value="0.75">Potret 3:4</option><option value="0.8">Potret 4:5</option><option value="1">Persegi 1:1</option><option value="original">Ukuran asli</option></select></label>
+    <div class="cms-crop-controls"><label>Bentuk foto<select data-ratio><option value="0.75">Potret 3:4</option><option value="0.8">Potret 4:5</option><option value="1">Persegi 1:1</option><option value="1.7777777777777777">Lanskap 16:9</option><option value="original">Ukuran asli</option></select></label>
     <label>Zoom<input data-zoom type="range" min="0.5" max="4" step="0.01" value="1"></label></div>
     <button type="button" class="secondary" data-reset>Atur ulang</button>
     <p data-error role="alert" hidden></p>
@@ -26,6 +26,7 @@ export async function cropCmsImage(file) {
   const canvas = dialog.querySelector('canvas');
   const zoom = dialog.querySelector('[data-zoom]');
   const ratioControl = dialog.querySelector('[data-ratio]');
+  ratioControl.value = String(initialRatio);
   let ratio = 3 / 4,
     x = 0,
     y = 0,

@@ -19,6 +19,19 @@ test('published discounts drive checkout totals, snapshot savings and preserve l
     const uid = '11111111-1111-4111-8111-111111111111';
     await db.query("insert into auth.users(id,email) values($1,'test@example.com')", [uid]);
     await db.query('insert into public.tb_m_admin values($1)', [uid]);
+    const videoPath = 'content/' + crypto.randomUUID() + '.mp4';
+    const bucket = (await db.query("select * from storage.buckets where id='cms-videos'")).rows[0];
+    assert.equal(Number(bucket.file_size_limit), 52428800);
+    assert.deepEqual(bucket.allowed_mime_types, ['video/mp4', 'video/webm']);
+    await db.query(
+      "select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false)",
+    );
+    await db.exec('set role authenticated');
+    await assert.rejects(
+      db.query("insert into storage.objects(bucket_id,name) values('cms-videos',$1)", [videoPath]),
+      /row-level security/,
+    );
+    await db.exec('reset role');
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [uid]);
     const rpc = async (name, args = []) =>
       (
@@ -47,6 +60,15 @@ test('published discounts drive checkout totals, snapshot savings and preserve l
       /10 foto/,
     );
     await db.exec('set role authenticated');
+    await db.query("insert into storage.objects(bucket_id,name) values('cms-videos',$1)", [
+      videoPath,
+    ]);
+    await assert.rejects(
+      db.query(
+        "insert into storage.objects(bucket_id,name) values('cms-videos','content/bad.html')",
+      ),
+      /row-level security/,
+    );
     await assert.rejects(
       rpc('tanj_cms_save', [
         'products',

@@ -2,8 +2,8 @@ import { siteSettingFields, defaultSiteSettings } from '../shared/site-settings.
 import { mountManualAdmin } from './manual-payments.js?v=owner-ui-3';
 import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=improve-2';
 import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js';
-import { uploadCmsImage } from '../web/cms-upload.js';
-import { cropCmsImage } from '../web/cms-image-crop.js?v=crop-1';
+import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=media-upload-1';
+import { cropCmsImage } from '../web/cms-image-crop.js?v=media-upload-1';
 import { mountProductGalleryEditor } from './product-gallery-editor.js?v=gallery-1';
 let uploadingImage = false;
 import {
@@ -291,8 +291,8 @@ $('#workspace').addEventListener('click', (event) => {
   });
 });
 function field(name, label, value = '', type = 'text', full = false, extra = '') {
-  const upload = usesCloudCMS && ['model', 'product', 'image'].includes(name);
-  return `<label class="${full ? 'full' : ''}">${label}<input name="${name}" type="${type}" value="${esc(value)}" ${extra} required>${['media', 'model', 'product', 'image'].includes(name) ? '<span class="field-help">assets/nama.webp atau URL HTTPS foto/video yang sudah dihosting.</span>' : ''}</label>${upload ? `<div class="full upload-control"><label>Unggah ${label.toLowerCase()} dari perangkat<input type="file" accept="image/jpeg,image/png,image/webp" data-upload-target="${name}"></label><span class="field-help" role="status">JPG, PNG atau WebP, maksimal 5 MB. URL foto terisi otomatis.</span><img class="upload-preview" alt="Pratinjau foto yang diunggah" hidden></div>` : ''}`;
+  const upload = usesCloudCMS && ['model', 'product', 'image', 'media'].includes(name);
+  return `<label class="${full ? 'full' : ''}">${label}<input name="${name}" type="${type}" value="${esc(value)}" ${extra} required>${['media', 'model', 'product', 'image'].includes(name) ? '<span class="field-help">assets/nama.webp atau URL HTTPS foto/video yang sudah dihosting.</span>' : ''}</label>${upload ? `<div class="full upload-control"><label>Unggah ${label.toLowerCase().replace(/^url /, '')} dari perangkat<input type="file" accept="image/jpeg,image/png,image/webp" data-upload-target="${name}"></label><span class="field-help" role="status">JPG, PNG atau WebP, maksimal 5 MB. URL foto terisi otomatis.</span><img class="upload-preview" alt="Pratinjau foto yang diunggah" hidden></div>` : ''}`;
 }
 function select(name, label, value, options) {
   return `<label>${label}<select name="${name}" required>${options.map(([id, title]) => `<option value="${esc(id)}" ${value === id ? 'selected' : ''}>${esc(title)}</option>`).join('')}</select></label>`;
@@ -464,10 +464,31 @@ function openEditor(kind, id) {
       },
     });
   }
+  syncMediaPicker();
   $('#editor').showModal();
 }
+function syncMediaPicker() {
+  const picker = $('#edit-form [data-upload-target=media]');
+  if (!picker) return;
+  const video = editing?.kind === 'hero' || $('#edit-form [name=mediaType]')?.value === 'video';
+  picker.dataset.uploadKind = video ? 'video' : 'image';
+  picker.accept = video ? 'video/mp4,video/webm' : 'image/jpeg,image/png,image/webp';
+  picker.closest('.upload-control').querySelector('[role=status]').textContent = video
+    ? 'Video MP4 atau WebM, maksimal 50 MB.'
+    : 'Foto JPG, PNG atau WebP, maksimal 5 MB. Bisa crop sebelum upload.';
+  const control = picker.closest('.upload-control');
+  if (!control.querySelector('video')) {
+    const preview = document.createElement('video');
+    preview.className = 'upload-preview';
+    preview.controls = true;
+    preview.playsInline = true;
+    preview.preload = 'metadata';
+    preview.hidden = true;
+    control.append(preview);
+  }
+}
 function closeEditor() {
-  if (uploadingImage) return toast('Tunggu sampai unggah foto selesai.');
+  if (uploadingImage) return toast('Tunggu sampai unggah media selesai.');
   if (editing?.dirty && !confirm('Tutup editor tanpa menyimpan perubahan?')) return;
   $('#editor').close();
   editing = null;
@@ -476,12 +497,14 @@ $('#edit-form').addEventListener('input', () => {
   if (editing) editing.dirty = true;
 });
 $('#edit-form').addEventListener('change', async (event) => {
+  if (event.target.name === 'mediaType') syncMediaPicker();
   const picker = event.target.closest('[data-upload-target]');
   if (!picker?.files?.length || uploadingImage) return;
   const editor = editing;
   const field = $('#edit-form').elements.namedItem(picker.dataset.uploadTarget);
   const status = picker.closest('.upload-control').querySelector('[role=status]');
   const preview = picker.closest('.upload-control').querySelector('img');
+  const videoPreview = picker.closest('.upload-control').querySelector('video');
   const controls = [...$('#edit-form').querySelectorAll('[type=submit],[type=file]')];
   const disabled = controls.map((control) => control.disabled);
   uploadingImage = true;
@@ -490,21 +513,41 @@ $('#edit-form').addEventListener('change', async (event) => {
   error('', '#editor-error');
   try {
     requireAdmin();
-    status.textContent = 'Atur posisi foto sebelum diunggah.';
-    const cropped = await cropCmsImage(picker.files[0]);
-    if (!cropped) {
+    const isVideo = picker.dataset.uploadKind === 'video';
+    status.textContent = isVideo
+      ? 'Mengunggah video, tunggu sampai selesai…'
+      : 'Atur posisi foto sebelum diunggah.';
+    const prepared = isVideo
+      ? picker.files[0]
+      : await cropCmsImage(picker.files[0], {
+          initialRatio: picker.dataset.uploadTarget === 'media' ? 16 / 9 : 3 / 4,
+        });
+    if (!prepared) {
       status.textContent = 'Upload dibatalkan.';
       return;
     }
-    status.textContent = 'Mengunggah hasil crop…';
-    const url = await uploadCmsImage(cropped);
+    status.textContent = isVideo
+      ? 'Mengunggah video, tunggu sampai selesai…'
+      : 'Mengunggah hasil crop…';
+    const url = await (isVideo ? uploadCmsVideo(prepared) : uploadCmsImage(prepared));
     if (editing !== editor || !field.isConnected) return;
     field.value = url;
     field.dispatchEvent(new Event('change', { bubbles: true }));
-    preview.src = url;
-    preview.hidden = false;
+    preview.hidden = isVideo;
+    if (videoPreview) {
+      videoPreview.hidden = !isVideo;
+      if (isVideo) videoPreview.src = url;
+      else {
+        videoPreview.pause();
+        videoPreview.removeAttribute('src');
+        videoPreview.load();
+      }
+    }
+    if (!isVideo) preview.src = url;
     editing.dirty = true;
-    status.textContent = 'Foto terunggah. Simpan perubahan untuk menggunakan foto ini.';
+    status.textContent = isVideo
+      ? 'Video terunggah. Simpan & publikasikan untuk menayangkannya.'
+      : 'Foto terunggah. Simpan perubahan untuk menggunakan foto ini.';
   } catch (err) {
     if (editing === editor) {
       status.textContent = 'Unggah belum berhasil. Pilih foto untuk mencoba lagi.';
@@ -522,6 +565,11 @@ $('#editor').addEventListener('cancel', (event) => {
   event.preventDefault();
   closeEditor();
 });
+$('#editor').addEventListener('close', () =>
+  $('#editor')
+    .querySelectorAll('video')
+    .forEach((video) => video.pause()),
+);
 $('#edit-form').addEventListener('submit', async (event) => {
   if (uploadingImage) {
     event.preventDefault();

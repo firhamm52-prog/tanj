@@ -76,7 +76,17 @@ try {
       if (path.startsWith('/storage/v1/object/public/cms-media/')) {
         return route.fulfill({ status: 200, contentType: 'image/png', body: photoBytes });
       }
-      if (path.startsWith('/storage/v1/object/cms-media/')) {
+      if (path.startsWith('/storage/v1/object/public/cms-videos/')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'video/mp4',
+          body: Buffer.from('simulated-video'),
+        });
+      }
+      if (
+        path.startsWith('/storage/v1/object/cms-media/') ||
+        path.startsWith('/storage/v1/object/cms-videos/')
+      ) {
         const denied = current?.id !== owner || rejectUpload;
         rejectUpload = false;
         return route.fulfill({
@@ -348,6 +358,87 @@ try {
   assert.equal(
     await customer.page.locator('#cart-recommendations [data-recommended-id]').count(),
     1,
+  );
+  await admin.page.locator('[data-tab=content]').click();
+  await admin.page.locator('[data-kind=hero][data-action=edit]').click();
+  const mediaPicker = admin.page.locator('[data-upload-target=media]');
+  assert.equal(await mediaPicker.getAttribute('accept'), 'video/mp4,video/webm');
+  await mediaPicker.setInputFiles({
+    name: 'hero.mp4',
+    mimeType: 'video/mp4',
+    buffer: Buffer.from('simulated-video'),
+  });
+  await admin.page
+    .locator('.upload-control [role=status]')
+    .filter({ hasText: 'Video terunggah' })
+    .waitFor();
+  const heroUrl = await admin.page.locator('#edit-form [name=media]').inputValue();
+  assert.match(heroUrl, /\/cms-videos\/content\/.*\.mp4$/);
+  assert.equal(await admin.page.locator('.upload-control video').isVisible(), true);
+  assert.equal(
+    await admin.page.locator('.cms-crop-dialog').count(),
+    0,
+    'videos do not open photo crop',
+  );
+  await admin.page.locator('#edit-form [name=publish]').click();
+  await admin.page.locator('#editor').waitFor({ state: 'hidden' });
+  await customer.page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await customer.page.waitForFunction(
+    (url) => document.querySelector('.brand-video source')?.getAttribute('src') === url,
+    heroUrl,
+  );
+  await admin.page.locator('[data-kind=banner][data-action=edit]').click();
+  assert.equal(
+    await admin.page.locator('[data-upload-target=media]').getAttribute('accept'),
+    'image/jpeg,image/png,image/webp',
+  );
+  await admin.page.locator('[name=mediaType]').selectOption('video');
+  assert.equal(
+    await admin.page.locator('[data-upload-target=media]').getAttribute('accept'),
+    'video/mp4,video/webm',
+  );
+  await admin.page.locator('[name=mediaType]').selectOption('image');
+  await admin.page.locator('[data-upload-target=media]').setInputFiles(photoFile);
+  assert.equal(
+    await admin.page.locator('.cms-crop-dialog [data-ratio]').inputValue(),
+    String(16 / 9),
+  );
+  await admin.page.getByRole('button', { name: 'Pakai foto & upload', exact: true }).click();
+  await admin.page
+    .locator('.upload-control [role=status]')
+    .filter({ hasText: 'Foto terunggah' })
+    .waitFor();
+  const bannerUrl = await admin.page.locator('#edit-form [name=media]').inputValue();
+  await admin.page.locator('[name=enabled]').check();
+  await admin.page.locator('#edit-form [name=publish]').click();
+  await admin.page.locator('#editor').waitFor({ state: 'hidden' });
+  await customer.page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await customer.page.waitForFunction(
+    (url) => document.getElementById('site-banner-image')?.getAttribute('src') === url,
+    bannerUrl,
+  );
+  await admin.page.locator('[data-kind=slides][data-action=edit]').first().click();
+  assert.equal(await admin.page.locator('[data-upload-target=media]').count(), 1);
+  await admin.page.locator('[name=mediaType]').selectOption('video');
+  await admin.page
+    .locator('[data-upload-target=media]')
+    .setInputFiles({
+      name: 'lookbook.webm',
+      mimeType: 'video/webm',
+      buffer: Buffer.from('simulated-video'),
+    });
+  await admin.page
+    .locator('.upload-control [role=status]')
+    .filter({ hasText: 'Video terunggah' })
+    .waitFor();
+  const lookbookUrl = await admin.page.locator('#edit-form [name=media]').inputValue();
+  assert.match(lookbookUrl, /\.webm$/);
+  await admin.page.locator('#edit-form [name=publish]').click();
+  await admin.page.locator('#editor').waitFor({ state: 'hidden' });
+  await customer.page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await customer.page.waitForFunction(
+    (url) => [...document.querySelectorAll('video')].some((v) => v.getAttribute('src') === url),
+    lookbookUrl,
   );
   await mkdir('test-results', { recursive: true });
   await admin.page.screenshot({ path: 'test-results/cms-online-settings.png', fullPage: true });

@@ -5227,6 +5227,7 @@
             .then((src) => {
               if (src) {
                 heroSource.src = cmsAssetMap[heroMedia] || src;
+                heroSource.removeAttribute('type');
                 heroVideo.load();
                 heroVideo.play().catch(() => {});
               }
