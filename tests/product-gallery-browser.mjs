@@ -11,6 +11,9 @@ data.products[0].gallery = [
   'https://gallery.test/detail.png',
 ];
 data.products[2].gallery = ['assets/campaign-brown.webp'];
+data.products[0].description = 'Deskripsi contoh dari CMS.';
+data.products[0].careInstructions = 'Petunjuk perawatan contoh dari CMS.';
+data.products[0].shippingInfo = 'Informasi pengiriman contoh dari CMS.';
 const server = createServer(async (req, res) => {
   try {
     let path = new URL(req.url, 'http://local').pathname;
@@ -56,24 +59,40 @@ try {
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.locator('.card[data-product-id="base-0-0"] .product-preview').click();
   await page.locator('#product-modal').waitFor({ state: 'visible' });
-  async function assertOverlay() {
+  await page.getByRole('tab', { name: 'Care Instructions', exact: true }).click();
+  assert.equal(await page.getByRole('tabpanel').textContent(), data.products[0].careInstructions);
+  assert.equal(
+    await page
+      .getByRole('tab', { name: 'Care Instructions', exact: true })
+      .getAttribute('aria-selected'),
+    'true',
+  );
+  assert.notEqual(
+    await page
+      .getByRole('tab', { name: 'Care Instructions', exact: true })
+      .evaluate((el) => getComputedStyle(el).borderBottomColor),
+    'rgba(0, 0, 0, 0)',
+  );
+  assert.equal(await page.getByRole('tab', { name: 'Sizing', exact: true }).count(), 0);
+  await page.getByRole('tab', { name: 'Shipping', exact: true }).click();
+  assert.equal(await page.getByRole('tabpanel').textContent(), data.products[0].shippingInfo);
+  await page.getByRole('tab', { name: 'Description', exact: true }).click();
+  async function assertThumbnailRail() {
     const bounds = await page.locator('.has-product-gallery').evaluate((root) => {
       const main = root.querySelector('.product-gallery-main').getBoundingClientRect();
       const thumbs = root.querySelector('.product-gallery-thumbs').getBoundingClientRect();
+      const css = getComputedStyle(root.querySelector('.product-gallery-thumbs'));
       return {
-        width: root.clientWidth,
-        mainWidth: main.width,
-        inside:
-          thumbs.left >= main.left &&
-          thumbs.right <= main.right &&
-          thumbs.top >= main.top &&
-          thumbs.bottom <= main.bottom,
+        separate: thumbs.right <= main.left,
+        background: css.backgroundColor,
+        border: css.borderTopWidth,
       };
     });
-    assert.ok(Math.abs(bounds.mainWidth-bounds.width)<1, 'thumbnails do not reserve a separate column');
-    assert.ok(bounds.inside, 'thumbnails overlay the main photo');
+    assert.ok(bounds.separate, 'thumbnail rail does not overlap the main photo');
+    assert.equal(bounds.background, 'rgb(255, 255, 255)');
+    assert.equal(bounds.border, '1px');
   }
-  await assertOverlay();
+  await assertThumbnailRail();
   assert.equal(await page.locator('.product-gallery-thumbs button').count(), 3);
   await page.getByRole('button', { name: 'Lihat foto 3', exact: true }).click();
   assert.equal(
@@ -97,7 +116,7 @@ try {
     .locator('.product-panel')
     .screenshot({ path: 'test-results/product-gallery-desktop.png' });
   await page.setViewportSize({ width: 390, height: 844 });
-  await assertOverlay();
+  await assertThumbnailRail();
   const main = page.locator('.product-gallery-main');
   await main.dispatchEvent('pointerdown', { clientX: 300, clientY: 120 });
   await main.dispatchEvent('pointerup', { clientX: 100, clientY: 125 });
@@ -130,9 +149,41 @@ try {
     main: el.querySelector('.product-gallery-main').clientWidth,
   }));
   assert.equal(single.main, single.width, 'single photos do not leave an empty thumbnail column');
+  await page.getByRole('button', { name: 'Pilih warna Cream', exact: true }).click();
+  await page.locator('#product-like').click();
+  assert.equal(await page.locator('#product-like').getAttribute('aria-pressed'), 'true');
+  await page.getByRole('button', { name: 'Pilih warna Hitam', exact: true }).click();
+  assert.equal(await page.locator('#product-like').getAttribute('aria-pressed'), 'false');
+  await page.locator('#product-modal-close').click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.locator('#wishlist-open').click();
+  assert.equal(await page.locator('.wishlist-item').count(), 1);
+  await page.locator('.wishlist-product').click();
+  assert.equal(
+    await page.locator('#product-modal').getAttribute('data-active-product'),
+    'base-0-0',
+  );
+  await page.locator('#product-modal-close').click();
+  await page.reload();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.locator('#wishlist-open').click();
+  assert.equal(await page.locator('.wishlist-item').count(), 1, 'likes persist across refresh');
+  await page.locator('.wishlist-remove').click();
+  assert.equal(await page.locator('.wishlist-item').count(), 0);
+  assert.deepEqual(
+    await page.evaluate(() => JSON.parse(localStorage.getItem('tanj-liked-products-v1'))),
+    [],
+  );
+  await page.keyboard.press('Escape');
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(
+    await page.locator('body').evaluate((el) => el.scrollWidth > innerWidth + 1),
+    false,
+    'header with likes fits mobile',
+  );
   assert.deepEqual(errors, []);
   console.log(
-    'PASS: thumbnails, arrows, swipe, keyboard, variant reset, quantity preservation, legacy fallback and mobile layout.',
+    'PASS: thumbnail rail, gallery navigation, detail tabs, CMS text, persistent likes, wishlist removal and mobile header.',
   );
 } finally {
   await browser.close();

@@ -13,6 +13,12 @@ function number(value, label, max) {
     fail(`${label} harus bilangan bulat antara 0 dan ${max}.`);
   return value;
 }
+function productText(value) {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string' || value.length > 2000)
+    fail('Teks detail produk maksimal 2000 karakter.');
+  return value.trim();
+}
 export function media(value) {
   value = text(value, 'URL media', 2048);
   if (/^assets\/[\w-]+\.(webp|png|jpe?g|mp4|webm|ogg)$/i.test(value)) return value;
@@ -57,6 +63,9 @@ export function validate(kind, raw) {
       status: raw.status,
       model: media(raw.model),
       gallery: [...new Set(raw.gallery || [])],
+      description: productText(raw.description),
+      careInstructions: productText(raw.careInstructions),
+      shippingInfo: productText(raw.shippingInfo),
       product: media(raw.product),
     };
   }
@@ -74,6 +83,9 @@ export function validate(kind, raw) {
       color: text(raw.color, 'Warna'),
       image: media(raw.image),
       gallery: [...new Set(raw.gallery || [])],
+      description: productText(raw.description),
+      careInstructions: productText(raw.careInstructions),
+      shippingInfo: productText(raw.shippingInfo),
       price: number(raw.price, 'Harga', 1000000000),
       discountAmount: raw.discountAmount ?? 0,
       stock,

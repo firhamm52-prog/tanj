@@ -1,5 +1,5 @@
 import { freshSeed, DEMO_KEY, PUBLISHED_KEY, storefront } from '../shared/seed.js';
-import { validate } from '../shared/validation.js?v=gallery-1';
+import { validate } from '../shared/validation.js?v=detail-1';
 import { supabaseConfig } from './supabase-config.js?v=improve-2';
 export const usesCloudCMS = !!supabaseConfig.enabled;
 const cloudCMS = () => import('./cloud-cms.js?v=product-discounts-20');

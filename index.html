@@ -1913,7 +1913,9 @@
         opacity: 0.55;
       }
       .product-gallery-thumbs button:hover,
-      .product-gallery-thumbs button:focus-visible { opacity: 1; }
+      .product-gallery-thumbs button:focus-visible {
+        opacity: 1;
+      }
       #product-modal .product-panel-photo .product-gallery-thumbs img {
         width: 100%;
         height: 100%;
@@ -3594,6 +3596,7 @@
       }
     </style>
     <link rel="stylesheet" href="web/collection-editorial.css?v=cms-settings-3" />
+    <link rel="stylesheet" href="web/product-experience.css?v=detail-1" />
   </head>
   <body>
     <header class="nav">
@@ -4782,6 +4785,7 @@
     <script type="module">
       import { initManualPayment } from './web/manual-payment.js?v=product-discounts-20';
       import { mountProductGallery } from './web/product-gallery.js?v=gallery-1';
+      import { mountProductExperience } from './web/product-experience.js?v=detail-1';
       import { mountShoppingImprovements } from './web/shopping-improvements.js?v=cloud-cms-7';
       import { applySitePreferences, sitePreferences } from './web/site-preferences.js';
       import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=product-discounts-20';
@@ -5720,6 +5724,12 @@
         })),
       ];
       const findProduct = (id) => orderableProducts().find((item) => item.id === id);
+      const productExperience = mountProductExperience({
+        getProducts: orderableProducts,
+        openProduct: showProduct,
+        money: cmsMoney,
+        resolveImage: cmsAssetSrc,
+      });
 
       /* Cart and manual-payment trial: stored in this browser; proof is optional. */
       const CART_KEY = 'noireaterial-cart-v1',
@@ -5814,6 +5824,7 @@
         document.getElementById('product-buy-now').disabled = !remaining;
         addButton.firstChild.textContent = remaining ? 'Tambahkan ke tas ' : 'Sold out ';
         productGallery.set(item);
+        productExperience.set(item, collection);
         productColors.replaceChildren();
         choices.forEach((choice) => {
           const button = document.createElement('button');

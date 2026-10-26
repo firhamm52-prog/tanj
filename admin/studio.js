@@ -15,7 +15,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=gallery-1';
+} from '../web/data.js?v=detail-1';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(
@@ -433,6 +433,21 @@ function openEditor(kind, id) {
   }
   if (['products', 'hijabs'].includes(kind)) {
     fields += `<details class="full" ${item.discountAmount ? 'open' : ''}><summary>Atur Diskon Produk</summary>${field('discountAmount', 'Potongan per produk (Rp), 0 untuk nonaktif', item.discountAmount || 0, 'number', false, 'min="0" max="1000000000" step="1"')}<p>Harga asli tetap tampil dicoret. Simpan dan publikasikan untuk mengaktifkan harga diskon.</p></details>`;
+  }
+  if (['products', 'hijabs'].includes(kind)) {
+    fields +=
+      '<details class="full"><summary>Deskripsi & perawatan produk</summary>' +
+      [
+        ['description', 'Description'],
+        ['careInstructions', 'Care Instructions'],
+        ['shippingInfo', 'Shipping'],
+      ]
+        .map(
+          ([key, label]) =>
+            `<label class="full">${label}<textarea name="${key}" maxlength="2000" rows="4" placeholder="Isi detail ${label.toLowerCase()}…">${esc(item[key] || '')}</textarea></label>`,
+        )
+        .join('') +
+      '</details>';
   }
   $('#editor-fields').innerHTML = fields;
   if (['products', 'hijabs'].includes(kind)) {

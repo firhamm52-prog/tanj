@@ -6,7 +6,7 @@
 4. Gunakan tombol ←/→ untuk mengatur urutan dan Hapus untuk mengeluarkan foto dari galeri. Foto pertama menjadi foto awal di detail produk.
 5. Simpan draf atau **Simpan & publikasikan** untuk menayangkan perubahan.
 
-Galeri muncul saat customer membuka detail produk. Thumbnail menempel di sisi kiri gambar besar pada desktop dan HP, tanpa mengambil kolom atau baris tambahan. Foto bisa diganti dengan thumbnail, tombol panah, tombol keyboard, atau swipe di HP. Memilih warna lain membuka galeri varian tersebut.
+Galeri muncul saat customer membuka detail produk. Thumbnail berada di panel putih berbingkai hitam tipis di sisi kiri, terpisah dari foto utama agar tidak menutup gambar. Foto bisa diganti dengan thumbnail, tombol panah, tombol keyboard, atau swipe di HP. Memilih warna lain membuka galeri varian tersebut.
 
 Produk tanpa galeri tetap menggunakan foto model dan foto produk yang sudah ada. Foto model/produk pada kartu katalog tetap memakai kolom Foto model/Foto produk yang terpisah. Menghapus foto dari galeri tidak menghapus file dari penyimpanan atau mengubah pesanan.
 

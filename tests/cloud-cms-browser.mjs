@@ -234,6 +234,12 @@ try {
   );
   await admin.page.locator('.upload-preview').waitFor({ state: 'visible' });
   await admin.page
+    .locator('#editor-fields summary')
+    .filter({ hasText: 'Deskripsi & perawatan produk' })
+    .click();
+  await admin.page.locator('[name=description]').fill('Deskripsi hijab dari CMS.');
+  await admin.page.locator('[name=careInstructions]').fill('Petunjuk perawatan dari CMS.');
+  await admin.page
     .locator('[data-gallery-upload]')
     .setInputFiles([photoFile, { ...photoFile, name: 'detail-photo.png' }]);
   await admin.page.getByRole('button', { name: 'Pakai foto & upload', exact: true }).click();
@@ -275,6 +281,15 @@ try {
   await newHijab.locator('a').click();
   await customer.page.locator('#product-modal').waitFor({ state: 'visible' });
   assert.match(await customer.page.locator('#product-modal').textContent(), /Pashmina Olive/);
+  assert.equal(
+    await customer.page.getByRole('tabpanel').textContent(),
+    'Deskripsi hijab dari CMS.',
+  );
+  await customer.page.getByRole('tab', { name: 'Care Instructions', exact: true }).click();
+  assert.equal(
+    await customer.page.getByRole('tabpanel').textContent(),
+    'Petunjuk perawatan dari CMS.',
+  );
   assert.equal(await customer.page.locator('.product-gallery-thumbs button').count(), 3);
   await customer.page.getByRole('button', { name: 'Lihat foto 2', exact: true }).click();
   assert.equal(
