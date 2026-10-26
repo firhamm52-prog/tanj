@@ -856,7 +856,13 @@ dialog form {
   height: auto;
   max-height: 260px;
   object-fit: contain;
+  aspect-ratio: 16 / 9;
   background: #1d1b19;
+}
+#workspace .content-card video {
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
 }
 .checkbox-label {
   display: flex;

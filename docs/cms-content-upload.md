@@ -13,3 +13,5 @@ Video maksimal 50 MB per file, format MP4/WebM/MOV. Foto maksimal 5 MB, format J
 MOV diunggah tanpa konversi codec. Jika browser tidak bisa memutar preview, CMS menampilkan pesan untuk mencoba ekspor MP4 sebelum dipublikasikan.
 
 Tidak perlu mengganti Edge Function Midtrans atau template email.
+
+Preview video di halaman Konten website CMS memakai rasio landscape 16:9 pada desktop dan HP, dengan gambar video utuh (contain). Halaman awal website menunggu sumber video terbit dari CMS; video/poster contoh lama tidak diputar saat data CMS masih dimuat.

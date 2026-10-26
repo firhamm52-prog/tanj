@@ -441,6 +441,23 @@ try {
     (url) => [...document.querySelectorAll('video')].some((v) => v.getAttribute('src') === url),
     lookbookUrl,
   );
+  await admin.page.setViewportSize({ width: 390, height: 844 });
+  const mobilePreview = admin.page.locator('.content-card video').first();
+  const previewRatio = await mobilePreview.evaluate((video) => {
+    const rect = video.getBoundingClientRect();
+    return rect.width / rect.height;
+  });
+  assert.ok(Math.abs(previewRatio - 16 / 9) < 0.02, 'CMS video preview stays landscape on mobile');
+  assert.equal(
+    await mobilePreview.getAttribute('poster'),
+    null,
+    'CMS preview does not show the old default poster',
+  );
+  assert.equal(
+    await mobilePreview.evaluate((video) => getComputedStyle(video).objectFit),
+    'contain',
+  );
+  await admin.page.setViewportSize({ width: 1440, height: 1000 });
   await mkdir('test-results', { recursive: true });
   await admin.page.screenshot({ path: 'test-results/cms-online-settings.png', fullPage: true });
   assert.deepEqual(errors, []);

@@ -1135,14 +1135,6 @@
         .photo-track {
           animation: none;
         }
-        .brand-video {
-          display: none;
-        }
-        .video-hero {
-          background-image: url('assets/noireaterial-desert-poster.webp');
-          background-size: cover;
-          background-position: center;
-        }
       }
 
       /* Collection catalog */
@@ -3806,14 +3798,9 @@
           loop
           playsinline
           preload="metadata"
-          poster="assets/noireaterial-desert-poster.webp"
           aria-label="Video brand TANJ menampilkan tiga model dan koleksi"
         >
-          <source
-            data-asset="assets/noireaterial-desert-three-models-v3.mp4"
-            src="assets/noireaterial-desert-three-models-v3.mp4"
-            type="video/mp4"
-          />
+          <source data-asset="assets/noireaterial-desert-three-models-v3.mp4" type="video/mp4" />
         </video>
         <div class="video-scrim" aria-hidden="true"></div>
         <a class="scroll-cue" href="#collection" aria-label="Lihat koleksi"
@@ -5223,13 +5210,20 @@
         const heroMedia = cmsState.hero.media;
         if (heroMedia && heroSource.dataset.cmsMedia !== heroMedia) {
           heroSource.dataset.cmsMedia = heroMedia;
+          heroVideo.pause();
+          heroVideo.removeAttribute('poster');
+          heroSource.removeAttribute('src');
+          heroVideo.load();
           cmsResolveVideo(heroMedia)
             .then((src) => {
+              if (heroSource.dataset.cmsMedia !== heroMedia) return;
               if (src) {
                 heroSource.src = cmsAssetMap[heroMedia] || src;
                 heroSource.removeAttribute('type');
                 heroVideo.load();
-                heroVideo.play().catch(() => {});
+                const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                heroVideo.autoplay = !reduceMotion;
+                if (!reduceMotion) heroVideo.play().catch(() => {});
               }
             })
             .catch(() => {});
