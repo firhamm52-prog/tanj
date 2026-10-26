@@ -362,10 +362,13 @@ try {
   await admin.page.locator('[data-tab=content]').click();
   await admin.page.locator('[data-kind=hero][data-action=edit]').click();
   const mediaPicker = admin.page.locator('[data-upload-target=media]');
-  assert.equal(await mediaPicker.getAttribute('accept'), 'video/mp4,video/webm');
+  assert.equal(
+    await mediaPicker.getAttribute('accept'),
+    'video/mp4,video/webm,video/quicktime,.mov',
+  );
   await mediaPicker.setInputFiles({
-    name: 'hero.mp4',
-    mimeType: 'video/mp4',
+    name: 'hero.mov',
+    mimeType: 'video/quicktime',
     buffer: Buffer.from('simulated-video'),
   });
   await admin.page
@@ -373,7 +376,7 @@ try {
     .filter({ hasText: 'Video terunggah' })
     .waitFor();
   const heroUrl = await admin.page.locator('#edit-form [name=media]').inputValue();
-  assert.match(heroUrl, /\/cms-videos\/content\/.*\.mp4$/);
+  assert.match(heroUrl, /\/cms-videos\/content\/.*\.mov$/);
   assert.equal(await admin.page.locator('.upload-control video').isVisible(), true);
   assert.equal(
     await admin.page.locator('.cms-crop-dialog').count(),
@@ -395,7 +398,7 @@ try {
   await admin.page.locator('[name=mediaType]').selectOption('video');
   assert.equal(
     await admin.page.locator('[data-upload-target=media]').getAttribute('accept'),
-    'video/mp4,video/webm',
+    'video/mp4,video/webm,video/quicktime,.mov',
   );
   await admin.page.locator('[name=mediaType]').selectOption('image');
   await admin.page.locator('[data-upload-target=media]').setInputFiles(photoFile);
@@ -420,13 +423,11 @@ try {
   await admin.page.locator('[data-kind=slides][data-action=edit]').first().click();
   assert.equal(await admin.page.locator('[data-upload-target=media]').count(), 1);
   await admin.page.locator('[name=mediaType]').selectOption('video');
-  await admin.page
-    .locator('[data-upload-target=media]')
-    .setInputFiles({
-      name: 'lookbook.webm',
-      mimeType: 'video/webm',
-      buffer: Buffer.from('simulated-video'),
-    });
+  await admin.page.locator('[data-upload-target=media]').setInputFiles({
+    name: 'lookbook.webm',
+    mimeType: 'video/webm',
+    buffer: Buffer.from('simulated-video'),
+  });
   await admin.page
     .locator('.upload-control [role=status]')
     .filter({ hasText: 'Video terunggah' })

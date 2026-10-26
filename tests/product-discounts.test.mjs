@@ -22,7 +22,7 @@ test('published discounts drive checkout totals, snapshot savings and preserve l
     const videoPath = 'content/' + crypto.randomUUID() + '.mp4';
     const bucket = (await db.query("select * from storage.buckets where id='cms-videos'")).rows[0];
     assert.equal(Number(bucket.file_size_limit), 52428800);
-    assert.deepEqual(bucket.allowed_mime_types, ['video/mp4', 'video/webm']);
+    assert.deepEqual(bucket.allowed_mime_types, ['video/mp4', 'video/webm', 'video/quicktime']);
     await db.query(
       "select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false)",
     );
@@ -62,6 +62,9 @@ test('published discounts drive checkout totals, snapshot savings and preserve l
     await db.exec('set role authenticated');
     await db.query("insert into storage.objects(bucket_id,name) values('cms-videos',$1)", [
       videoPath,
+    ]);
+    await db.query("insert into storage.objects(bucket_id,name) values('cms-videos',$1)", [
+      'content/' + crypto.randomUUID() + '.mov',
     ]);
     await assert.rejects(
       db.query(

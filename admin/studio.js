@@ -2,7 +2,7 @@ import { siteSettingFields, defaultSiteSettings } from '../shared/site-settings.
 import { mountManualAdmin } from './manual-payments.js?v=owner-ui-3';
 import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=improve-2';
 import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js';
-import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=media-upload-1';
+import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=mov-upload-1';
 import { cropCmsImage } from '../web/cms-image-crop.js?v=media-upload-1';
 import { mountProductGalleryEditor } from './product-gallery-editor.js?v=gallery-1';
 let uploadingImage = false;
@@ -472,9 +472,11 @@ function syncMediaPicker() {
   if (!picker) return;
   const video = editing?.kind === 'hero' || $('#edit-form [name=mediaType]')?.value === 'video';
   picker.dataset.uploadKind = video ? 'video' : 'image';
-  picker.accept = video ? 'video/mp4,video/webm' : 'image/jpeg,image/png,image/webp';
+  picker.accept = video
+    ? 'video/mp4,video/webm,video/quicktime,.mov'
+    : 'image/jpeg,image/png,image/webp';
   picker.closest('.upload-control').querySelector('[role=status]').textContent = video
-    ? 'Video MP4 atau WebM, maksimal 50 MB.'
+    ? 'Video MP4, WebM atau MOV, maksimal 50 MB.'
     : 'Foto JPG, PNG atau WebP, maksimal 5 MB. Bisa crop sebelum upload.';
   const control = picker.closest('.upload-control');
   if (!control.querySelector('video')) {
@@ -484,6 +486,11 @@ function syncMediaPicker() {
     preview.playsInline = true;
     preview.preload = 'metadata';
     preview.hidden = true;
+    preview.addEventListener('error', () => {
+      if (preview.getAttribute('src'))
+        control.querySelector('[role=status]').textContent =
+          'Video terunggah. Preview belum dapat diputar di browser ini; coba ekspor ke MP4 jika video tidak tampil.';
+    });
     control.append(preview);
   }
 }

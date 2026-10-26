@@ -4972,7 +4972,7 @@
       const cmsIsVideo = (value, type) =>
         type === 'video' ||
         cmsVideoRef(value) ||
-        /\.(?:mp4|webm|ogv|ogg)(?:[?#]|$)/i.test(String(value || ''));
+        /\.(?:mp4|webm|ogv|ogg|mov)(?:[?#]|$)/i.test(String(value || ''));
       const cmsSafeVideo = (value) => {
         const url = String(value || '').trim();
         return cmsVideoRef(url) ||

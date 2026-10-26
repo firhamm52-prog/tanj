@@ -5,20 +5,26 @@ export async function uploadCmsVideo(
     getClient = async () => (await import('./supabase-customer.js?v=improve-2')).cloudClient(),
   } = {},
 ) {
-  const extension = { 'video/mp4': 'mp4', 'video/webm': 'webm' }[file?.type];
-  if (!extension) throw Error('Pilih video MP4 atau WebM.');
+  const contentType =
+    (!file?.type || file.type === 'application/octet-stream') && /\.mov$/i.test(file?.name || '')
+      ? 'video/quicktime'
+      : file?.type;
+  const extension = { 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov' }[
+    contentType
+  ];
+  if (!extension) throw Error('Pilih video MP4, WebM atau MOV.');
   if (!file.size || file.size > 50 * 1024 * 1024) throw Error('Ukuran video maksimal 50 MB.');
   const client = await getClient();
   const bucket = client.storage.from('cms-videos');
   const path = 'content/' + crypto.randomUUID() + '.' + extension;
   const { error } = await bucket.upload(path, file, {
-    contentType: file.type,
+    contentType,
     cacheControl: '31536000',
     upsert: false,
   });
   if (error)
     throw Error(
-      'Video gagal diunggah. Pastikan sesi admin aktif dan SQL 026 untuk upload video sudah dijalankan.',
+      'Video gagal diunggah. Pastikan sesi admin aktif serta SQL 026 dan 027 untuk upload video sudah dijalankan.',
     );
   const { data } = bucket.getPublicUrl(path);
   if (!data?.publicUrl?.startsWith('https://'))
