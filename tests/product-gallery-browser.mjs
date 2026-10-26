@@ -116,7 +116,6 @@ try {
     .locator('.product-panel')
     .screenshot({ path: 'test-results/product-gallery-desktop.png' });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.product-gallery-thumbs button')).opacity)<0.99);
   const mobileGallery = await page.locator('.has-product-gallery').evaluate((root) => {
     const main = root.querySelector('.product-gallery-main').getBoundingClientRect();
     const rail = root.querySelector('.product-gallery-thumbs');
@@ -138,7 +137,7 @@ try {
     'mobile thumbnails stay on the left inside the photo area',
   );
   assert.equal(mobileGallery.direction, 'column');
-  assert.ok(mobileGallery.opacity > 0 && mobileGallery.opacity < 1);
+  assert.equal(mobileGallery.opacity,1,'mobile thumbnails are solid and clearly visible');
   const main = page.locator('.product-gallery-main');
   await main.dispatchEvent('pointerdown', { clientX: 300, clientY: 120 });
   await main.dispatchEvent('pointerup', { clientX: 100, clientY: 125 });
