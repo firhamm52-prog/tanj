@@ -15,8 +15,12 @@ export const defaultSiteSettings = Object.freeze({
   paymentHours: 2,
   storyTheme: 'ivory',
   headingFont: 'times',
+  shippingDiscountEnabled: false,
+  shippingDiscountMax: 20000,
 });
 export const siteSettingFields = [
+  ['shippingDiscountEnabled', 'Aktifkan Diskon Ongkir (semua pesanan)', 'checkbox'],
+  ['shippingDiscountMax', 'Batas subsidi ongkir per pesanan (Rp)', 'number', 0, 1000000],
   ['lookbookTitle', 'Judul lookbook', 'text'],
   ['storyTitle', 'Judul cerita (baris baru diperbolehkan)', 'textarea'],
   ['storyText', 'Deskripsi cerita', 'textarea'],
@@ -36,7 +40,7 @@ export const siteSettingFields = [
 export function validateSiteSettings(raw) {
   const result = {};
   for (const [key, label, type, min, max] of siteSettingFields) {
-    const value = raw[key];
+    const value = raw[key] ?? defaultSiteSettings[key];
     if (type === 'checkbox') {
       if (typeof value !== 'boolean') throw Error(label + ' tidak valid.');
       result[key] = value;

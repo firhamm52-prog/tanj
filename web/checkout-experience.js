@@ -9,7 +9,8 @@ import {
 } from './customer-account.js?v=owner-ui-3';
 import { getShippingEstimate, validateShippingDestination } from './shipping.js?v=districts-1';
 import { shippingConfiguration, shippingRates } from './biteship.js?v=jne-jnt-2';
-import { shippingSubsidy } from '../shared/shipping-subsidy.js';
+import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=shipping-discount-28';
+import { sitePreferences } from './site-preferences.js';
 const $ = (id) => document.getElementById(id);
 const esc = (value) =>
   String(value ?? '').replace(
@@ -394,7 +395,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
         ? liveChoice?.fee || 0
         : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee;
     const catalog = await getCatalog();
-    const discount = shippingSubsidy(getItems(), catalog, fee);
+    const discount = shippingSubsidy(getItems(), catalog, fee, sitePreferences());
     const productDiscount = getItems().reduce((sum, line) => {
       const item = catalog.find((p) => p.id === line.id);
       return (
@@ -440,6 +441,9 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     $(id).addEventListener('click', () => $('bag-modal').classList.remove('checkout-surface'));
   window.addEventListener('tanj-customer-change', () => {
     selectedAddress = null;
+    render().catch(() => {});
+  });
+  window.addEventListener('tanj-site-preferences', () => {
     render().catch(() => {});
   });
   return {

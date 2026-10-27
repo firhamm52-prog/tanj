@@ -1,6 +1,7 @@
 import { customerSession } from './customer-account.js?v=owner-ui-3';
 import { normalizePaymentReview } from '../shared/payment-review.js';
-import { shippingSubsidy } from '../shared/shipping-subsidy.js';
+import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=shipping-discount-28';
+import { sitePreferences } from './site-preferences.js';
 import {
   cloudEnabled,
   cloudPayments,
@@ -147,7 +148,7 @@ export async function createPayment(customer, lines, catalog) {
         originalPrice: item.originalPrice ?? item.price,
       };
     });
-    Object.assign(shipping, shippingSubsidy(lines, catalog, shipping.fee));
+    Object.assign(shipping, shippingSubsidy(lines, catalog, shipping.fee, sitePreferences()));
     const subtotal = items.reduce((n, i) => n + i.qty * i.price, 0),
       base = subtotal + shipping.fee;
     if (!Number.isSafeInteger(base) || base < 0) throw Error('Harga tidak valid.');

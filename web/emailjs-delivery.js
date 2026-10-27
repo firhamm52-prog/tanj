@@ -38,7 +38,7 @@ export function emailTemplateParams(order, baseUrl) {
       .join('\n'),
     order_subtotal: money(order.originalSubtotal ?? order.subtotal),
     product_discount: money(order.productDiscount || 0),
-    shipping_fee: money(order.shipping.fee),
+    shipping_fee: money(order.shipping.originalFee ?? order.shipping.fee),
     has_shipping_discount: Number(order.shipping.subsidy) > 0,
     original_shipping_fee: money(order.shipping.originalFee ?? order.shipping.fee),
     shipping_discount: money(order.shipping.subsidy || 0),

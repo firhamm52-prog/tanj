@@ -1,7 +1,7 @@
 import { selectLookbookMedia } from '../shared/lookbook.js';
 import { prepareCmsVideo } from '../web/cms-video-convert.js';
 import { cropCmsVideo } from '../web/cms-video-crop.js';
-import { siteSettingFields, defaultSiteSettings } from '../shared/site-settings.js';
+import { siteSettingFields, defaultSiteSettings } from '../shared/site-settings.js?v=shipping-discount-28';
 import { mountManualAdmin } from './manual-payments.js?v=owner-ui-3';
 import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=improve-2';
 import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js';
@@ -190,6 +190,10 @@ function render() {
   } else if (tab === 'site') {
     const settings = { ...defaultSiteSettings, ...state.settings };
     w.innerHTML = `<section class="panel settings"><p class="eyebrow">WEBSITE TANJ</p><h2>Tampilan & fitur</h2><p>Kelola teks editorial, kontak CS, sosial media, stok yang ditampilkan, batas qty, rekomendasi, lebar QRIS, dan batas pembayaran.</p><p>Batas qty: <strong>${settings.maxQty}</strong> per produk · QRIS: <strong>${settings.qrisWidth}px</strong> · Batas bayar: <strong>${settings.paymentHours} jam</strong></p>${editButton('settings', '', 'Edit tampilan & fitur')}</section>`;
+    w.insertAdjacentHTML(
+      'afterbegin',
+      `<section class="panel"><p class="eyebrow">PROMO PENGIRIMAN</p><h2>Diskon Ongkir</h2><p>Status draf: <strong>${settings.shippingDiscountEnabled ? 'Aktif' : 'Nonaktif'}</strong> · Batas subsidi: <strong>${money(settings.shippingDiscountMax)}</strong> per pesanan.</p><p>TANJ menanggung ongkir sampai batas ini. Jika ongkir lebih rendah, subsidi mengikuti ongkir asli. Berlaku semua produk, tanpa minimum belanja. Harga baju tetap.</p><button class="primary" data-action="shipping-discount">Atur Diskon Ongkir</button><p>Simpan lalu Publikasikan untuk menerapkan perubahan ke pesanan baru.</p></section>`,
+    );
   } else if (tab === 'overview') {
     const metrics = [
       ['Total produk', state.products.length + state.hijabs.length, 'Varian wear & hijab'],
@@ -262,6 +266,10 @@ $('#workspace').addEventListener('click', (event) => {
       render();
     }
     if (action === 'new' || action === 'edit') openEditor(kind, id, button.dataset.placement);
+    if (action === 'shipping-discount') {
+      openEditor('settings');
+      $('#edit-form [name=shippingDiscountEnabled]').focus();
+    }
     if (action === 'discount') {
       openEditor(kind, id);
       $('#editor-fields details').open = true;

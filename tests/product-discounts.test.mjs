@@ -149,13 +149,16 @@ test('published discounts drive checkout totals, snapshot savings and preserve l
     assert.equal(order.subtotal, 150000);
     assert.equal(order.originalSubtotal, 200000);
     assert.equal(order.productDiscount, 50000);
-    assert.equal(order.shipping.subsidy, 0);
-    assert.equal(order.total, 185000);
+    assert.equal(order.shipping.subsidy, 20000);
+    assert.equal(order.shipping.originalFee, 35000);
+    assert.equal(order.shipping.fee, 15000);
+    assert.equal(order.total, 165000);
     assert.equal(order.items[0].originalPrice, 100000);
     assert.deepEqual(await rpc('tanj_create_order', args), order);
     const params = emailTemplateParams(order, 'https://example.com/tanj/');
     assert.equal(params.product_discount, 'Rp50.000');
-    assert.equal(params.shipping_discount, 'Rp0');
+    assert.equal(params.shipping_discount, 'Rp20.000');
+    assert.equal(params.shipping_fee, 'Rp35.000');
     await rpc('tanj_midtrans_prepare', [order.id]);
     const reservedOrder = await rpc('tanj_create_order', args);
     draft = await rpc('tanj_cms_admin');
@@ -175,6 +178,86 @@ test('published discounts drive checkout totals, snapshot savings and preserve l
       await rpc('tanj_create_order', args),
       reservedOrder,
       'old orders keep the accepted price',
+    );
+    const newOrder = async (fee, productId = product.id) => {
+      const qid = crypto.randomUUID();
+      const single = [{ id: productId, qty: 1 }];
+      await db.exec('reset role');
+      await db.query(
+        "insert into public.tb_t_shipping_quote(id,account_id,destination,lines,options,expires_at) values($1,$2,$3,$4,$5,now()+interval '10 minutes')",
+        [qid, uid, destination, single, [{ ...option, fee }]],
+      );
+      await db.exec('set role authenticated');
+      return rpc('tanj_create_order', [
+        crypto.randomUUID(),
+        { ...args[1], shippingQuoteId: qid, shippingDiscountMax: 999999, shippingSubsidy: 999999 },
+        single,
+      ]);
+    };
+    for (const fee of [18000, 20000, 35000]) {
+      const fresh = await newOrder(fee);
+      assert.equal(fresh.shipping.originalFee, fee);
+      assert.equal(fresh.shipping.subsidy, Math.min(fee, 20000));
+      assert.equal(fresh.shipping.fee, Math.max(0, fee - 20000));
+      assert.equal(fresh.total, fresh.subtotal + Math.max(0, fee - 20000));
+      assert.equal(fresh.items[0].price, 100000, 'shipping promo never changes product price');
+    }
+    const hijab = (await rpc('tanj_cms_admin')).hijabs[0];
+    assert.equal(
+      (await newOrder(18000, hijab.id)).shipping.subsidy,
+      18000,
+      'a single hijab qualifies',
+    );
+    draft = await rpc('tanj_cms_admin');
+    await assert.rejects(
+      rpc('tanj_cms_save', [
+        'settings',
+        null,
+        { ...draft.settings, shippingDiscountEnabled: true, shippingDiscountMax: -1 },
+        draft.revision,
+        null,
+      ]),
+      /Diskon Ongkir/,
+    );
+    draft = await rpc('tanj_cms_save', [
+      'settings',
+      null,
+      { ...draft.settings, shippingDiscountEnabled: false, shippingDiscountMax: 20000 },
+      draft.revision,
+      null,
+    ]);
+    assert.equal(
+      (await newOrder(35000)).shipping.subsidy,
+      20000,
+      'draft toggle does not change live checkout',
+    );
+    await rpc('tanj_cms_publish', [draft.revision]);
+    assert.equal((await newOrder(35000)).shipping.subsidy, 0, 'published toggle disables subsidy');
+    assert.deepEqual(
+      await rpc('tanj_create_order', args),
+      reservedOrder,
+      'disabling promotion preserves existing orders',
+    );
+    draft = await rpc('tanj_cms_admin');
+    draft = await rpc('tanj_cms_save', [
+      'settings',
+      null,
+      { ...draft.settings, shippingDiscountEnabled: true, shippingDiscountMax: 10000 },
+      draft.revision,
+      null,
+    ]);
+    await rpc('tanj_cms_publish', [draft.revision]);
+    assert.equal(
+      (await newOrder(18000)).shipping.subsidy,
+      10000,
+      'published configurable cap controls trusted order',
+    );
+    await db.query(
+      "select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false)",
+    );
+    await assert.rejects(
+      rpc('tanj_cms_save', ['settings', null, draft.settings, draft.revision, null]),
+      /Akses admin/,
     );
   } finally {
     await db.close();
