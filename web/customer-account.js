@@ -1,3 +1,4 @@
+import { prepareStorefrontEntry, showStorefrontHome } from './storefront-entry.js';
 import { sendReset } from './password-recovery.js?v=improve-2';
 import { digest, isAdmin } from './admin-session.js?v=improve-2';
 import {
@@ -13,6 +14,13 @@ import {
   cloudDeleteAddress,
 } from './supabase-customer.js?v=improve-2';
 export const customerReady = cloudReady;
+if (document.getElementById('product-modal')) {
+  prepareStorefrontEntry({
+    navigationType: performance.getEntriesByType('navigation')[0]?.type,
+    history: window.history,
+    href: location.href,
+  });
+}
 export async function ensureCustomerSession() {
   if (cloudEnabled) await cloudEnsureSession();
   return customerSession();
@@ -188,10 +196,10 @@ function render() {
         e.currentTarget?.reset();
         return;
       }
-      const next = pending;
       pending = null;
       dialog.close();
-      next?.();
+      // Every explicit login starts at home, including login prompted by checkout.
+      showStorefrontHome();
       window.dispatchEvent(new Event('tanj-customer-authenticated'));
     } catch (err) {
       dialog.querySelector('#customer-auth-error').textContent = err.message;
