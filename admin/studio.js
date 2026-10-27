@@ -487,6 +487,47 @@ function syncMediaPicker() {
     ? 'Video MP4, WebM atau MOV, maksimal 50 MB.'
     : 'Foto JPG, PNG atau WebP, maksimal 5 MB. Bisa crop sebelum upload.';
   const control = picker.closest('.upload-control');
+  let cropButton = control.querySelector('[data-crop-video]');
+  if (!cropButton) {
+    cropButton = document.createElement('button');
+    cropButton.type = 'button';
+    cropButton.className = 'secondary';
+    cropButton.dataset.cropVideo = '';
+    cropButton.textContent = 'Atur crop video';
+    control.append(cropButton);
+    cropButton.onclick = async () => {
+      if (uploadingImage) return;
+      const source = $('#edit-form [name=media]').value.trim();
+      if (!source) {
+        control.querySelector('[role=status]').textContent =
+          'Pilih file video dari perangkat terlebih dahulu.';
+        return;
+      }
+      const editor = editing;
+      cropButton.disabled = true;
+      try {
+        requireAdmin();
+        control.querySelector('[role=status]').textContent = 'Membuka video untuk crop…';
+        const response = await fetch(asset(source), { signal: AbortSignal.timeout(30000) });
+        if (!response.ok)
+          throw Error('Video belum dapat dibuka. Pilih file video dari perangkat untuk crop.');
+        if (Number(response.headers.get('content-length')) > 50 * 1024 * 1024)
+          throw Error('Ukuran video maksimal 50 MB.');
+        const blob = await response.blob();
+        if (editing !== editor) return;
+        const filename = source.split('/').pop().split('?')[0] || 'video.mp4';
+        const files = new DataTransfer();
+        files.items.add(new File([blob], filename, { type: blob.type || 'video/mp4' }));
+        picker.files = files.files;
+        picker.dispatchEvent(new Event('change', { bubbles: true }));
+      } catch (err) {
+        if (editing === editor) control.querySelector('[role=status]').textContent = err.message;
+      } finally {
+        cropButton.disabled = false;
+      }
+    };
+  }
+  cropButton.hidden = !video;
   if (!control.querySelector('video')) {
     const preview = document.createElement('video');
     preview.className = 'upload-preview';

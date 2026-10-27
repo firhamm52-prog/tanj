@@ -6,7 +6,9 @@ const server = createServer(async (req, res) => {
   if (req.url === '/fixture.mp4') {
     res.setHeader('Content-Type', 'video/mp4');
     res.end(await readFile('assets/hijab-georgia-cream.mp4'));
-  } else if (['/web/cms-video-convert.js', '/web/cms-video-crop.js'].includes(req.url)) {
+  } else if (
+    ['/web/cms-video-convert.js', '/web/cms-video-crop.js', '/admin/studio.js'].includes(req.url)
+  ) {
     res.setHeader('Content-Type', 'text/javascript');
     res.end(await readFile(req.url.slice(1)));
   } else {
@@ -20,6 +22,45 @@ try {
   browser = await chromium.launch({ channel: 'chrome', headless: true });
   const page = await browser.newPage();
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
+  const cropButtonResult = await page.evaluate(async () => {
+    const source = await (await fetch('/admin/studio.js')).text();
+    const body = source.slice(
+      source.indexOf('function syncMediaPicker()'),
+      source.indexOf('function closeEditor()'),
+    );
+    document.body.innerHTML =
+      '<form id="edit-form"><input name="media" value="/fixture.mp4"><div class="upload-control"><input type="file" data-upload-target="media"><span role="status"></span></div></form>';
+    const editor = { kind: 'hero' };
+    const sync = new Function(
+      '$',
+      'editing',
+      'requireAdmin',
+      'asset',
+      'uploadingImage',
+      body + ';return syncMediaPicker;',
+    )(
+      (selector) => document.querySelector(selector),
+      editor,
+      () => {},
+      (value) => value,
+      false,
+    );
+    sync();
+    const picker = document.querySelector('[type=file]');
+    const selected = new Promise((resolve) =>
+      picker.addEventListener('change', () => resolve(picker.files[0].size), { once: true }),
+    );
+    const button = document.querySelector('[data-crop-video]');
+    const label = button.textContent;
+    const visible = !button.hidden;
+    button.click();
+    const size = await selected;
+    document.body.replaceChildren();
+    return { label, visible, size };
+  });
+  assert.equal(cropButtonResult.label, 'Atur crop video');
+  assert.equal(cropButtonResult.visible, true);
+  assert.ok(cropButtonResult.size > 0);
   const result = await page.evaluate(async () => {
     const { prepareCmsVideo } = await import('/web/cms-video-convert.js');
     // Exercise conversion with real encoded frames; a MOV extension alone does not identify codecs.
