@@ -3588,7 +3588,7 @@
         color: #fff !important;
       }
     </style>
-    <link rel="stylesheet" href="web/collection-editorial.css?v=portrait-lookbook-4" />
+    <link rel="stylesheet" href="web/collection-editorial.css?v=upper-lower-portrait-5" />
     <link rel="stylesheet" href="web/product-experience.css?v=raised-thumbnails-3" />
   </head>
   <body>
@@ -5247,7 +5247,9 @@
         document.getElementById('site-banner-title').textContent = cmsState.banner.title;
         document.getElementById('site-banner-subtitle').textContent = cmsState.banner.subtitle;
         const track = document.querySelector('.photo-track');
-        const lookbookSlides = selectLookbookMedia(cmsState.slides);
+        const lookbookSlides = selectLookbookMedia(
+          cmsState.slides.filter((slide) => slide.placement !== 'upper'),
+        );
         if (lookbookSlides.length) {
           track.querySelectorAll('video').forEach((video) => cmsVideoObserver?.unobserve(video));
           track.replaceChildren();
@@ -5282,7 +5284,43 @@
           lookbookSlides.forEach((slide) => add(repeat, slide));
           track.append(repeat);
         }
-        document.querySelector('.photo-rail').hidden = !cmsState.slides.length;
+        document.querySelector('.photo-rail').hidden = !lookbookSlides.length;
+        const upperSlides = selectLookbookMedia(
+          cmsState.slides.filter((slide) => slide.placement === 'upper'),
+        );
+        if (upperSlides.length) {
+          const upperTrack = document.querySelector('.ootd-track');
+          upperTrack
+            .querySelectorAll('video')
+            .forEach((video) => cmsVideoObserver?.unobserve(video));
+          upperTrack.replaceChildren();
+          for (let copy = 0; copy < 2; copy++) {
+            const set = document.createElement('div');
+            set.className = 'ootd-set';
+            if (copy) set.setAttribute('aria-hidden', 'true');
+            for (const slide of upperSlides) {
+              const figure = document.createElement('figure');
+              const video = cmsIsVideo(slide.media, slide.mediaType);
+              const media = document.createElement(video ? 'video' : 'img');
+              if (video) {
+                media.autoplay = true;
+                media.muted = true;
+                media.loop = true;
+                media.playsInline = true;
+                media.preload = 'metadata';
+                media.setAttribute('aria-label', slide.caption || 'Video TANJ');
+                cmsSetVideo(media, slide.media);
+              } else {
+                media.src = cmsAssetSrc(slide.media);
+                media.alt = slide.caption || 'Foto TANJ';
+                media.loading = 'lazy';
+              }
+              figure.append(media);
+              set.append(figure);
+            }
+            upperTrack.append(set);
+          }
+        }
       }
       cmsApply();
       function cmsApplyHijabs() {

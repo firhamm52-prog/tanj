@@ -96,7 +96,12 @@ export function validate(kind, raw) {
   if (kind === 'banner' || kind === 'slides') {
     if (!['image', 'video'].includes(raw.mediaType)) fail('Jenis media tidak valid.');
     const result = { mediaType: raw.mediaType, media: media(raw.media) };
-    if (kind === 'slides') return { ...result, caption: text(raw.caption, 'Keterangan') };
+    if (kind === 'slides')
+      return {
+        ...result,
+        caption: text(raw.caption, 'Keterangan'),
+        placement: raw.placement === 'upper' ? 'upper' : 'lower',
+      };
     if (typeof raw.enabled !== 'boolean') fail('Status banner tidak valid.');
     return {
       ...result,

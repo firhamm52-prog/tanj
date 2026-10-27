@@ -1,7 +1,12 @@
 Foto dan video berjalan
 ======================
 
-Di CMS buka **Konten website → Foto & video berjalan**.
+Di CMS buka **Konten website**. Ada dua bagian upload terpisah:
+
+- **Atas — sebelum koleksi gamis** untuk foto/video berjalan di atas katalog.
+- **Bawah — setelah koleksi gamis** untuk lookbook di bawah katalog.
+
+Setiap bagian memiliki batas sendiri: 5 foto dan 1 video. Media lama yang sudah ada di CMS tetap berada di bagian bawah. Bagian atas memakai foto bawaan sampai media baru diunggah dan dipublikasikan.
 
 - Klik **Edit** pada media lama untuk mengganti foto atau video dari perangkat.
 - Untuk media baru, klik **Upload foto / video**, pilih jenis media, lalu pilih file.

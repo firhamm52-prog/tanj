@@ -5,6 +5,9 @@ import { readFile } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';
 import { freshSeed, storefront } from '../shared/seed.js';
 const data = storefront(freshSeed());
+data.slides.push(
+  ...data.slides.map((slide) => ({ ...slide, id: 'upper-' + slide.id, placement: 'upper' })),
+);
 data.hero.media = 'https://video.test/current.mp4';
 const server = createServer(async (req, res) => {
   try {
@@ -108,6 +111,22 @@ try {
     assert.ok(Math.abs(rail.ratio - 9 / 16) < 0.01);
     assert.ok(rail.height >= 550, 'portrait media stays tall on desktop and mobile');
     assert.equal(rail.animated, 'rail-left');
+    const upper = await page.locator('.ootd-track').evaluate((track) => {
+      const set = track.querySelector('.ootd-set');
+      const rect = set.querySelector('figure').getBoundingClientRect();
+      return {
+        sets: track.children.length,
+        photos: set.querySelectorAll('img').length,
+        videos: set.querySelectorAll('video').length,
+        ratio: rect.width / rect.height,
+        height: rect.height,
+      };
+    });
+    assert.equal(upper.sets, 2);
+    assert.equal(upper.photos, 5);
+    assert.equal(upper.videos, 1);
+    assert.ok(Math.abs(upper.ratio - 9 / 16) < 0.01);
+    assert.ok(upper.height >= 550);
   }
   assert.equal(
     requests.some((url) => url.includes('noireaterial-desert-three-models-v3.mp4')),

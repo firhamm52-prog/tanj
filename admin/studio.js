@@ -219,7 +219,7 @@ function render() {
   } else if (tab === 'collections') {
     w.innerHTML = `<div class="toolbar"><span>${state.collections.length} koleksi</span><button class="primary" data-action="new" data-kind="collections">+ Tambah koleksi</button></div><div class="collection-cards">${state.collections.map((c) => `<article class="collection-card"><span class="eyebrow">${state.products.filter((p) => p.collectionId === c.id).length} PRODUK</span><h2>${esc(c.name)}</h2><p>${esc(c.description || 'Belum ada deskripsi.')}</p>${actions('collections', c)}</article>`).join('')}</div>${state.collections.length ? '' : '<p class="empty-state">Belum ada koleksi. Tambahkan koleksi pertama.</p>'}`;
   } else if (tab === 'content') {
-    w.innerHTML = `<div class="content-cards"><article class="content-card"><video src="${esc(asset(state.hero.media))}" muted playsinline controls preload="metadata"></video><div><p class="eyebrow">FIRST IMPRESSION</p><h2>Video utama</h2><p>Video pembuka landing page TANJ.</p>${editButton('hero', '', 'Edit video')}</div></article><article class="content-card">${state.banner.mediaType === 'video' ? `<video src="${esc(asset(state.banner.media))}" controls muted playsinline preload="metadata"></video>` : image(state.banner.media)}<div><span class="badge ${state.banner.enabled ? '' : 'draft'}">${state.banner.enabled ? 'Ditampilkan' : 'Disembunyikan'}</span><h2>${esc(state.banner.title)}</h2><p>${esc(state.banner.subtitle)}</p>${editButton('banner', '', 'Edit banner')}</div></article></div><div class="toolbar"><h2>Foto &amp; video berjalan</h2><button class="primary" data-action="new" data-kind="slides">+ Upload foto / video</button></div><p>Loop berisi maksimal 5 foto dan 1 video. Format portrait 9:16. Klik Edit untuk mengganti media, lalu Simpan dan Publikasikan.</p><div class="collection-cards">${state.slides.map((s) => `<article class="collection-card">${s.mediaType === 'image' ? `<div class="product-cell">${image(s.media)}<strong>${esc(s.caption)}</strong></div>` : `<strong>${esc(s.caption)} · Video</strong>`}${actions('slides', s)}</article>`).join('')}</div>${state.slides.length ? '' : '<p class="empty-state">Belum ada media lookbook.</p>'}`;
+    w.innerHTML = `<div class="content-cards"><article class="content-card"><video src="${esc(asset(state.hero.media))}" muted playsinline controls preload="metadata"></video><div><p class="eyebrow">FIRST IMPRESSION</p><h2>Video utama</h2><p>Video pembuka landing page TANJ.</p>${editButton('hero', '', 'Edit video')}</div></article><article class="content-card">${state.banner.mediaType === 'video' ? `<video src="${esc(asset(state.banner.media))}" controls muted playsinline preload="metadata"></video>` : image(state.banner.media)}<div><span class="badge ${state.banner.enabled ? '' : 'draft'}">${state.banner.enabled ? 'Ditampilkan' : 'Disembunyikan'}</span><h2>${esc(state.banner.title)}</h2><p>${esc(state.banner.subtitle)}</p>${editButton('banner', '', 'Edit banner')}</div></article></div>${renderMovingMedia()}`;
   } else {
     w.innerHTML = `<section class="panel settings"><p class="eyebrow">YOUR WORKSPACE</p><h2>${usesCloudCMS ? 'CMS online TANJ' : isApi ? 'CMS dengan database' : 'Simulasi TANJ Studio'}</h2><p>${usesCloudCMS ? 'Produk, stok, dan konten tersimpan online di Supabase.' : isApi ? 'Produk, koleksi, dan konten tersimpan di database layanan masing-masing. Publikasi membuat satu versi website yang utuh.' : 'Data awal berisi 12 produk wear, 6 hijab, 4 koleksi, dan 6 media lookbook. Tidak ada transaksi atau pelanggan sungguhan dalam simulasi ini.'}</p><p>${usesCloudCMS ? 'Sesi mengikuti autentikasi Supabase. Stok disimpan langsung; konten melalui Publikasikan.' : isApi ? 'Sesi admin berakhir setelah 8 jam.' : 'Draf dan hasil publikasi hanya tersimpan di browser ini. Pengunjung lain tetap melihat data awal.'}</p><div class="row-actions"><button class="secondary" data-action="export">Unduh salinan JSON</button>${isApi || usesCloudCMS ? '' : '<button class="secondary" data-action="reset">Reset data dummy</button>'}</div></section>`;
   }
@@ -259,7 +259,7 @@ $('#workspace').addEventListener('click', (event) => {
       tab = button.dataset.tab;
       render();
     }
-    if (action === 'new' || action === 'edit') openEditor(kind, id);
+    if (action === 'new' || action === 'edit') openEditor(kind, id, button.dataset.placement);
     if (action === 'discount') {
       openEditor(kind, id);
       $('#editor-fields details').open = true;
@@ -298,7 +298,7 @@ function field(name, label, value = '', type = 'text', full = false, extra = '')
 function select(name, label, value, options) {
   return `<label>${label}<select name="${name}" required>${options.map(([id, title]) => `<option value="${esc(id)}" ${value === id ? 'selected' : ''}>${esc(title)}</option>`).join('')}</select></label>`;
 }
-function openEditor(kind, id) {
+function openEditor(kind, id, placement) {
   if (kind === 'products' && !state.collections.length)
     throw new Error('Tambahkan koleksi sebelum membuat produk.');
   const item = ['hero', 'banner', 'settings'].includes(kind)
@@ -420,7 +420,12 @@ function openEditor(kind, id) {
       `<label class="full">Deskripsi<textarea name="description" maxlength="1000">${esc(item.description || '')}</textarea></label>`;
   if (kind === 'hero') fields = field('media', 'URL video utama', item.media, 'text', true);
   if (kind === 'slides' || kind === 'banner') {
-    if (kind === 'slides') fields = field('caption', 'Keterangan', item.caption, 'text', true);
+    if (kind === 'slides')
+      fields =
+        select('placement', 'Letak foto/video berjalan', item.placement || placement || 'lower', [
+          ['upper', 'Atas — sebelum koleksi gamis'],
+          ['lower', 'Bawah — setelah koleksi gamis'],
+        ]) + field('caption', 'Keterangan', item.caption, 'text', true);
     else
       fields =
         `<label class="checkbox-label full"><input name="enabled" type="checkbox" ${item.enabled ? 'checked' : ''}>Tampilkan banner di website</label>` +
@@ -601,7 +606,12 @@ $('#edit-form').addEventListener('submit', async (event) => {
     const { kind, id } = editing;
     const data = Object.fromEntries(new FormData(event.currentTarget));
     if (kind === 'slides') {
-      const candidate = [...state.slides.filter((slide) => slide.id !== id), data];
+      const candidate = [
+        ...state.slides.filter(
+          (slide) => slide.id !== id && (slide.placement || 'lower') === data.placement,
+        ),
+        data,
+      ];
       if (selectLookbookMedia(candidate).length !== candidate.length)
         throw Error(
           'Foto berjalan maksimal 5 foto dan 1 video. Edit atau hapus media lama untuk menggantinya.',
@@ -671,4 +681,42 @@ try {
   } else if (isAdmin()) await openApp();
 } catch (err) {
   if (!err.message.includes('Sesi berakhir')) error(err.message, '#login-error');
+}
+
+function renderMovingMedia() {
+  return ['upper', 'lower']
+    .map((placement) => {
+      const items = state.slides.filter((s) => (s.placement || 'lower') === placement);
+      const title =
+        placement === 'upper' ? 'Atas — sebelum koleksi gamis' : 'Bawah — setelah koleksi gamis';
+      return (
+        '<section class="panel"><div class="toolbar"><h2>Foto &amp; video berjalan: ' +
+        title +
+        '</h2><button class="primary" data-action="new" data-kind="slides" data-placement="' +
+        placement +
+        '">+ Upload foto / video</button></div><p>Maksimal 5 foto dan 1 video per bagian. Portrait 9:16. Simpan lalu Publikasikan.</p><div class="collection-cards">' +
+        items
+          .map(
+            (s) =>
+              '<article class="collection-card">' +
+              (s.mediaType === 'video'
+                ? '<video src="' +
+                  esc(asset(s.media)) +
+                  '" controls muted playsinline preload="metadata" style="width:100%;max-height:220px"></video>'
+                : image(s.media)) +
+              '<strong>' +
+              esc(s.caption) +
+              '</strong>' +
+              actions('slides', s) +
+              '</article>',
+          )
+          .join('') +
+        '</div>' +
+        (!items.length
+          ? '<p>Belum ada upload. Bagian atas memakai foto bawaan sampai kamu menambahkan media.</p>'
+          : '') +
+        '</section>'
+      );
+    })
+    .join('');
 }
