@@ -169,16 +169,47 @@ export async function cloudAuthenticate({ name, email, password }, register) {
         'Email atau password salah. Gunakan Lupa password untuk mengatur password baru lewat email.',
       );
     if (error.code === 'email_not_confirmed' || error.message === 'Email not confirmed')
-      throw Error('Verifikasi email terlebih dahulu melalui Inbox/Spam.');
+      return { needsConfirmation: true, email, needsResend: true };
     check(error);
   }
-  if (!data.session) return { needsConfirmation: true };
-  localStorage.setItem(sessionKey(data.session.user.id), String(Date.now() + 60 * 60 * 1000));
-  localStorage.setItem('tanj-last-activity-' + data.session.user.id, String(Date.now()));
-  await accept(data.session);
+  if (!data.session) return { needsConfirmation: true, email };
+  return acceptLoginSession(data.session);
+}
+async function acceptLoginSession(session) {
+  if (!session?.user) throw Error('Verifikasi belum berhasil. Coba kode terbaru dari email.');
+  localStorage.setItem(sessionKey(session.user.id), String(Date.now() + 60 * 60 * 1000));
+  localStorage.setItem('tanj-last-activity-' + session.user.id, String(Date.now()));
+  await accept(session);
   await loadRole();
   await refreshAddresses();
   return user;
+}
+export async function cloudVerifySignup(email, token) {
+  email = String(email || '')
+    .trim()
+    .toLowerCase();
+  token = String(token || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{6,10}$/.test(token))
+    throw Error('Isi kode angka dari email verifikasi TANJ.');
+  await cloudReady;
+  const { data, error } = await client.auth.verifyOtp({ email, token, type: 'email' });
+  if (error)
+    throw Error('Kode tidak valid atau sudah kedaluwarsa. Gunakan kode terbaru atau kirim ulang.');
+  return acceptLoginSession(data.session);
+}
+export async function cloudResendSignup(email) {
+  email = String(email || '')
+    .trim()
+    .toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw Error('Email belum valid.');
+  await cloudReady;
+  const { error } = await client.auth.resend({ type: 'signup', email });
+  if (error)
+    throw Error(
+      error.status === 429
+        ? 'Terlalu banyak permintaan. Tunggu sebentar sebelum kirim ulang.'
+        : 'Kode belum dapat dikirim. Coba lagi nanti.',
+    );
 }
 export async function cloudLogout() {
   await cloudReady;

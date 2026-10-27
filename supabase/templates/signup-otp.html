@@ -1,0 +1,78 @@
+<!-- Supabase > Authentication > Email > Templates > Confirm signup -->
+<table
+  role="presentation"
+  width="100%"
+  cellpadding="0"
+  cellspacing="0"
+  style="background: #f3efe7; font-family: Arial, Helvetica, sans-serif; color: #302b26"
+>
+  <tr>
+    <td align="center" style="padding: 24px 12px">
+      <table
+        role="presentation"
+        width="100%"
+        cellpadding="0"
+        cellspacing="0"
+        style="max-width: 560px; background: #fffdf8; border-collapse: collapse"
+      >
+        <tr>
+          <td
+            align="center"
+            style="
+              padding: 30px 20px;
+              border-bottom: 1px solid #e6ded3;
+              font-family: Georgia, serif;
+              font-size: 32px;
+              letter-spacing: 7px;
+            "
+          >
+            TANJ
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 30px 24px">
+            <p style="font-size: 11px; letter-spacing: 2px; color: #847563">VERIFIKASI AKUN</p>
+            <h1 style="font-family: Georgia, serif; font-weight: normal; font-size: 26px">
+              Selamat datang di TANJ
+            </h1>
+            <p style="font-size: 14px; line-height: 1.8">
+              Terima kasih sudah mendaftar. Masukkan kode berikut di halaman verifikasi TANJ untuk
+              mengaktifkan akun kamu.
+            </p>
+            <p
+              style="
+                padding: 22px 12px;
+                background: #eee7db;
+                text-align: center;
+                font-size: 32px;
+                letter-spacing: 6px;
+                font-weight: bold;
+                word-break: break-all;
+              "
+            >
+              {{ .Token }}
+            </p>
+            <p style="font-size: 13px; line-height: 1.8">
+              Kode hanya bisa digunakan sekali. Jika sudah kedaluwarsa, tekan
+              <strong>Kirim ulang kode</strong> di website dan gunakan kode terbaru.
+            </p>
+            <p style="font-size: 12px; line-height: 1.8; color: #847563">
+              Jangan bagikan kode ini kepada siapa pun, termasuk pihak yang mengaku sebagai TANJ.
+              Jika kamu tidak mendaftar, abaikan email ini.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td
+            align="center"
+            style="padding: 24px; border-top: 1px solid #e6ded3; font-size: 12px; line-height: 1.8"
+          >
+            Butuh bantuan?<br /><a href="mailto:tanj.indonesia@gmail.com" style="color: #75624e"
+              >tanj.indonesia@gmail.com</a
+            >
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

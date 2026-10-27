@@ -6,12 +6,14 @@ const envPath = fileURLToPath(new URL('../.env', import.meta.url));
 if (existsSync(envPath)) process.loadEnvFile(envPath);
 
 const html = await readFile(
-  new URL('../supabase/templates/confirmation.html', import.meta.url),
+  new URL('../supabase/templates/signup-otp.html', import.meta.url),
   'utf8',
 );
 const payload = {
-  mailer_subjects_confirmation: 'Konfirmasi email akun TANJ',
+  mailer_subjects_confirmation: 'TANJ — Kode verifikasi akun kamu',
   mailer_templates_confirmation_content: html,
+  mailer_autoconfirm: false,
+  smtp_sender_name: 'TANJ',
 };
 if (!process.argv.includes('--apply')) {
   console.log(
@@ -37,5 +39,12 @@ if (!process.argv.includes('--apply')) {
   });
   if (!response.ok)
     throw Error('Konfigurasi email belum diterapkan. Status Management API: ' + response.status);
-  console.log(JSON.stringify({ templateApplied: true, customSenderApplied: false }));
+  console.log(
+    JSON.stringify({
+      templateApplied: true,
+      emailConfirmationEnabled: true,
+      senderName: 'TANJ',
+      smtpCredentialsChanged: false,
+    }),
+  );
 }

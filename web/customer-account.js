@@ -1,4 +1,5 @@
 import { prepareStorefrontEntry, showStorefrontHome } from './storefront-entry.js';
+import { mountSignupVerification } from './signup-verification.js';
 import { sendReset } from './password-recovery.js?v=improve-2';
 import { digest, isAdmin } from './admin-session.js?v=improve-2';
 import {
@@ -7,6 +8,8 @@ import {
   cloudEnsureSession,
   cloudSession,
   cloudAuthenticate,
+  cloudVerifySignup,
+  cloudResendSignup,
   cloudLogout,
   cloudAddresses,
   refreshAddresses,
@@ -138,8 +141,11 @@ export function deleteAddress(id) {
 let dialog,
   pending = null,
   register = false,
-  lastFocus;
+  lastFocus,
+  verificationCleanup;
 function render() {
+  verificationCleanup?.();
+  verificationCleanup = null;
   const user = customerSession();
   const showAdmin =
     isAdmin() && (!cloudEnabled || user?.email?.toLowerCase() === 'tanj.indonesia@gmail.com');
@@ -191,9 +197,22 @@ function render() {
         register,
       );
       if (result?.needsConfirmation) {
-        dialog.querySelector('#customer-auth-error').textContent =
-          'Pendaftaran diterima. Periksa Inbox/Spam untuk verifikasi email, lalu login.';
         e.currentTarget?.reset();
+        verificationCleanup = mountSignupVerification(dialog, result.email, {
+          verify: cloudVerifySignup,
+          resend: cloudResendSignup,
+          needsResend: result.needsResend,
+          onBack: () => {
+            register = false;
+            render();
+          },
+          onVerified: () => {
+            pending = null;
+            dialog.close();
+            showStorefrontHome();
+            window.dispatchEvent(new Event('tanj-customer-authenticated'));
+          },
+        });
         return;
       }
       pending = null;
@@ -219,6 +238,8 @@ export function showCustomerAccount(next = null) {
       if (e.target === dialog) dialog.close();
     });
     dialog.addEventListener('close', () => {
+      verificationCleanup?.();
+      verificationCleanup = null;
       pending = null;
       lastFocus?.focus();
     });
