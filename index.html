@@ -1031,10 +1031,11 @@
         animation: rail-left 22s linear infinite;
       }
       .photo-track figure {
-        margin: 0;
-        width: 25vw;
-        min-width: 25vw;
-        height: 470px;
+        margin: 0 18px 0 0;
+        width: 30vw;
+        min-width: 30vw;
+        height: auto;
+        aspect-ratio: 9 / 16;
         overflow: hidden;
       }
       .photo-track figure img,
@@ -1099,7 +1100,7 @@
         .photo-track figure {
           width: 43vw;
           min-width: 43vw;
-          height: 410px;
+          height: auto;
         }
         .photo-track {
           animation-duration: 26s;
@@ -1122,7 +1123,7 @@
         .photo-track figure {
           width: 65vw;
           min-width: 65vw;
-          height: 340px;
+          height: auto;
         }
         .type-story h2 {
           font-size: 64px;
@@ -4770,6 +4771,7 @@
       tanjHeroVideo.addEventListener('loadedmetadata', slowTanjHero);
     </script>
     <script type="module">
+      import { selectLookbookMedia } from './shared/lookbook.js';
       import { initManualPayment } from './web/manual-payment.js?v=product-discounts-20';
       import { mountProductGallery } from './web/product-gallery.js?v=gallery-1';
       import { mountProductExperience } from './web/product-experience.js?v=detail-1';
@@ -5245,7 +5247,8 @@
         document.getElementById('site-banner-title').textContent = cmsState.banner.title;
         document.getElementById('site-banner-subtitle').textContent = cmsState.banner.subtitle;
         const track = document.querySelector('.photo-track');
-        if (cmsState.slides.length) {
+        const lookbookSlides = selectLookbookMedia(cmsState.slides);
+        if (lookbookSlides.length) {
           track.querySelectorAll('video').forEach((video) => cmsVideoObserver?.unobserve(video));
           track.replaceChildren();
           const add = (parent, slide) => {
@@ -5272,11 +5275,11 @@
             }
             parent.append(figure);
           };
-          cmsState.slides.forEach((slide) => add(track, slide));
+          lookbookSlides.forEach((slide) => add(track, slide));
           const repeat = document.createElement('div');
           repeat.className = 'repeat-set';
           repeat.setAttribute('aria-hidden', 'true');
-          cmsState.slides.forEach((slide) => add(repeat, slide));
+          lookbookSlides.forEach((slide) => add(repeat, slide));
           track.append(repeat);
         }
         document.querySelector('.photo-rail').hidden = !cmsState.slides.length;

@@ -1,3 +1,4 @@
+import { selectLookbookMedia } from '../shared/lookbook.js';
 import { siteSettingFields, defaultSiteSettings } from '../shared/site-settings.js';
 import { mountManualAdmin } from './manual-payments.js?v=owner-ui-3';
 import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=improve-2';
@@ -218,7 +219,7 @@ function render() {
   } else if (tab === 'collections') {
     w.innerHTML = `<div class="toolbar"><span>${state.collections.length} koleksi</span><button class="primary" data-action="new" data-kind="collections">+ Tambah koleksi</button></div><div class="collection-cards">${state.collections.map((c) => `<article class="collection-card"><span class="eyebrow">${state.products.filter((p) => p.collectionId === c.id).length} PRODUK</span><h2>${esc(c.name)}</h2><p>${esc(c.description || 'Belum ada deskripsi.')}</p>${actions('collections', c)}</article>`).join('')}</div>${state.collections.length ? '' : '<p class="empty-state">Belum ada koleksi. Tambahkan koleksi pertama.</p>'}`;
   } else if (tab === 'content') {
-    w.innerHTML = `<div class="content-cards"><article class="content-card"><video src="${esc(asset(state.hero.media))}" muted playsinline controls preload="metadata"></video><div><p class="eyebrow">FIRST IMPRESSION</p><h2>Video utama</h2><p>Video pembuka landing page TANJ.</p>${editButton('hero', '', 'Edit video')}</div></article><article class="content-card">${state.banner.mediaType === 'video' ? `<video src="${esc(asset(state.banner.media))}" controls muted playsinline preload="metadata"></video>` : image(state.banner.media)}<div><span class="badge ${state.banner.enabled ? '' : 'draft'}">${state.banner.enabled ? 'Ditampilkan' : 'Disembunyikan'}</span><h2>${esc(state.banner.title)}</h2><p>${esc(state.banner.subtitle)}</p>${editButton('banner', '', 'Edit banner')}</div></article></div><div class="toolbar"><h2>Lookbook</h2><button class="primary" data-action="new" data-kind="slides">+ Tambah media</button></div><div class="collection-cards">${state.slides.map((s) => `<article class="collection-card">${s.mediaType === 'image' ? `<div class="product-cell">${image(s.media)}<strong>${esc(s.caption)}</strong></div>` : `<strong>${esc(s.caption)} · Video</strong>`}${actions('slides', s)}</article>`).join('')}</div>${state.slides.length ? '' : '<p class="empty-state">Belum ada media lookbook.</p>'}`;
+    w.innerHTML = `<div class="content-cards"><article class="content-card"><video src="${esc(asset(state.hero.media))}" muted playsinline controls preload="metadata"></video><div><p class="eyebrow">FIRST IMPRESSION</p><h2>Video utama</h2><p>Video pembuka landing page TANJ.</p>${editButton('hero', '', 'Edit video')}</div></article><article class="content-card">${state.banner.mediaType === 'video' ? `<video src="${esc(asset(state.banner.media))}" controls muted playsinline preload="metadata"></video>` : image(state.banner.media)}<div><span class="badge ${state.banner.enabled ? '' : 'draft'}">${state.banner.enabled ? 'Ditampilkan' : 'Disembunyikan'}</span><h2>${esc(state.banner.title)}</h2><p>${esc(state.banner.subtitle)}</p>${editButton('banner', '', 'Edit banner')}</div></article></div><div class="toolbar"><h2>Foto &amp; video berjalan</h2><button class="primary" data-action="new" data-kind="slides">+ Upload foto / video</button></div><p>Loop berisi maksimal 5 foto dan 1 video. Format portrait 9:16. Klik Edit untuk mengganti media, lalu Simpan dan Publikasikan.</p><div class="collection-cards">${state.slides.map((s) => `<article class="collection-card">${s.mediaType === 'image' ? `<div class="product-cell">${image(s.media)}<strong>${esc(s.caption)}</strong></div>` : `<strong>${esc(s.caption)} · Video</strong>`}${actions('slides', s)}</article>`).join('')}</div>${state.slides.length ? '' : '<p class="empty-state">Belum ada media lookbook.</p>'}`;
   } else {
     w.innerHTML = `<section class="panel settings"><p class="eyebrow">YOUR WORKSPACE</p><h2>${usesCloudCMS ? 'CMS online TANJ' : isApi ? 'CMS dengan database' : 'Simulasi TANJ Studio'}</h2><p>${usesCloudCMS ? 'Produk, stok, dan konten tersimpan online di Supabase.' : isApi ? 'Produk, koleksi, dan konten tersimpan di database layanan masing-masing. Publikasi membuat satu versi website yang utuh.' : 'Data awal berisi 12 produk wear, 6 hijab, 4 koleksi, dan 6 media lookbook. Tidak ada transaksi atau pelanggan sungguhan dalam simulasi ini.'}</p><p>${usesCloudCMS ? 'Sesi mengikuti autentikasi Supabase. Stok disimpan langsung; konten melalui Publikasikan.' : isApi ? 'Sesi admin berakhir setelah 8 jam.' : 'Draf dan hasil publikasi hanya tersimpan di browser ini. Pengunjung lain tetap melihat data awal.'}</p><div class="row-actions"><button class="secondary" data-action="export">Unduh salinan JSON</button>${isApi || usesCloudCMS ? '' : '<button class="secondary" data-action="reset">Reset data dummy</button>'}</div></section>`;
   }
@@ -527,7 +528,12 @@ $('#edit-form').addEventListener('change', async (event) => {
     const prepared = isVideo
       ? picker.files[0]
       : await cropCmsImage(picker.files[0], {
-          initialRatio: picker.dataset.uploadTarget === 'media' ? 16 / 9 : 3 / 4,
+          initialRatio:
+            editing?.kind === 'slides'
+              ? 9 / 16
+              : picker.dataset.uploadTarget === 'media'
+                ? 16 / 9
+                : 3 / 4,
         });
     if (!prepared) {
       status.textContent = 'Upload dibatalkan.';
@@ -594,6 +600,13 @@ $('#edit-form').addEventListener('submit', async (event) => {
     requireAdmin();
     const { kind, id } = editing;
     const data = Object.fromEntries(new FormData(event.currentTarget));
+    if (kind === 'slides') {
+      const candidate = [...state.slides.filter((slide) => slide.id !== id), data];
+      if (selectLookbookMedia(candidate).length !== candidate.length)
+        throw Error(
+          'Foto berjalan maksimal 5 foto dan 1 video. Edit atau hapus media lama untuk menggantinya.',
+        );
+    }
     if (['products', 'hijabs'].includes(kind)) {
       data.price = Number(data.price);
       data.discountAmount = Number(data.discountAmount || 0);

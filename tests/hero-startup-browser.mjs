@@ -85,6 +85,28 @@ try {
     (url) => document.querySelector('.brand-video source')?.getAttribute('src') === url,
     data.hero.media,
   );
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 1280, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const rail = await page.locator('.photo-track').evaluate((track) => {
+      const originals = [...track.children].filter((el) => el.tagName === 'FIGURE');
+      const box = originals[0].getBoundingClientRect();
+      return {
+        photos: originals.filter((el) => el.querySelector('img')).length,
+        videos: originals.filter((el) => el.querySelector('video')).length,
+        ratio: box.width / box.height,
+        repeatCount: track.querySelector('.repeat-set').children.length,
+        animated: getComputedStyle(track).animationName,
+      };
+    });
+    assert.equal(rail.photos, 5);
+    assert.equal(rail.videos, 1);
+    assert.equal(rail.repeatCount, 6);
+    assert.ok(Math.abs(rail.ratio - 9 / 16) < 0.01);
+    assert.equal(rail.animated, 'rail-left');
+  }
   assert.equal(
     requests.some((url) => url.includes('noireaterial-desert-three-models-v3.mp4')),
     false,
