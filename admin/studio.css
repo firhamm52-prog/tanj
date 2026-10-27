@@ -1100,3 +1100,39 @@ dialog form {
     scroll-behavior: auto !important;
   }
 }
+.cms-video-crop {
+  width: min(94vw, 620px);
+  max-height: 94dvh;
+  overflow: auto;
+  border: 1px solid #29231f;
+  border-radius: 10px;
+  padding: 22px;
+  background: #fffdf9;
+}
+.cms-video-crop::backdrop {
+  background: #0009;
+}
+.cms-video-crop .video-crop-stage {
+  width: min(100%, 360px);
+  max-height: 52dvh;
+  margin: 12px auto;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+  cursor: grab;
+}
+.cms-video-crop video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+.cms-video-crop label {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0;
+}
+.cms-video-crop input {
+  width: 100%;
+}

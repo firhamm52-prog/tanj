@@ -1,6 +1,6 @@
 // Normalize MOV uploads to a browser-friendly WebM instead of publishing QuickTime codecs.
-export async function prepareCmsVideo(file) {
-  if (!/\.mov$/i.test(file.name) && file.type !== 'video/quicktime') return file;
+export async function prepareCmsVideo(file, crop = null) {
+  if (!crop && !/\.mov$/i.test(file.name) && file.type !== 'video/quicktime') return file;
   if (file.size > 50 * 1024 * 1024) throw Error('Ukuran video maksimal 50 MB.');
   const type = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find((value) =>
     globalThis.MediaRecorder?.isTypeSupported(value),
@@ -33,15 +33,30 @@ export async function prepareCmsVideo(file) {
     });
     clearTimeout(timer);
     const canvas = document.createElement('canvas');
-    const scale = Math.min(1, 1080 / Math.max(video.videoWidth, video.videoHeight));
-    canvas.width = Math.max(2, Math.round((video.videoWidth * scale) / 2) * 2);
-    canvas.height = Math.max(2, Math.round((video.videoHeight * scale) / 2) * 2);
+    const ratio = crop?.ratio || video.videoWidth / video.videoHeight;
+    const sourceWidth = Math.min(video.videoWidth, video.videoHeight * ratio) / (crop?.zoom || 1);
+    const sourceHeight = sourceWidth / ratio;
+    const sx = (video.videoWidth - sourceWidth) * (crop?.x ?? 0.5);
+    const sy = (video.videoHeight - sourceHeight) * (crop?.y ?? 0.5);
+    const scale = Math.min(1, 1080 / Math.max(sourceWidth, sourceHeight));
+    canvas.width = Math.max(2, Math.round((sourceWidth * scale) / 2) * 2);
+    canvas.height = Math.max(2, Math.round((sourceHeight * scale) / 2) * 2);
     const context = canvas.getContext('2d');
     stream = canvas.captureStream(30);
     const parts = [];
     recorder = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 4000000 });
     const draw = () => {
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      context.drawImage(
+        video,
+        sx,
+        sy,
+        sourceWidth,
+        sourceHeight,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
       frame = requestAnimationFrame(draw);
     };
     const result = new Promise((resolve, reject) => {
@@ -54,7 +69,9 @@ export async function prepareCmsVideo(file) {
       video.onerror = () => reject(Error('Video berhenti saat konversi. Coba MP4 H.264.'));
       timer = setTimeout(
         () => reject(Error('Konversi terlalu lama. Coba ekspor MP4 H.264.')),
-        Math.max(60000, (video.duration + 30) * 1000),
+        Number.isFinite(video.duration)
+          ? Math.max(60000, (video.duration + 30) * 1000)
+          : 10 * 60 * 1000,
       );
     });
     draw();

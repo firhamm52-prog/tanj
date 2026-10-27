@@ -1,5 +1,6 @@
 import { selectLookbookMedia } from '../shared/lookbook.js';
 import { prepareCmsVideo } from '../web/cms-video-convert.js';
+import { cropCmsVideo } from '../web/cms-video-crop.js';
 import { siteSettingFields, defaultSiteSettings } from '../shared/site-settings.js';
 import { mountManualAdmin } from './manual-payments.js?v=owner-ui-3';
 import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=improve-2';
@@ -531,8 +532,18 @@ $('#edit-form').addEventListener('change', async (event) => {
     status.textContent = isVideo
       ? 'Menyiapkan video. MOV dikonversi otomatis; biarkan tab ini tetap terbuka selama durasi video…'
       : 'Atur posisi foto sebelum diunggah.';
+    const videoCrop = isVideo
+      ? await cropCmsVideo(picker.files[0], { ratio: editing?.kind === 'slides' ? 9 / 16 : 16 / 9 })
+      : null;
+    if (isVideo && !videoCrop) {
+      status.textContent = 'Upload dibatalkan.';
+      return;
+    }
+    if (isVideo)
+      status.textContent =
+        'Memproses crop video. Biarkan tab terbuka sampai selesai (sekitar durasi video).';
     const prepared = isVideo
-      ? await prepareCmsVideo(picker.files[0])
+      ? await prepareCmsVideo(picker.files[0], videoCrop)
       : await cropCmsImage(picker.files[0], {
           initialRatio:
             editing?.kind === 'slides'
