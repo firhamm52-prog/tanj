@@ -97,6 +97,7 @@ try {
         photos: originals.filter((el) => el.querySelector('img')).length,
         videos: originals.filter((el) => el.querySelector('video')).length,
         ratio: box.width / box.height,
+        height: box.height,
         repeatCount: track.querySelector('.repeat-set').children.length,
         animated: getComputedStyle(track).animationName,
       };
@@ -105,6 +106,7 @@ try {
     assert.equal(rail.videos, 1);
     assert.equal(rail.repeatCount, 6);
     assert.ok(Math.abs(rail.ratio - 9 / 16) < 0.01);
+    assert.ok(rail.height >= 550, 'portrait media stays tall on desktop and mobile');
     assert.equal(rail.animated, 'rail-left');
   }
   assert.equal(

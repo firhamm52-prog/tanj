@@ -15,17 +15,22 @@
   margin: 0;
   color: #302b26;
 }
-.photo-track figure {
-  padding: 6px;
-  border: 1px solid #dfd5c7;
-  border-radius: 14px;
-  background: #fffdf9;
-  margin-inline: 7px;
-  box-shadow: 0 4px 15px #49362008;
+#lookbook .photo-track figure {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  height: clamp(480px, 46vw, 640px);
+  aspect-ratio: 9 / 16;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  margin: 0 24px 0 0;
+  box-shadow: none;
 }
-.photo-track figure img,
-.photo-track figure video {
-  border-radius: 9px;
+#lookbook .photo-track figure img,
+#lookbook .photo-track figure video {
+  border-radius: 0;
 }
 .card .product-preview {
   padding: 6px;
@@ -64,10 +69,9 @@
   .moving-intro h2 {
     font-size: 22px;
   }
-  .photo-track figure {
-    margin-inline: 5px;
-    padding: 5px;
-    border-radius: 12px;
+  #lookbook .photo-track figure {
+    height: clamp(400px, 68svh, 560px);
+    margin-right: 16px;
   }
   .card .product-preview {
     padding: 4px;
