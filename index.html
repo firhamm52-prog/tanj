@@ -2388,8 +2388,8 @@
         background: #f1eee8;
       }
       .intro-strip {
-        background: #302c28;
-        border-color: #302c28;
+        background: #000;
+        border-color: #000;
         color: #f4eee5;
       }
       .intro-strip span {
@@ -3824,7 +3824,7 @@
           <p id="site-banner-subtitle"></p>
         </div>
       </section>
-      <section class="intro-strip"><p>Modest wear · Indonesia</p></section>
+      <section class="intro-strip" aria-hidden="true"></section>
       <section class="ootd-rail" aria-label="Foto OOTD TANJ di gedung vintage bergerak ke kiri">
         <div class="ootd-track">
           <div class="ootd-set">
@@ -5014,13 +5014,18 @@
               (entries) => {
                 entries.forEach(({ target, isIntersecting }) => {
                   if (isIntersecting) cmsPlayVideo(target);
-                  else target.pause();
+                  else if (
+                    document.fullscreenElement !== target &&
+                    !target.webkitDisplayingFullscreen
+                  )
+                    target.pause();
                 });
               },
               { threshold: 0.05 },
             )
           : null;
       async function cmsPlayVideo(video) {
+        const fullscreen = document.fullscreenElement === video || video.webkitDisplayingFullscreen;
         const rect = video.getBoundingClientRect();
         if (
           !video.isConnected ||
@@ -5028,17 +5033,18 @@
           document.hidden ||
           !rect.width ||
           !rect.height ||
-          rect.bottom <= 0 ||
-          rect.top >= innerHeight ||
-          rect.right <= 0 ||
-          rect.left >= innerWidth
+          (!fullscreen &&
+            (rect.bottom <= 0 ||
+              rect.top >= innerHeight ||
+              rect.right <= 0 ||
+              rect.left >= innerWidth))
         ) {
           video.pause();
           return;
         }
         try {
           await video.play();
-          video.controls = false;
+          if (!fullscreen) video.controls = false;
         } catch {
           video.controls = true;
         }

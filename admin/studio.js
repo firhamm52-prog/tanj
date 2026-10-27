@@ -1,4 +1,5 @@
 import { selectLookbookMedia } from '../shared/lookbook.js';
+import { prepareCmsVideo } from '../web/cms-video-convert.js';
 import { siteSettingFields, defaultSiteSettings } from '../shared/site-settings.js';
 import { mountManualAdmin } from './manual-payments.js?v=owner-ui-3';
 import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=improve-2';
@@ -528,10 +529,10 @@ $('#edit-form').addEventListener('change', async (event) => {
     requireAdmin();
     const isVideo = picker.dataset.uploadKind === 'video';
     status.textContent = isVideo
-      ? 'Mengunggah video, tunggu sampai selesai…'
+      ? 'Menyiapkan video. MOV dikonversi otomatis; biarkan tab ini tetap terbuka selama durasi video…'
       : 'Atur posisi foto sebelum diunggah.';
     const prepared = isVideo
-      ? picker.files[0]
+      ? await prepareCmsVideo(picker.files[0])
       : await cropCmsImage(picker.files[0], {
           initialRatio:
             editing?.kind === 'slides'
