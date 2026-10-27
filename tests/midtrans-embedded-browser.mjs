@@ -252,8 +252,12 @@ try {
       },
     });
   });
-  await page.getByText('Batas pembayaran telah lewat. Hubungi admin.').waitFor();
-  await page.getByText(/Transaksi tidak ditemukan di Midtrans/).waitFor();
+  await page.getByText('Pembayaran kedaluwarsa', { exact: true }).waitFor();
+  await page.getByText('Status belum tersedia.', { exact: true }).waitFor();
+  assert.equal(
+    await page.getByRole('button', { name: 'Muat ulang pembayaran' }).isVisible(),
+    false,
+  );
   assert.equal(await page.evaluate(() => window.expiredVerified), 0);
   await page.evaluate(() => {
     window.expiredState = 'cancelled';
@@ -267,6 +271,22 @@ try {
     1,
     'status check must not create another payment',
   );
+  await page.evaluate(() => window.stop());
+  await page.evaluate(() => {
+    window.deadlineCalls = [];
+    window.stop = window.mount(document.getElementById('checkout'), 'TANJ-expired-known', {
+      deadline: Date.now() - 1000,
+      canChangeBank: true,
+      request: async (operation) => {
+        window.deadlineCalls.push(operation);
+        return { status: 'WAITING_PAYMENT' };
+      },
+    });
+  });
+  await page.getByText('Pembayaran kedaluwarsa', { exact: true }).waitFor();
+  assert.deepEqual(await page.evaluate(() => window.deadlineCalls), ['status']);
+  assert.equal(await page.getByRole('button', { name: 'Ubah bank account' }).count(), 0);
+  assert.equal(await page.locator('.payment-expired-icon svg').count(), 1);
   await page.evaluate(() => window.stop());
   console.log(
     'PASS: automatic embedded checkout, upload-free public Client Key, retry same order, server-verified payment callbacks, mobile viewport. Provider is simulated.',

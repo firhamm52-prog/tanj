@@ -65,6 +65,7 @@ export function mountMidtransCheckout(
     onVerified = async () => {},
     canChangeMethod = false,
     canChangeBank = false,
+    deadline = null,
     redirect = (url) => location.assign(url),
   } = {},
 ) {
@@ -86,12 +87,29 @@ export function mountMidtransCheckout(
   const frame = container.querySelector('.midtrans-embed');
   frame.id = 'midtrans-' + crypto.randomUUID();
   const retry = container.querySelector('button');
+  let expired =
+    Number.isFinite(Number(deadline)) && Number(deadline) > 0 && Number(deadline) <= Date.now();
+  function showExpired() {
+    expired = true;
+    message.hidden = true;
+    retry.hidden = true;
+    frame.hidden = true;
+    if (!container.querySelector('.payment-expired')) {
+      const notice = document.createElement('div');
+      notice.className = 'payment-expired';
+      notice.setAttribute('role', 'status');
+      notice.innerHTML =
+        '<span class="payment-expired-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m6 6 12 12M18 6 6 18"/></svg></span><h4>Pembayaran kedaluwarsa</h4>';
+      container.prepend(notice);
+    }
+  }
+  if (expired) showExpired();
   const checkStatus = document.createElement('button');
   checkStatus.type = 'button';
   checkStatus.className = 'shop-outline';
   checkStatus.textContent = 'Cek status pembayaran';
   container.append(checkStatus);
-  if (canChangeMethod || canChangeBank) {
+  if (!expired && (canChangeMethod || canChangeBank)) {
     const change = document.createElement('button');
     change.type = 'button';
     change.className = 'shop-outline';
@@ -150,15 +168,21 @@ export function mountMidtransCheckout(
             : 'Transaksi sudah berakhir. Memperbarui pesanan…';
         await onVerified();
       } else {
-        verification.textContent = result.notStarted
-          ? 'Transaksi tidak ditemukan di Midtrans pada konfigurasi saat ini. Status pesanan dan stok belum diubah. Hubungi admin dengan nomor pesanan untuk memeriksa mode Sandbox/Production dan transaksi lama.'
-          : 'Midtrans masih melaporkan pembayaran belum selesai. Status pesanan belum berubah.';
+        verification.textContent = expired
+          ? result.notStarted
+            ? 'Status belum tersedia.'
+            : 'Status belum tersinkron.'
+          : result.notStarted
+            ? 'Transaksi tidak ditemukan di Midtrans pada konfigurasi saat ini. Status pesanan dan stok belum diubah. Hubungi admin dengan nomor pesanan untuk memeriksa mode Sandbox/Production dan transaksi lama.'
+            : 'Midtrans masih melaporkan pembayaran belum selesai. Status pesanan belum berubah.';
       }
     } catch (error) {
       if (active()) {
-        verification.textContent = error.status
-          ? 'Pengecekan status belum berhasil: ' + error.message
-          : 'Status pembayaran akan diperiksa kembali otomatis saat koneksi tersedia.';
+        verification.textContent = expired
+          ? 'Belum bisa dicek. Coba lagi.'
+          : error.status
+            ? 'Pengecekan status belum berhasil: ' + error.message
+            : 'Status pembayaran akan diperiksa kembali otomatis saat koneksi tersedia.';
         verification.hidden = false;
       }
     } finally {
@@ -234,6 +258,7 @@ export function mountMidtransCheckout(
       if (active()) {
         message.textContent = error.message;
         retry.hidden = false;
+        if (/batas pembayaran.*lewat|kedaluwarsa|expired/i.test(error.message)) showExpired();
       }
     } finally {
       busy = false;
@@ -251,7 +276,8 @@ export function mountMidtransCheckout(
   };
   window.addEventListener('focus', resume);
   document.addEventListener('visibilitychange', resume);
-  void start();
+  if (expired) void verify();
+  else void start();
   return () => {
     stopped = true;
     closeSnap();

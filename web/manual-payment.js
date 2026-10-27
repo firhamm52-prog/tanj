@@ -1,4 +1,4 @@
-import { mountMidtransCheckout } from './midtrans-checkout.js?v=expired-status-30';
+import { mountMidtransCheckout } from './midtrans-checkout.js?v=expired-visual-31';
 import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js';
 import { cloudEnabled } from './supabase-payments.js?v=improve-2';
 import { cropQrisArtwork } from './qris-crop.js';
@@ -321,8 +321,10 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
           const payment = document.createElement('section');
           payment.dataset.midtransOrder = order.id;
           payment.dataset.version = String(order.version);
+          if (Number(order.deadline) <= Date.now()) panel.querySelector('h3').hidden = true;
           message.after(payment);
           stopMidtrans = mountMidtransCheckout(payment, order.id, {
+            deadline: order.deadline,
             canChangeMethod: order.payment?.channel === 'qris',
             canChangeBank: order.payment?.channel !== 'qris',
             onVerified: async () => {
