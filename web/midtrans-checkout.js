@@ -86,6 +86,11 @@ export function mountMidtransCheckout(
   const frame = container.querySelector('.midtrans-embed');
   frame.id = 'midtrans-' + crypto.randomUUID();
   const retry = container.querySelector('button');
+  const checkStatus = document.createElement('button');
+  checkStatus.type = 'button';
+  checkStatus.className = 'shop-outline';
+  checkStatus.textContent = 'Cek status pembayaran';
+  container.append(checkStatus);
   if (canChangeMethod || canChangeBank) {
     const change = document.createElement('button');
     change.type = 'button';
@@ -132,10 +137,23 @@ export function mountMidtransCheckout(
   async function verify() {
     if (!active() || busy || document.hidden || container.closest('[hidden]') || verifying) return;
     verifying = true;
+    checkStatus.disabled = true;
+    verification.textContent = 'Memeriksa status langsung ke Midtrans…';
+    verification.hidden = false;
     try {
       const result = await request('status', orderId);
-      if (active()) verification.hidden = true;
-      if (active() && ['PAID', 'CANCELLED'].includes(result.status)) await onVerified();
+      if (!active()) return;
+      if (['PAID', 'CANCELLED'].includes(result.status)) {
+        verification.textContent =
+          result.status === 'PAID'
+            ? 'Pembayaran sudah diterima.'
+            : 'Transaksi sudah berakhir. Memperbarui pesanan…';
+        await onVerified();
+      } else {
+        verification.textContent = result.notStarted
+          ? 'Transaksi tidak ditemukan di Midtrans pada konfigurasi saat ini. Status pesanan dan stok belum diubah. Hubungi admin dengan nomor pesanan untuk memeriksa mode Sandbox/Production dan transaksi lama.'
+          : 'Midtrans masih melaporkan pembayaran belum selesai. Status pesanan belum berubah.';
+      }
     } catch (error) {
       if (active()) {
         verification.textContent = error.status
@@ -145,6 +163,7 @@ export function mountMidtransCheckout(
       }
     } finally {
       verifying = false;
+      checkStatus.disabled = false;
     }
   }
   async function start() {
@@ -152,6 +171,7 @@ export function mountMidtransCheckout(
     busy = true;
     retry.hidden = true;
     message.textContent = 'Menyiapkan QRIS dan Virtual Account…';
+    let failed = false;
     try {
       const data = await request('start', orderId);
       if (!active()) return;
@@ -210,15 +230,18 @@ export function mountMidtransCheckout(
       }
       message.textContent = 'Pilih QRIS atau Virtual Account untuk membayar.';
     } catch (error) {
+      failed = true;
       if (active()) {
         message.textContent = error.message;
         retry.hidden = false;
       }
     } finally {
       busy = false;
+      if (failed && active()) void verify();
     }
   }
   retry.onclick = start;
+  checkStatus.onclick = () => void verify();
   const timer = setInterval(() => {
     if (!active()) clearInterval(timer);
     else void verify();

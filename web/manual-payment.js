@@ -1,4 +1,4 @@
-import { mountMidtransCheckout } from './midtrans-checkout.js?v=inline-no-reload-17';
+import { mountMidtransCheckout } from './midtrans-checkout.js?v=expired-status-30';
 import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js';
 import { cloudEnabled } from './supabase-payments.js?v=improve-2';
 import { cropQrisArtwork } from './qris-crop.js';

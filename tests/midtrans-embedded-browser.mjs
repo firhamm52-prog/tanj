@@ -232,6 +232,42 @@ try {
   );
   assert.equal(await page.locator('[data-payment-link], a[target="_blank"]').count(), 0);
   await page.evaluate(() => window.stop());
+  await page.evaluate(() => {
+    window.expiredCalls = [];
+    window.expiredVerified = 0;
+    window.expiredState = 'not-found';
+    window.stop = window.mount(document.getElementById('checkout'), 'TANJ-expired', {
+      request: async (operation) => {
+        window.expiredCalls.push(operation);
+        if (operation === 'start')
+          throw Object.assign(Error('Batas pembayaran telah lewat. Hubungi admin.'), {
+            status: 409,
+          });
+        return window.expiredState === 'not-found'
+          ? { status: 'WAITING_PAYMENT', notStarted: true }
+          : { status: 'CANCELLED' };
+      },
+      onVerified: async () => {
+        window.expiredVerified++;
+      },
+    });
+  });
+  await page.getByText('Batas pembayaran telah lewat. Hubungi admin.').waitFor();
+  await page.getByText(/Transaksi tidak ditemukan di Midtrans/).waitFor();
+  assert.equal(await page.evaluate(() => window.expiredVerified), 0);
+  await page.evaluate(() => {
+    window.expiredState = 'cancelled';
+  });
+  await page.getByRole('button', { name: 'Cek status pembayaran', exact: true }).click();
+  await page.waitForFunction(() => window.expiredVerified === 1);
+  assert.equal(
+    await page.evaluate(
+      () => window.expiredCalls.filter((operation) => operation === 'start').length,
+    ),
+    1,
+    'status check must not create another payment',
+  );
+  await page.evaluate(() => window.stop());
   console.log(
     'PASS: automatic embedded checkout, upload-free public Client Key, retry same order, server-verified payment callbacks, mobile viewport. Provider is simulated.',
   );
