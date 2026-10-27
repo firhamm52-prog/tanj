@@ -10,7 +10,7 @@ Alur: daftar dengan nama/email/password → kode verifikasi dikirim → masukkan
    - Body: salin seluruh [signup-otp.html](../supabase/templates/signup-otp.html), lalu simpan.
    - Pertahankan `{{ .Token }}` persis seperti di file; itulah kode resmi Supabase. Bukan template EmailJS pemesanan/pengiriman.
 3. **Authentication → Email → SMTP Settings**: gunakan SMTP milik TANJ dengan **Sender name = TANJ** dan alamat pengirim yang sudah diverifikasi oleh penyedia email. Template HTML tidak dapat mengubah alamat pengirim atau menggantikan pengaturan SMTP. Jangan memasukkan password SMTP ke kode website/repository.
-4. Atur masa berlaku kode di pengaturan Email OTP Supabase sesuai kebutuhan, misalnya 10 menit. Form mendukung kode angka 6–10 digit sesuai konfigurasi server, serta batas kirim ulang 60 detik di UI. Batas resmi pengiriman dan percobaan verifikasi tetap ditegakkan Supabase.
+4. Atur masa berlaku kode di pengaturan Email OTP Supabase sesuai kebutuhan, misalnya 10 menit. Set **Email OTP length = 6** di Authentication → Sign In / Providers → Email. Form hanya menerima tepat 6 digit, dengan batas kirim ulang 60 detik di UI. Batas resmi pengiriman dan percobaan verifikasi tetap ditegakkan Supabase.
 
 Push GitHub tidak mengubah template ataupun SMTP di Supabase. Setelah pengaturan dashboard disimpan, uji dengan email customer baru, masukkan kode yang salah dahulu, lalu kode terbaru yang benar. Akun belum terkonfirmasi tidak boleh bisa login/membuat pesanan sebelum verifikasi.
 

@@ -189,8 +189,8 @@ export async function cloudVerifySignup(email, token) {
     .trim()
     .toLowerCase();
   token = String(token || '').trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{6,10}$/.test(token))
-    throw Error('Isi kode angka dari email verifikasi TANJ.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{6}$/.test(token))
+    throw Error('Masukkan kode 6 digit dari email verifikasi TANJ.');
   await cloudReady;
   const { data, error } = await client.auth.verifyOtp({ email, token, type: 'email' });
   if (error)

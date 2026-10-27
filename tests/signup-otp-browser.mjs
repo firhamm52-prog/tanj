@@ -102,6 +102,11 @@ try {
   await page.locator('#customer-auth [name=repeat]').fill('secure-password-123');
   await page.locator('#customer-auth [type=submit]').click();
   await page.locator('#customer-verify').waitFor();
+  assert.equal(await page.locator('#customer-verify [name=code]').getAttribute('maxlength'), '6');
+  assert.equal(
+    await page.locator('#customer-verify [name=code]').getAttribute('pattern'),
+    '[0-9]{6}',
+  );
   assert.equal(
     await page.evaluate(async () =>
       (await import('/web/customer-account.js?v=owner-ui-3')).customerSession(),

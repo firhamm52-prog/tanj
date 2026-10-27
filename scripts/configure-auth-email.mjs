@@ -13,6 +13,7 @@ const payload = {
   mailer_subjects_confirmation: 'TANJ — Kode verifikasi akun kamu',
   mailer_templates_confirmation_content: html,
   mailer_autoconfirm: false,
+  mailer_otp_length: 6,
   smtp_sender_name: 'TANJ',
 };
 if (!process.argv.includes('--apply')) {

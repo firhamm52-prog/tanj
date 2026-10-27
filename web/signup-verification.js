@@ -7,7 +7,7 @@ export function mountSignupVerification(
   let disposed = false,
     busy = false;
   if (!needsResend) resendUntil.set(email, Date.now() + 60000);
-  dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup verifikasi">&times;</button><p class="checkout-eyebrow">TANJ / VERIFIKASI EMAIL</p><h2>Masukkan kode verifikasi</h2><p>Kode verifikasi dikirim ke <strong data-verification-email></strong>. Periksa Inbox atau Spam. Jangan bagikan kode ini kepada siapa pun.</p><form id="customer-verify" novalidate><label>Kode verifikasi<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" minlength="6" maxlength="10" required></label><p id="customer-auth-error" role="alert"></p><button type="submit" class="shop-primary">Verifikasi akun</button></form><button type="button" class="customer-text" data-resend>Kirim ulang kode</button><p data-verification-status role="status"></p><button type="button" class="customer-text" data-back>Kembali ke login</button>`;
+  dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup verifikasi">&times;</button><p class="checkout-eyebrow">TANJ / VERIFIKASI EMAIL</p><h2>Masukkan kode verifikasi</h2><p>Kode verifikasi dikirim ke <strong data-verification-email></strong>. Periksa Inbox atau Spam. Jangan bagikan kode ini kepada siapa pun.</p><form id="customer-verify" novalidate><label>Kode verifikasi<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required></label><p id="customer-auth-error" role="alert"></p><button type="submit" class="shop-primary">Verifikasi akun</button></form><button type="button" class="customer-text" data-resend>Kirim ulang kode</button><p data-verification-status role="status"></p><button type="button" class="customer-text" data-back>Kembali ke login</button>`;
   dialog.querySelector('[data-verification-email]').textContent = email;
   const form = dialog.querySelector('form');
   const input = form.elements.code;
@@ -29,8 +29,8 @@ export function mountSignupVerification(
     if (busy) return;
     error.textContent = '';
     const token = input.value.trim();
-    if (!/^\d{6,10}$/.test(token)) {
-      error.textContent = 'Isi kode angka dari email TANJ.';
+    if (!/^\d{6}$/.test(token)) {
+      error.textContent = 'Masukkan kode 6 digit dari email TANJ.';
       input.focus();
       return;
     }
