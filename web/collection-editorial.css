@@ -1,3 +1,12 @@
+body.catalog-open {
+  --paper: #eeebe3;
+}
+body.catalog-open,
+body.catalog-open #all-products,
+body.catalog-open #hijab-catalog {
+  background: #eeebe3;
+  background-image: none;
+}
 .moving-lookbook {
   background: #faf8f4;
   padding: 48px 0 60px;
