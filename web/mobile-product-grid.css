@@ -1,0 +1,123 @@
+/* Mobile-only product sizing. Desktop layout is intentionally untouched. */
+@media (max-width: 760px) {
+  #collection .products.three,
+  #all-products .catalog-grid,
+  #hijab-catalog .hijab-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 10px;
+    overflow: visible;
+    padding: 0;
+    scroll-snap-type: none;
+    overscroll-behavior-inline: auto;
+  }
+  #collection .products.three > .card,
+  #all-products .catalog-grid > .catalog-tile,
+  #hijab-catalog .hijab-grid > .hijab-card {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    flex: none;
+    margin: 0;
+    scroll-snap-align: none;
+  }
+  #collection .products.three::after,
+  #collection .collection-heading::after,
+  #all-products .catalog-heading::after {
+    display: none;
+    content: none;
+  }
+  #collection {
+    padding: 34px 16px 42px;
+  }
+  #collection .section-heading {
+    margin-bottom: 16px;
+    padding-bottom: 18px;
+  }
+  #collection .collection-heading {
+    margin: 0;
+    padding: 20px 0 16px;
+    gap: 8px;
+  }
+  #collection .collection-heading.second {
+    margin-top: 22px;
+  }
+  #collection .collection-heading h3 {
+    font-size: clamp(22px, 5.5vw, 28px);
+  }
+  #collection .collection-number {
+    font-size: 9px;
+  }
+  #collection .products.three > .card {
+    padding: 4px 4px 0;
+  }
+  #collection .product-preview {
+    padding: 3px;
+    border-radius: 9px;
+  }
+  #collection .product-preview .photo {
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 3 / 4;
+    border-radius: 6px;
+  }
+  #collection .photo-hint {
+    font-size: 9px;
+    line-height: 1.4;
+    padding: 6px 3px 3px;
+  }
+  #collection .products.three .card-info {
+    padding: 10px 4px 8px;
+  }
+  #collection .card-title {
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+  #collection .card-sub,
+  #collection .card-size {
+    font-size: 10px;
+    line-height: 1.4;
+    margin-top: 3px;
+  }
+  #collection .card-footer {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 5px;
+    margin-top: 10px;
+    align-items: center;
+  }
+  #collection .card-footer .price {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    margin: 0;
+  }
+  #collection .card-sold,
+  #collection .card-stock {
+    font-size: 9px;
+  }
+  #all-products .catalog-grid > .catalog-empty {
+    grid-column: 1 / -1;
+  }
+  #all-products .catalog-tile h2 {
+    font-size: 13px;
+    line-height: 1.4;
+    min-height: 0;
+  }
+  #all-products .catalog-tile .price {
+    font-size: 11px;
+  }
+  #hijab-catalog .hijab-caption {
+    display: block;
+    padding-top: 10px;
+  }
+  #hijab-catalog .hijab-caption h3 {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  #hijab-catalog .hijab-price {
+    display: block;
+    margin-top: 6px;
+    font-size: 11px;
+  }
+}
