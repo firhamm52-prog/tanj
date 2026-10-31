@@ -3590,6 +3590,7 @@
     </style>
     <link rel="stylesheet" href="web/collection-editorial.css?v=broken-white-32" />
     <link rel="stylesheet" href="web/product-experience.css?v=raised-thumbnails-3" />
+    <link rel="stylesheet" href="web/hijab-pair-gallery.css?v=1" />
   </head>
   <body>
     <header class="nav">
@@ -3825,70 +3826,7 @@
         </div>
       </section>
       <section class="intro-strip" aria-hidden="true"></section>
-      <section class="ootd-rail" aria-label="Foto OOTD TANJ di gedung vintage bergerak ke kiri">
-        <div class="ootd-track">
-          <div class="ootd-set">
-            <figure>
-              <img
-                loading="lazy"
-                src="assets/ootd-vintage-1.webp"
-                alt="Embroidered Outer Sand di lorong gedung vintage"
-              />
-            </figure>
-            <figure>
-              <img
-                loading="lazy"
-                src="assets/ootd-vintage-2.webp"
-                alt="Everyday Drape Outer Cocoa di tangga batu"
-              />
-            </figure>
-            <figure>
-              <img
-                loading="lazy"
-                src="assets/ootd-vintage-3.webp"
-                alt="Flow Dress Ash di halaman gedung klasik"
-              />
-            </figure>
-            <figure>
-              <img
-                loading="lazy"
-                src="assets/ootd-vintage-4.webp"
-                alt="Embroidered Outer Noir di arcade vintage"
-              />
-            </figure>
-          </div>
-          <div class="ootd-set" aria-hidden="true">
-            <figure>
-              <img
-                loading="lazy"
-                src="assets/ootd-vintage-1.webp"
-                alt="Embroidered Outer Sand di lorong gedung vintage"
-              />
-            </figure>
-            <figure>
-              <img
-                loading="lazy"
-                src="assets/ootd-vintage-2.webp"
-                alt="Everyday Drape Outer Cocoa di tangga batu"
-              />
-            </figure>
-            <figure>
-              <img
-                loading="lazy"
-                src="assets/ootd-vintage-3.webp"
-                alt="Flow Dress Ash di halaman gedung klasik"
-              />
-            </figure>
-            <figure>
-              <img
-                loading="lazy"
-                src="assets/ootd-vintage-4.webp"
-                alt="Embroidered Outer Noir di arcade vintage"
-              />
-            </figure>
-          </div>
-        </div>
-      </section>
+
       <section class="section" id="collection">
         <div class="collection-heading">
           <div>
@@ -4248,6 +4186,11 @@
           </article>
         </div>
       </section>
+      <section
+        id="hijab-pair-gallery"
+        aria-label="Foto model dan mockup hijab TANJ"
+        hidden
+      ></section>
       <section class="moving-lookbook" id="lookbook">
         <div class="moving-intro"><h2>Must be have combination.</h2></div>
         <div class="photo-rail" aria-label="Foto dan video koleksi hijab TANJ bergerak ke kiri">
@@ -4771,6 +4714,7 @@
       tanjHeroVideo.addEventListener('loadedmetadata', slowTanjHero);
     </script>
     <script type="module">
+      import { mountHijabPairGallery } from './web/hijab-pair-gallery.js';
       import { selectLookbookMedia } from './shared/lookbook.js';
       import { initManualPayment } from './web/manual-payment.js?v=expired-visual-31';
       import { mountProductGallery } from './web/product-gallery.js?v=gallery-1';
@@ -5291,42 +5235,6 @@
           track.append(repeat);
         }
         document.querySelector('.photo-rail').hidden = !lookbookSlides.length;
-        const upperSlides = selectLookbookMedia(
-          cmsState.slides.filter((slide) => slide.placement === 'upper'),
-        );
-        if (upperSlides.length) {
-          const upperTrack = document.querySelector('.ootd-track');
-          upperTrack
-            .querySelectorAll('video')
-            .forEach((video) => cmsVideoObserver?.unobserve(video));
-          upperTrack.replaceChildren();
-          for (let copy = 0; copy < 2; copy++) {
-            const set = document.createElement('div');
-            set.className = 'ootd-set';
-            if (copy) set.setAttribute('aria-hidden', 'true');
-            for (const slide of upperSlides) {
-              const figure = document.createElement('figure');
-              const video = cmsIsVideo(slide.media, slide.mediaType);
-              const media = document.createElement(video ? 'video' : 'img');
-              if (video) {
-                media.autoplay = true;
-                media.muted = true;
-                media.loop = true;
-                media.playsInline = true;
-                media.preload = 'metadata';
-                media.setAttribute('aria-label', slide.caption || 'Video TANJ');
-                cmsSetVideo(media, slide.media);
-              } else {
-                media.src = cmsAssetSrc(slide.media);
-                media.alt = slide.caption || 'Foto TANJ';
-                media.loading = 'lazy';
-              }
-              figure.append(media);
-              set.append(figure);
-            }
-            upperTrack.append(set);
-          }
-        }
       }
       cmsApply();
       function cmsApplyHijabs() {
@@ -5762,10 +5670,19 @@
           collectionId: 'hijab-' + item.collection,
           colorName: item.color,
           model: item.image,
-          product: item.image,
+          product:
+            item.product || item.gallery?.find((photo) => photo !== item.image) || item.image,
         })),
       ];
       const findProduct = (id) => orderableProducts().find((item) => item.id === id);
+      const hijabPairGallery = mountHijabPairGallery(
+        document.getElementById('hijab-pair-gallery'),
+        {
+          resolveImage: cmsAssetSrc,
+          openProduct: (item) => showProduct(findProduct(item.id)),
+        },
+      );
+      hijabPairGallery.set(cmsState.hijabs);
       const productExperience = mountProductExperience({
         getProducts: orderableProducts,
         openProduct: showProduct,
@@ -6086,6 +6003,7 @@
             cmsState = next;
             cmsApply();
             cmsApplyHijabs();
+            hijabPairGallery.set(cmsState.hijabs);
             refreshCatalog();
             routeCatalog();
             renderCart();

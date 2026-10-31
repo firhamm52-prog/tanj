@@ -1,7 +1,10 @@
 import { selectLookbookMedia } from '../shared/lookbook.js';
 import { prepareCmsVideo } from '../web/cms-video-convert.js';
 import { cropCmsVideo } from '../web/cms-video-crop.js';
-import { siteSettingFields, defaultSiteSettings } from '../shared/site-settings.js?v=shipping-discount-28';
+import {
+  siteSettingFields,
+  defaultSiteSettings,
+} from '../shared/site-settings.js?v=shipping-discount-28';
 import { mountManualAdmin } from './manual-payments.js?v=owner-ui-3';
 import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=improve-2';
 import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js';
@@ -301,9 +304,9 @@ $('#workspace').addEventListener('click', (event) => {
     }
   });
 });
-function field(name, label, value = '', type = 'text', full = false, extra = '') {
+function field(name, label, value = '', type = 'text', full = false, extra = '', required = true) {
   const upload = usesCloudCMS && ['model', 'product', 'image', 'media'].includes(name);
-  return `<label class="${full ? 'full' : ''}">${label}<input name="${name}" type="${type}" value="${esc(value)}" ${extra} required>${['media', 'model', 'product', 'image'].includes(name) ? '<span class="field-help">assets/nama.webp atau URL HTTPS foto/video yang sudah dihosting.</span>' : ''}</label>${upload ? `<div class="full upload-control"><label>Unggah ${label.toLowerCase().replace(/^url /, '')} dari perangkat<input type="file" accept="image/jpeg,image/png,image/webp" data-upload-target="${name}"></label><span class="field-help" role="status">JPG, PNG atau WebP, maksimal 5 MB. URL foto terisi otomatis.</span><img class="upload-preview" alt="Pratinjau foto yang diunggah" hidden></div>` : ''}`;
+  return `<label class="${full ? 'full' : ''}">${label}<input name="${name}" type="${type}" value="${esc(value)}" ${extra} ${required ? 'required' : ''}>${['media', 'model', 'product', 'image'].includes(name) ? '<span class="field-help">assets/nama.webp atau URL HTTPS foto/video yang sudah dihosting.</span>' : ''}</label>${upload ? `<div class="full upload-control"><label>Unggah ${label.toLowerCase().replace(/^url /, '')} dari perangkat<input type="file" accept="image/jpeg,image/png,image/webp" data-upload-target="${name}"></label><span class="field-help" role="status">JPG, PNG atau WebP, maksimal 5 MB. URL foto terisi otomatis.</span><img class="upload-preview" alt="Pratinjau foto yang diunggah" hidden></div>` : ''}`;
 }
 function select(name, label, value, options) {
   return `<label>${label}<select name="${name}" required>${options.map(([id, title]) => `<option value="${esc(id)}" ${value === id ? 'selected' : ''}>${esc(title)}</option>`).join('')}</select></label>`;
@@ -423,7 +426,16 @@ function openEditor(kind, id, placement) {
         ['draft', 'Draf — sembunyikan'],
         ['published', 'Aktif — tampil setelah publikasi'],
       ]) +
-      field('image', 'Foto hijab', item.image || '', 'text', true);
+      field('image', 'Foto model hijab — sebelah kiri', item.image || '', 'text', true) +
+      field(
+        'product',
+        'Foto mockup hijab — sebelah kanan',
+        item.product || item.gallery?.find((photo) => photo !== item.image) || '',
+        'text',
+        true,
+        '',
+        false,
+      );
   if (kind === 'collections')
     fields =
       field('name', 'Nama koleksi', item.name, 'text', true) +
@@ -745,7 +757,7 @@ try {
 }
 
 function renderMovingMedia() {
-  return ['upper', 'lower']
+  return ['lower']
     .map((placement) => {
       const items = state.slides.filter((s) => (s.placement || 'lower') === placement);
       const title =

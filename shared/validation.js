@@ -82,6 +82,7 @@ export function validate(kind, raw) {
       status,
       color: text(raw.color, 'Warna'),
       image: media(raw.image),
+      product: raw.product ? media(raw.product) : '',
       gallery: [...new Set(raw.gallery || [])],
       description: productText(raw.description),
       careInstructions: productText(raw.careInstructions),

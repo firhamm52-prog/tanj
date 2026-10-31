@@ -1,0 +1,98 @@
+.hijab-pair-gallery {
+  background: #eeebe3;
+  padding: 64px 5.5%;
+  text-align: center;
+}
+.hijab-pair-gallery header {
+  margin-bottom: 28px;
+}
+.hijab-pair-gallery h2 {
+  font:
+    400 clamp(27px, 3.6vw, 48px)/1.15 Georgia,
+    serif;
+  margin: 12px 0;
+}
+.hijab-pair-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  max-width: 1060px;
+  margin: auto;
+  touch-action: pan-y;
+  cursor: grab;
+}
+.hijab-pair-stage figure {
+  margin: 0;
+  min-width: 0;
+  position: relative;
+}
+.hijab-pair-stage img,
+.hijab-pair-stage [data-placeholder] {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  background: #f5f2ec;
+}
+.hijab-pair-stage [data-mockup] {
+  object-fit: contain;
+}
+.hijab-pair-stage [data-placeholder] {
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  color: #776c60;
+}
+.hijab-pair-gallery [hidden] {
+  display: none !important;
+}
+.hijab-pair-stage figcaption {
+  margin-top: 12px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.hijab-pair-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 25px;
+  margin: 22px 0 12px;
+}
+.hijab-pair-controls button {
+  border: 1px solid #8a8073;
+  background: transparent;
+  color: inherit;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  font-size: 26px;
+}
+.hijab-pair-controls p {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.hijab-pair-controls span {
+  font-size: 11px;
+  color: #776c60;
+}
+.hijab-pair-detail {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  padding: 6px 0;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+@media (max-width: 650px) {
+  .hijab-pair-gallery {
+    padding: 42px 16px;
+  }
+  .hijab-pair-stage {
+    gap: 10px;
+  }
+  .hijab-pair-controls {
+    gap: 18px;
+  }
+}

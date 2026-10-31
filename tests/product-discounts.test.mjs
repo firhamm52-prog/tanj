@@ -203,6 +203,21 @@ test('published discounts drive checkout totals, snapshot savings and preserve l
       assert.equal(fresh.items[0].price, 100000, 'shipping promo never changes product price');
     }
     const hijab = (await rpc('tanj_cms_admin')).hijabs[0];
+    const hijabDraft = await rpc('tanj_cms_admin');
+    const paired = validate('hijabs', { ...hijab, product: 'assets/campaign-beige.webp' });
+    assert.throws(() => validate('hijabs', { ...hijab, product: 'javascript:alert(1)' }), /HTTPS/);
+    const savedHijab = await rpc('tanj_cms_save', [
+      'hijabs',
+      hijab.id,
+      paired,
+      hijabDraft.revision,
+      hijab.stock,
+    ]);
+    await rpc('tanj_cms_publish', [savedHijab.revision]);
+    assert.equal(
+      (await rpc('tanj_cms_storefront')).hijabs.find((item) => item.id === hijab.id).product,
+      'assets/campaign-beige.webp',
+    );
     assert.equal(
       (await newOrder(18000, hijab.id)).shipping.subsidy,
       18000,
