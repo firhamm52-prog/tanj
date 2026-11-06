@@ -1,5 +1,6 @@
 import { cloudClient } from './supabase-customer.js?v=improve-2';
 import { freshSeed, storefront } from '../shared/seed.js';
+import { supabaseConfig } from './supabase-config.js?v=improve-2';
 let draft;
 async function call(name, args = {}) {
   const client = await cloudClient();
@@ -13,12 +14,21 @@ async function call(name, args = {}) {
   return data;
 }
 export async function loadCloudStorefront() {
-  const client = await cloudClient();
-  const { data, error } = await client.rpc('tanj_cms_storefront');
+  // Public catalog loading must not wait for a customer's auth refresh or lock.
+  const response = await fetch(supabaseConfig.url + '/rest/v1/rpc/tanj_cms_storefront', {
+    method: 'POST',
+    headers: { apikey: supabaseConfig.publishableKey, 'Content-Type': 'application/json' },
+    body: '{}',
+    signal: AbortSignal.timeout(10000),
+  });
+  const result = await response.json();
+  const data = response.ok ? result : null;
+  const error = response.ok ? null : result;
   if (!error && data?.products) return data;
   if (error && !['PGRST202', '42P01', '42883'].includes(error.code)) throw Error(error.message);
   // Safe rollout: no local-browser drafts are published before the SQL is installed.
   const initial = storefront(freshSeed());
+  const client = await cloudClient();
   const { data: products, error: inventoryError } = await client.from('tb_m_product').select('*');
   if (!inventoryError && products)
     initial.products = initial.products.map((item) => {
