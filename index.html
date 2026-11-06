@@ -4863,6 +4863,16 @@
         ...studioState,
         products: studioState.products.map((item) => ({ ...item })),
       };
+      // Retire the original Flow Dress from the shop; retain CMS and order history.
+      const shopCollections = () =>
+        cmsState.collections.filter(
+          (collection) =>
+            collection.id !== 'base-2' && !/^flow\s+dress$/i.test(collection.name.trim()),
+        );
+      const shopProducts = () => {
+        const ids = new Set(shopCollections().map((collection) => collection.id));
+        return cmsState.products.filter((product) => ids.has(product.collectionId));
+      };
       const cmsEsc = (value) =>
         String(value ?? '').replace(
           /[&<>"']/g,
@@ -5060,7 +5070,7 @@
       function cmsApply() {
         applySitePreferences(cmsState.settings);
         cmsSection.querySelectorAll('.collection-heading,.products').forEach((el) => el.remove());
-        cmsState.collections.forEach((collection, index) => {
+        shopCollections().forEach((collection, index) => {
           const variants = cmsState.products.filter(
             (product) => product.collectionId === collection.id,
           );
@@ -5664,7 +5674,7 @@
         renderCart();
       };
       const orderableProducts = () => [
-        ...cmsState.products,
+        ...shopProducts(),
         ...cmsState.hijabs.map((item) => ({
           ...item,
           isHijab: true,

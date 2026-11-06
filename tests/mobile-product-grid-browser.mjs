@@ -44,6 +44,8 @@ try {
     await page.setViewportSize({ width, height: 844 });
     await page.goto(url);
     await page.locator('#collection .card[data-product-id]').first().waitFor();
+    assert.equal(await page.locator('#collection .card[data-product-id^="base-2-"]').count(), 0);
+    assert.equal(await page.locator('#collection .card[data-product-id^="base-3-"]').count(), 3);
     const rects = await page
       .locator('#collection .products.three')
       .first()
