@@ -1,26 +1,26 @@
-import { orderReference } from '../shared/order-number.js?v=sync-20261115';
-import { mountMidtransCheckout } from './midtrans-checkout.js?v=sync-20261115';
-import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js?v=sync-20261115';
-import { cloudEnabled } from './supabase-payments.js?v=sync-20261115';
-import { cropQrisArtwork } from './qris-crop.js?v=sync-20261115';
-import { mountPaymentSocialLinks } from './payment-social-links.js?v=sync-20261115';
-import { shipmentTracking } from '../shared/shipment-tracking.js?v=sync-20261115';
+import { orderReference } from '../shared/order-number.js?v=shipping-cache-20261115';
+import { mountMidtransCheckout } from './midtrans-checkout.js?v=shipping-cache-20261115';
+import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js?v=shipping-cache-20261115';
+import { cloudEnabled } from './supabase-payments.js?v=shipping-cache-20261115';
+import { cropQrisArtwork } from './qris-crop.js?v=shipping-cache-20261115';
+import { mountPaymentSocialLinks } from './payment-social-links.js?v=shipping-cache-20261115';
+import { shipmentTracking } from '../shared/shipment-tracking.js?v=shipping-cache-20261115';
 import {
   customerSession,
   requireCustomer,
   ensureCustomerSession,
-} from './customer-account.js?v=sync-20261115';
-import { isAdmin } from './admin-session.js?v=sync-20261115';
-import { mountCheckoutExperience } from './checkout-experience.js?v=qris-20261115';
-import { buildOrderEmail } from '../shared/order-email.js?v=sync-20261115';
-import { notifyPayment } from './payment-notifications.js?v=sync-20261115';
-import { orderContactLinks } from './order-contact.js?v=sync-20261115';
+} from './customer-account.js?v=shipping-cache-20261115';
+import { isAdmin } from './admin-session.js?v=shipping-cache-20261115';
+import { mountCheckoutExperience } from './checkout-experience.js?v=shipping-cache-20261115';
+import { buildOrderEmail } from '../shared/order-email.js?v=shipping-cache-20261115';
+import { notifyPayment } from './payment-notifications.js?v=shipping-cache-20261115';
+import { orderContactLinks } from './order-contact.js?v=shipping-cache-20261115';
 import {
   shippingProvinces,
   shippingCities,
   shippingDistricts,
   getShippingEstimate,
-} from './shipping.js?v=sync-20261115';
+} from './shipping.js?v=shipping-cache-20261115';
 import {
   readPayments,
   refreshPayments,
@@ -31,7 +31,7 @@ import {
   paymentLabels,
   money,
   escapeHTML as esc,
-} from './manual-payment-store.js?v=sync-20261115';
+} from './manual-payment-store.js?v=shipping-cache-20261115';
 export const demoNotice = '';
 export async function confirmManual(title, message, label = 'Lanjutkan') {
   const dialog = document.createElement('dialog');

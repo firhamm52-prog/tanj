@@ -1,4 +1,4 @@
-import { orderPaymentUrl } from './order-email.js?v=sync-20261115';
+import { orderPaymentUrl } from './order-email.js?v=shipping-cache-20261115';
 export function customerWhatsAppLink(order, status, baseUrl) {
   const raw = String(order.customer?.phone || '').trim();
   if (!/^\+?[0-9\s().-]+$/.test(raw)) return null;

@@ -26,6 +26,18 @@ try {
   browser = await chromium.launch({ channel: 'chrome', headless: true });
   const context = await browser.newContext();
   const uid = crypto.randomUUID();
+  let rateCalls = 0;
+  await context.route('**/api/shipping/rates', async (r) => {
+    rateCalls++;
+    await r.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        quoteId: crypto.randomUUID(),
+        expiresAt: new Date(Date.now() + 600000).toISOString(),
+        options: [{ id: 'biteship:jne:reg', courier: 'jne', fee: 35000 }],
+      }),
+    });
+  });
   let signups = 0,
     roleCalls = 0,
     saved;
@@ -76,7 +88,7 @@ try {
   const page = await context.newPage();
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   const result = await page.evaluate(async () => {
-    const m = await import('./web/supabase-customer.js?v=sync-20261115');
+    const m = await import('./web/supabase-customer.js?v=shipping-cache-20261115');
     await m.cloudReady;
     const sessions = await Promise.all(Array.from({ length: 5 }, () => m.cloudGuestSession()));
     const a = await m.cloudSaveAddress({
@@ -97,15 +109,45 @@ try {
   assert.equal(roleCalls, 0);
   assert.equal(saved.contact_email, 'guest@example.com');
   assert.equal(result.address.email, 'guest@example.com');
+  const quoteId = await page.evaluate(async () => {
+    const { shippingRates } = await import('./web/biteship.js?v=shipping-cache-20261115');
+    const a = { zip: '15115', provinceId: '36', cityId: '36.71', districtId: '36.71.07' };
+    const values = await Promise.all(
+      Array.from({ length: 4 }, () => shippingRates(a, [{ id: 'dress', qty: 1 }])),
+    );
+    return values[0].quoteId;
+  });
+  assert.equal(rateCalls, 1, 'concurrent rate requests share a single server request');
   await page.reload();
   assert.equal(
     await page.evaluate(async () => {
-      const m = await import('./web/supabase-customer.js?v=sync-20261115');
+      const m = await import('./web/supabase-customer.js?v=shipping-cache-20261115');
       await m.cloudReady;
       return m.cloudSession()?.role;
     }),
     'guest',
   );
+  assert.equal(
+    await page.evaluate(async () => {
+      const { shippingRates } = await import('./web/biteship.js?v=shipping-cache-20261115');
+      return (
+        await shippingRates(
+          { zip: '15115', provinceId: '36', cityId: '36.71', districtId: '36.71.07' },
+          [{ id: 'dress', qty: 1 }],
+        )
+      ).quoteId;
+    }),
+    quoteId,
+  );
+  assert.equal(rateCalls, 1, 'refresh reuses the stored quote without another shipping request');
+  await page.evaluate(async () => {
+    const { shippingRates } = await import('./web/biteship.js?v=shipping-cache-20261115');
+    await shippingRates(
+      { zip: '15115', provinceId: '36', cityId: '36.71', districtId: '36.71.07' },
+      [{ id: 'dress', qty: 2 }],
+    );
+  });
+  assert.equal(rateCalls, 2, 'changed quantities request a fresh quote');
   console.log(
     'PASS: Supabase anonymous SDK session, concurrent checkout, contact email, reload and admin isolation. No real accounts, emails or payments.',
   );

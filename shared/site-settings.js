@@ -17,10 +17,12 @@ export const defaultSiteSettings = Object.freeze({
   headingFont: 'times',
   shippingDiscountEnabled: false,
   shippingDiscountMax: 20000,
+  shippingDiscountHijabEnabled: true,
 });
 export const siteSettingFields = [
-  ['shippingDiscountEnabled', 'Aktifkan Diskon Ongkir (semua pesanan)', 'checkbox'],
+  ['shippingDiscountEnabled', 'Aktifkan Diskon Ongkir', 'checkbox'],
   ['shippingDiscountMax', 'Batas subsidi ongkir per pesanan (Rp)', 'number', 0, 1000000],
+  ['shippingDiscountHijabEnabled', 'Berlaku juga untuk pesanan hijab saja', 'checkbox'],
   ['lookbookTitle', 'Judul lookbook', 'text'],
   ['storyTitle', 'Judul cerita (baris baru diperbolehkan)', 'textarea'],
   ['storyText', 'Deskripsi cerita', 'textarea'],

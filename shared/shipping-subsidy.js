@@ -5,7 +5,11 @@ export function shippingSubsidy(lines, catalog, originalFee, settings = {}) {
   }, 0);
   const max = settings.shippingDiscountMax;
   const subsidy =
-    settings.shippingDiscountEnabled === true && Number.isInteger(max) && max >= 0 && max <= 1000000
+    settings.shippingDiscountEnabled === true &&
+    (clothingQty > 0 || settings.shippingDiscountHijabEnabled !== false) &&
+    Number.isInteger(max) &&
+    max >= 0 &&
+    max <= 1000000
       ? Math.min(max, Math.max(0, originalFee))
       : 0;
   return { originalFee, subsidy, fee: originalFee - subsidy, clothingQty };

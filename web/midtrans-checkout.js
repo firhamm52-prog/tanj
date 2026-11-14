@@ -1,4 +1,4 @@
-import { midtransRequest } from './midtrans.js?v=sync-20261115';
+import { midtransRequest } from './midtrans.js?v=shipping-cache-20261115';
 
 let snapOwner;
 let activeSnap;

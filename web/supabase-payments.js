@@ -3,7 +3,8 @@ import {
   cloudReady,
   cloudClient,
   cloudSession,
-} from './supabase-customer.js?v=sync-20261115';
+} from './supabase-customer.js?v=shipping-cache-20261115';
+import { forgetShippingQuotes } from './shipping-quote-cache.js?v=shipping-cache-20261115';
 export { cloudEnabled };
 let state = { version: 1, orders: [], settings: { hours: 2, admin: 'Admin TANJ' } },
   generation = 0;
@@ -66,7 +67,14 @@ export async function createCloudPayment(customer, lines) {
     saved = { signature, id: crypto.randomUUID() };
     sessionStorage.setItem(key, JSON.stringify(saved));
   }
-  const order = await paymentRPC('tanj_create_order', { request_id: saved.id, customer, lines });
+  let order;
+  try {
+    order = await paymentRPC('tanj_create_order', { request_id: saved.id, customer, lines });
+  } catch (error) {
+    if (/ongkir|quote|tarif/i.test(error.message)) forgetShippingQuotes(owner.id);
+    throw error;
+  }
+  forgetShippingQuotes(owner.id);
   sessionStorage.removeItem(key);
   return order;
 }

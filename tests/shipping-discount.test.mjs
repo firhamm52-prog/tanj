@@ -31,3 +31,35 @@ test('CMS validates promotion caps and accepts older settings safely', () => {
     20000,
   );
 });
+test('hijab exclusion matches the clothing and mixed basket policy', () => {
+  const settings = {
+    shippingDiscountEnabled: true,
+    shippingDiscountMax: 20000,
+    shippingDiscountHijabEnabled: false,
+  };
+  const catalog = [{ id: 'hijab-one', isHijab: true }, { id: 'dress-one' }];
+  assert.equal(shippingSubsidy([{ id: 'hijab-one', qty: 2 }], catalog, 35000, settings).subsidy, 0);
+  assert.equal(
+    shippingSubsidy([{ id: 'dress-one', qty: 1 }], catalog, 35000, settings).subsidy,
+    20000,
+  );
+  assert.equal(
+    shippingSubsidy(
+      [
+        { id: 'dress-one', qty: 1 },
+        { id: 'hijab-one', qty: 1 },
+      ],
+      catalog,
+      35000,
+      settings,
+    ).subsidy,
+    20000,
+  );
+  assert.equal(
+    shippingSubsidy([{ id: 'hijab-one', qty: 1 }], catalog, 18000, {
+      ...settings,
+      shippingDiscountHijabEnabled: true,
+    }).subsidy,
+    18000,
+  );
+});

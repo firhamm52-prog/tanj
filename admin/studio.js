@@ -1,16 +1,16 @@
-import { selectLookbookMedia } from '../shared/lookbook.js?v=sync-20261115';
-import { prepareCmsVideo } from '../web/cms-video-convert.js?v=sync-20261115';
-import { cropCmsVideo } from '../web/cms-video-crop.js?v=sync-20261115';
+import { selectLookbookMedia } from '../shared/lookbook.js?v=shipping-cache-20261115';
+import { prepareCmsVideo } from '../web/cms-video-convert.js?v=shipping-cache-20261115';
+import { cropCmsVideo } from '../web/cms-video-crop.js?v=shipping-cache-20261115';
 import {
   siteSettingFields,
   defaultSiteSettings,
-} from '../shared/site-settings.js?v=sync-20261115';
-import { mountManualAdmin } from './manual-payments.js?v=sync-20261115';
-import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=sync-20261115';
-import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js?v=sync-20261115';
-import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=sync-20261115';
-import { cropCmsImage } from '../web/cms-image-crop.js?v=sync-20261115';
-import { mountProductGalleryEditor } from './product-gallery-editor.js?v=sync-20261115';
+} from '../shared/site-settings.js?v=shipping-cache-20261115';
+import { mountManualAdmin } from './manual-payments.js?v=shipping-cache-20261115';
+import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=shipping-cache-20261115';
+import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js?v=shipping-cache-20261115';
+import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=shipping-cache-20261115';
+import { cropCmsImage } from '../web/cms-image-crop.js?v=shipping-cache-20261115';
+import { mountProductGalleryEditor } from './product-gallery-editor.js?v=shipping-cache-20261115';
 let uploadingImage = false;
 import {
   isApi,
@@ -21,7 +21,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=sync-20261115';
+} from '../web/data.js?v=shipping-cache-20261115';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(
@@ -195,7 +195,7 @@ function render() {
     w.innerHTML = `<section class="panel settings"><p class="eyebrow">WEBSITE TANJ</p><h2>Tampilan & fitur</h2><p>Kelola teks editorial, kontak CS, sosial media, stok yang ditampilkan, batas qty, rekomendasi, lebar QRIS, dan batas pembayaran.</p><p>Batas qty: <strong>${settings.maxQty}</strong> per produk · QRIS: <strong>${settings.qrisWidth}px</strong> · Batas bayar: <strong>${settings.paymentHours} jam</strong></p>${editButton('settings', '', 'Edit tampilan & fitur')}</section>`;
     w.insertAdjacentHTML(
       'afterbegin',
-      `<section class="panel"><p class="eyebrow">PROMO PENGIRIMAN</p><h2>Diskon Ongkir</h2><p>Status draf: <strong>${settings.shippingDiscountEnabled ? 'Aktif' : 'Nonaktif'}</strong> · Batas subsidi: <strong>${money(settings.shippingDiscountMax)}</strong> per pesanan.</p><p>TANJ menanggung ongkir sampai batas ini. Jika ongkir lebih rendah, subsidi mengikuti ongkir asli. Berlaku semua produk, tanpa minimum belanja. Harga baju tetap.</p><button class="primary" data-action="shipping-discount">Atur Diskon Ongkir</button><p>Simpan lalu Publikasikan untuk menerapkan perubahan ke pesanan baru.</p></section>`,
+      `<section class="panel"><p class="eyebrow">PROMO PENGIRIMAN</p><h2>Diskon Ongkir</h2><p>Status draf: <strong>${settings.shippingDiscountEnabled ? 'Aktif' : 'Nonaktif'}</strong> · Batas subsidi: <strong>${money(settings.shippingDiscountMax)}</strong> per pesanan.</p><p>TANJ menanggung ongkir sampai batas ini. Jika ongkir lebih rendah, subsidi mengikuti ongkir asli. ${settings.shippingDiscountHijabEnabled !== false ? 'Berlaku semua produk.' : 'Pesanan hijab saja tidak mendapat subsidi; pesanan berisi baju tetap mendapat subsidi.'} Tanpa minimum belanja. Harga produk tetap.</p><button class="primary" data-action="shipping-discount">Atur Diskon Ongkir</button><p>Simpan lalu Publikasikan untuk menerapkan perubahan ke pesanan baru.</p></section>`,
     );
   } else if (tab === 'overview') {
     const metrics = [

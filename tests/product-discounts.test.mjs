@@ -181,7 +181,7 @@ test('published discounts drive checkout totals, snapshot savings and preserve l
     );
     const newOrder = async (fee, productId = product.id) => {
       const qid = crypto.randomUUID();
-      const single = [{ id: productId, qty: 1 }];
+      const single = Array.isArray(productId) ? productId : [{ id: productId, qty: 1 }];
       await db.exec('reset role');
       await db.query(
         "insert into public.tb_t_shipping_quote(id,account_id,destination,lines,options,expires_at) values($1,$2,$3,$4,$5,now()+interval '10 minutes')",
@@ -220,8 +220,45 @@ test('published discounts drive checkout totals, snapshot savings and preserve l
     );
     assert.equal(
       (await newOrder(18000, hijab.id)).shipping.subsidy,
+      0,
+      'hijab-only orders pay the carrier fee without subsidy',
+    );
+    assert.equal(
+      (
+        await newOrder(35000, [
+          { id: product.id, qty: 1 },
+          { id: hijab.id, qty: 1 },
+        ])
+      ).shipping.subsidy,
+      20000,
+      'mixed basket qualifies through its clothing item',
+    );
+    draft = await rpc('tanj_cms_admin');
+    const oldSettings = { ...draft.settings };
+    delete oldSettings.shippingDiscountHijabEnabled;
+    draft = await rpc('tanj_cms_save', ['settings', null, oldSettings, draft.revision, null]);
+    assert.equal(
+      draft.settings.shippingDiscountHijabEnabled,
+      false,
+      'older CMS clients preserve the exclusion',
+    );
+    draft = await rpc('tanj_cms_save', [
+      'settings',
+      null,
+      { ...draft.settings, shippingDiscountHijabEnabled: true },
+      draft.revision,
+      null,
+    ]);
+    assert.equal(
+      (await newOrder(18000, hijab.id)).shipping.subsidy,
+      0,
+      'draft changes do not affect live checkout',
+    );
+    await rpc('tanj_cms_publish', [draft.revision]);
+    assert.equal(
+      (await newOrder(18000, hijab.id)).shipping.subsidy,
       18000,
-      'a single hijab qualifies',
+      'published CMS switch can allow hijab subsidy',
     );
     draft = await rpc('tanj_cms_admin');
     await assert.rejects(

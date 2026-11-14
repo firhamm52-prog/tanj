@@ -1,4 +1,4 @@
-import { midtransConfiguration } from './midtrans.js?v=sync-20261115';
+import { midtransConfiguration } from './midtrans.js?v=shipping-cache-20261115';
 import {
   customerSession,
   ensureCheckoutSession,
@@ -7,11 +7,16 @@ import {
   loadAddresses,
   saveAddress,
   deleteAddress,
-} from './customer-account.js?v=sync-20261115';
-import { getShippingEstimate, validateShippingDestination } from './shipping.js?v=sync-20261115';
-import { shippingConfiguration, shippingRates } from './biteship.js?v=sync-20261115';
-import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=sync-20261115';
-import { sitePreferences } from './site-preferences.js?v=sync-20261115';
+} from './customer-account.js?v=shipping-cache-20261115';
+import { getShippingEstimate, validateShippingDestination } from './shipping.js?v=shipping-cache-20261115';
+import { shippingConfiguration, shippingRates } from './biteship.js?v=shipping-cache-20261115';
+import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=shipping-cache-20261115';
+import { sitePreferences } from './site-preferences.js?v=shipping-cache-20261115';
+import {
+  cachedShippingQuote,
+  selectShippingQuote,
+  lastShippingAddress,
+} from './shipping-quote-cache.js?v=shipping-cache-20261115';
 const $ = (id) => document.getElementById(id);
 const esc = (value) =>
   String(value ?? '').replace(
@@ -98,6 +103,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     quote = null;
   const shippingSignature = () =>
     JSON.stringify([
+      customerSession()?.id,
       selectedAddress?.id,
       selectedAddress?.zip,
       selectedAddress?.provinceId,
@@ -376,6 +382,8 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
       if (shippingMode) {
         shipping = choice;
         if (liveShipping) quote = selectionQuote;
+        if (liveShipping)
+          selectShippingQuote(customerSession()?.id, selectedAddress, getItems(), choice.id);
       } else payment = choice;
       render();
       dialog.close();
@@ -389,6 +397,14 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
       (quote.signature !== shippingSignature() || Date.parse(quote.expiresAt) <= Date.now())
     )
       quote = null;
+    if (liveShipping && !quote && selectedAddress) {
+      const cached = cachedShippingQuote(customerSession()?.id, selectedAddress, getItems());
+      const choice = cached?.quote.options.find((o) => o.id === cached.selectedId);
+      if (choice) {
+        quote = { ...cached.quote, signature: shippingSignature() };
+        shipping = choice;
+      }
+    }
     const liveChoice = liveShipping && quote?.options.find((o) => o.id === shipping.id);
     const shippingLabel = liveShipping ? liveChoice?.name || 'Belum dipilih' : shipping.name;
 
@@ -443,7 +459,10 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     try {
       await ensureCheckoutSession();
       const list = await loadAddresses();
-      if (!selectedAddress && list.length) await applyAddress(list[0]);
+      if (!selectedAddress && list.length)
+        await applyAddress(
+          list.find((a) => a.id === lastShippingAddress(customerSession()?.id)) || list[0],
+        );
       else await render();
     } catch (err) {
       $('manual-checkout-error').textContent = err.message;
@@ -456,6 +475,10 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     render().catch(() => {});
   });
   window.addEventListener('tanj-site-preferences', () => {
+    render().catch(() => {});
+  });
+  window.addEventListener('tanj-shipping-quote-invalid', () => {
+    quote = null;
     render().catch(() => {});
   });
   return {
