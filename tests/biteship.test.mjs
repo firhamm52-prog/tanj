@@ -72,7 +72,7 @@ test('server chooses weight/value from catalog and rejects forged or duplicate c
   );
   assert.equal(
     items.reduce((n, i) => n + i.weight * i.quantity, 0),
-    2300,
+    1500,
   );
   assert.equal(items[0].value, 687000);
   assert.throws(() => shippingItems([{ id: 'dress', qty: 10 }], catalog));

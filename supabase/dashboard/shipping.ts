@@ -1,5 +1,5 @@
 // supabase/functions/_shared/biteship.js
-function shippingItems(lines, catalog, { clothing = 1e3, hijab = 300 } = {}) {
+function shippingItems(lines, catalog, { clothing = 600, hijab = 300 } = {}) {
   if (!Array.isArray(lines) || !lines.length || lines.length > 40)
     throw Object.assign(Error("Tas belanja tidak valid."), { status: 422 });
   const seen = /* @__PURE__ */ new Set();
@@ -210,7 +210,7 @@ function createShippingHandler({ env, fetcher = fetch }) {
         body: "{}"
       });
       const weight = {
-        clothing: Number(env("BITESHIP_CLOTHING_WEIGHT_GRAMS") || 1e3),
+        clothing: Number(env("BITESHIP_CLOTHING_WEIGHT_GRAMS") || 600),
         hijab: Number(env("BITESHIP_HIJAB_WEIGHT_GRAMS") || 300)
       };
       if (!Object.values(weight).every((w) => Number.isInteger(w) && w > 0 && w <= 5e4))

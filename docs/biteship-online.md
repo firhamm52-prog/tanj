@@ -5,7 +5,7 @@ GitHub Pages tetap menyajikan website. Supabase Edge Function `shipping` memerik
 ## Deploy dari Dashboard
 
 1. Pastikan migrasi **008** sudah sukses (tidak perlu dijalankan ulang).
-2. Di Supabase proyek TANJ, buka **Edge Functions → Secrets**. Tambahkan `BITESHIP_API_KEY` dengan token lengkap dari `.env`. Kode menggunakan default asal `13110`, baju `700` gram dan hijab `300` gram. Jika perlu, tambahkan secret `BITESHIP_ORIGIN_POSTAL_CODE`, `BITESHIP_CLOTHING_WEIGHT_GRAMS`, `BITESHIP_HIJAB_WEIGHT_GRAMS`, dan `BITESHIP_COURIERS`.
+2. Di Supabase proyek TANJ, buka **Edge Functions → Secrets**. Tambahkan `BITESHIP_API_KEY` dengan token lengkap dari `.env`. Kode menggunakan default asal `13110`, baju `600` gram dan hijab `300` gram. Jika perlu, tambahkan secret `BITESHIP_ORIGIN_POSTAL_CODE`, `BITESHIP_CLOTHING_WEIGHT_GRAMS`, `BITESHIP_HIJAB_WEIGHT_GRAMS`, dan `BITESHIP_COURIERS`.
 3. Edge Functions menyediakan `SUPABASE_URL`, `SUPABASE_ANON_KEY` dan `SUPABASE_SERVICE_ROLE_KEY` bawaan. Jika legacy service key sudah dinonaktifkan, tambahkan secret bernama `TANJ_SUPABASE_SECRET_KEY` berisi secret key Supabase yang sudah dipakai di `.env`.
 4. **Edge Functions → Deploy a new function → Via Editor**. Nama function harus **`shipping`**. Salin seluruh isi `supabase/dashboard/shipping.ts` ke editor, lalu deploy. File ini hasil bundle tanpa token rahasia.
 5. Pada pengaturan function, **Verify JWT / Enforce JWT verification dimatikan**. Function memvalidasi sendiri JWT customer melalui Supabase Auth sebelum cek tarif; GET konfigurasi dan OPTIONS tidak memerlukan sesi.
