@@ -4,8 +4,8 @@ import {
   logout,
   loginAdmin,
   usesCloudAdmin,
-} from './admin-session.js?v=cms-entry-20261115';
-import { sendReset } from './password-recovery.js?v=cms-entry-20261115';
+} from './admin-session.js?v=admin-links-20261115';
+import { sendReset } from './password-recovery.js?v=admin-links-20261115';
 const $ = (id) => document.getElementById(id);
 let lastFocus;
 const cmsLink = document.getElementById('cms-admin-link');

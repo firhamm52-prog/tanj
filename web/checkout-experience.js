@@ -1,4 +1,4 @@
-import { midtransConfiguration } from './midtrans.js?v=cms-entry-20261115';
+import { midtransConfiguration } from './midtrans.js?v=admin-links-20261115';
 import {
   customerSession,
   ensureCheckoutSession,
@@ -7,16 +7,16 @@ import {
   loadAddresses,
   saveAddress,
   deleteAddress,
-} from './customer-account.js?v=cms-entry-20261115';
-import { getShippingEstimate, validateShippingDestination } from './shipping.js?v=cms-entry-20261115';
-import { shippingConfiguration, shippingRates } from './biteship.js?v=cms-entry-20261115';
-import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=cms-entry-20261115';
-import { sitePreferences } from './site-preferences.js?v=cms-entry-20261115';
+} from './customer-account.js?v=admin-links-20261115';
+import { getShippingEstimate, validateShippingDestination } from './shipping.js?v=admin-links-20261115';
+import { shippingConfiguration, shippingRates } from './biteship.js?v=admin-links-20261115';
+import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=admin-links-20261115';
+import { sitePreferences } from './site-preferences.js?v=admin-links-20261115';
 import {
   cachedShippingQuote,
   selectShippingQuote,
   lastShippingAddress,
-} from './shipping-quote-cache.js?v=cms-entry-20261115';
+} from './shipping-quote-cache.js?v=admin-links-20261115';
 const $ = (id) => document.getElementById(id);
 const esc = (value) =>
   String(value ?? '').replace(

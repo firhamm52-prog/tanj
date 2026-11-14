@@ -1,5 +1,5 @@
-import { supabaseConfig } from './supabase-config.js?v=cms-entry-20261115';
-import { getShippingEstimate } from './shipping.js?v=cms-entry-20261115';
+import { supabaseConfig } from './supabase-config.js?v=admin-links-20261115';
+import { getShippingEstimate } from './shipping.js?v=admin-links-20261115';
 export const cloudEnabled = supabaseConfig.enabled;
 // Anonymous Auth provides an owner ID without requiring customer registration.
 let guestSessionRequest = null;
@@ -105,7 +105,7 @@ async function loadRole() {
 }
 export const cloudReady = (async () => {
   if (!cloudEnabled) return;
-  const { createClient } = await import('./vendor/supabase.js?v=cms-entry-20261115');
+  const { createClient } = await import('./vendor/supabase.js?v=admin-links-20261115');
   client = createClient(supabaseConfig.url, supabaseConfig.publishableKey, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
   });

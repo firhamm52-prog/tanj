@@ -1,6 +1,6 @@
-import { cloudClient } from './supabase-customer.js?v=cms-entry-20261115';
-import { freshSeed, storefront } from '../shared/seed.js?v=cms-entry-20261115';
-import { supabaseConfig } from './supabase-config.js?v=cms-entry-20261115';
+import { cloudClient } from './supabase-customer.js?v=admin-links-20261115';
+import { freshSeed, storefront } from '../shared/seed.js?v=admin-links-20261115';
+import { supabaseConfig } from './supabase-config.js?v=admin-links-20261115';
 let draft;
 async function call(name, args = {}) {
   const client = await cloudClient();

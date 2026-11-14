@@ -1,16 +1,16 @@
-import { selectLookbookMedia } from '../shared/lookbook.js?v=cms-entry-20261115';
-import { prepareCmsVideo } from '../web/cms-video-convert.js?v=cms-entry-20261115';
-import { cropCmsVideo } from '../web/cms-video-crop.js?v=cms-entry-20261115';
+import { selectLookbookMedia } from '../shared/lookbook.js?v=admin-links-20261115';
+import { prepareCmsVideo } from '../web/cms-video-convert.js?v=admin-links-20261115';
+import { cropCmsVideo } from '../web/cms-video-crop.js?v=admin-links-20261115';
 import {
   siteSettingFields,
   defaultSiteSettings,
-} from '../shared/site-settings.js?v=cms-entry-20261115';
-import { mountManualAdmin } from './manual-payments.js?v=cms-entry-20261115';
-import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=cms-entry-20261115';
-import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js?v=cms-entry-20261115';
-import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=cms-entry-20261115';
-import { cropCmsImage } from '../web/cms-image-crop.js?v=cms-entry-20261115';
-import { mountProductGalleryEditor } from './product-gallery-editor.js?v=cms-entry-20261115';
+} from '../shared/site-settings.js?v=admin-links-20261115';
+import { mountManualAdmin } from './manual-payments.js?v=admin-links-20261115';
+import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=admin-links-20261115';
+import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js?v=admin-links-20261115';
+import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=admin-links-20261115';
+import { cropCmsImage } from '../web/cms-image-crop.js?v=admin-links-20261115';
+import { mountProductGalleryEditor } from './product-gallery-editor.js?v=admin-links-20261115';
 let uploadingImage = false;
 import {
   isApi,
@@ -21,7 +21,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=cms-entry-20261115';
+} from '../web/data.js?v=admin-links-20261115';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(

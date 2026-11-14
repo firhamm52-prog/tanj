@@ -1,5 +1,5 @@
-import { mountScreenHistory } from './screen-history.js?v=cms-entry-20261115';
-import { sitePreferences } from './site-preferences.js?v=cms-entry-20261115';
+import { mountScreenHistory } from './screen-history.js?v=admin-links-20261115';
+import { sitePreferences } from './site-preferences.js?v=admin-links-20261115';
 export function mountShoppingImprovements({
   getCatalog,
   getHijabs = () => [],

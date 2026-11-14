@@ -694,3 +694,7 @@
     overflow-x: auto;
   }
 }
+
+@media (max-width: 520px) {
+  #admin-view-switch > a[aria-current="page"] { display: none; }
+}

@@ -1,8 +1,8 @@
-import { prepareStorefrontEntry, showStorefrontHome } from './storefront-entry.js?v=cms-entry-20261115';
-import { mountSignupVerification } from './signup-verification.js?v=cms-entry-20261115';
-import { mountAccountSuggestion } from './account-suggestion.js?v=cms-entry-20261115';
-import { sendReset } from './password-recovery.js?v=cms-entry-20261115';
-import { digest, isAdmin } from './admin-session.js?v=cms-entry-20261115';
+import { prepareStorefrontEntry, showStorefrontHome } from './storefront-entry.js?v=admin-links-20261115';
+import { mountSignupVerification } from './signup-verification.js?v=admin-links-20261115';
+import { mountAccountSuggestion } from './account-suggestion.js?v=admin-links-20261115';
+import { sendReset } from './password-recovery.js?v=admin-links-20261115';
+import { digest, isAdmin } from './admin-session.js?v=admin-links-20261115';
 import {
   cloudEnabled,
   cloudReady,
@@ -17,7 +17,7 @@ import {
   refreshAddresses,
   cloudSaveAddress,
   cloudDeleteAddress,
-} from './supabase-customer.js?v=cms-entry-20261115';
+} from './supabase-customer.js?v=admin-links-20261115';
 export const customerReady = cloudReady;
 if (document.getElementById('product-modal')) {
   prepareStorefrontEntry({
@@ -179,14 +179,8 @@ function render() {
   const session = customerSession();
   const user = session?.role === 'guest' ? null : session;
   const showAdmin = Boolean(user) && isAdmin();
-  dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup account">&times;</button><p class="checkout-eyebrow">TANJ / YOUR ACCOUNT</p><h2>${user ? 'Account kamu' : register ? 'Daftar' : 'Selamat datang kembali'}</h2><p>${user ? 'Kelola pesanan dan alamat pengirimanmu.' : register ? 'Buat akun untuk menyimpan alamat dan melanjutkan pesanan.' : 'Login bersifat opsional. Kamu juga bisa checkout dengan email dan nomor HP.'}</p>${user ? '<p id="customer-profile"></p><button type="button" class="shop-primary" id="customer-orders">Pesanan saya</button><button type="button" class="customer-text" id="customer-logout">Logout</button>' : `<form id="customer-auth" novalidate>${register ? '<label>Nama lengkap<input name="name" autocomplete="name" maxlength="80" required></label>' : ''}<label>Email<input name="email" type="email" autocomplete="email" maxlength="120" required></label><label>Password<input name="password" type="password" autocomplete="${register ? 'new-password' : 'current-password'}" minlength="12" maxlength="128" required></label>${register ? '<label>Ulangi password<input name="repeat" type="password" autocomplete="new-password" required></label>' : ''}${cloudEnabled && !register ? '<button type="button" class="customer-text" id="customer-forgot">Lupa password?</button>' : ''}<p id="customer-auth-error" role="alert"></p><button class="shop-primary" type="submit">${register ? 'Buat akun baru' : 'Login'}</button></form><button type="button" class="customer-text" id="customer-auth-toggle">${register ? 'Sudah punya akun? Login di sini' : 'Belum punya akun? Daftar di sini'}</button>`}${showAdmin ? '<div class="customer-account-footer"><a class="shop-primary" id="customer-cms" href="admin/index.html">Buka CMS</a><button type="button" class="customer-text" id="customer-admin">Kelola pesanan admin</button></div>' : ''}`;
+  dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup account">&times;</button><p class="checkout-eyebrow">TANJ / YOUR ACCOUNT</p><h2>${user ? 'Account kamu' : register ? 'Daftar' : 'Selamat datang kembali'}</h2><p>${user ? 'Kelola pesanan dan alamat pengirimanmu.' : register ? 'Buat akun untuk menyimpan alamat dan melanjutkan pesanan.' : 'Login bersifat opsional. Kamu juga bisa checkout dengan email dan nomor HP.'}</p>${user ? '<p id="customer-profile"></p><button type="button" class="shop-primary" id="customer-orders">Pesanan saya</button><button type="button" class="customer-text" id="customer-logout">Logout</button>' : `<form id="customer-auth" novalidate>${register ? '<label>Nama lengkap<input name="name" autocomplete="name" maxlength="80" required></label>' : ''}<label>Email<input name="email" type="email" autocomplete="email" maxlength="120" required></label><label>Password<input name="password" type="password" autocomplete="${register ? 'new-password' : 'current-password'}" minlength="12" maxlength="128" required></label>${register ? '<label>Ulangi password<input name="repeat" type="password" autocomplete="new-password" required></label>' : ''}${cloudEnabled && !register ? '<button type="button" class="customer-text" id="customer-forgot">Lupa password?</button>' : ''}<p id="customer-auth-error" role="alert"></p><button class="shop-primary" type="submit">${register ? 'Buat akun baru' : 'Login'}</button></form><button type="button" class="customer-text" id="customer-auth-toggle">${register ? 'Sudah punya akun? Login di sini' : 'Belum punya akun? Daftar di sini'}</button>`}${showAdmin ? '<div class="customer-account-footer"><a class="shop-primary" id="customer-cms" href="admin/index.html">Buka CMS</a><a class="shop-outline" id="customer-admin" href="admin/payments.html">Admin ? kelola pesanan</a></div>' : ''}`;
   dialog.querySelector('.customer-close').onclick = () => dialog.close();
-  dialog.querySelector('#customer-admin')?.addEventListener('click', () => {
-    if (!showAdmin) return;
-    pending = null;
-    dialog.close();
-    window.dispatchEvent(new Event('tanj-open-admin-account'));
-  });
   if (user) {
     dialog.querySelector('#customer-profile').textContent = user.name + ' · ' + user.email;
     dialog.querySelector('#customer-logout').onclick = async () => {

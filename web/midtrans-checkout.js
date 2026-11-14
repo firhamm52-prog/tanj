@@ -1,4 +1,4 @@
-import { midtransRequest } from './midtrans.js?v=cms-entry-20261115';
+import { midtransRequest } from './midtrans.js?v=admin-links-20261115';
 
 let snapOwner;
 let activeSnap;
