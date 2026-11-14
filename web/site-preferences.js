@@ -1,4 +1,4 @@
-import { defaultSiteSettings } from '../shared/site-settings.js?v=guest-email-20261115';
+import { defaultSiteSettings } from '../shared/site-settings.js?v=cart-persist-20261115';
 let current = { ...defaultSiteSettings };
 export const sitePreferences = () => ({ ...current });
 export function applySitePreferences(settings) {

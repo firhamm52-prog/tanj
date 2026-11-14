@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TANJ</title>
-    <script type="module" src="web/page-title.js?v=guest-email-20261115"></script>
+    <script type="module" src="web/page-title.js?v=cart-persist-20261115"></script>
     <link rel="icon" type="image/svg+xml" href="assets/tanj-t-favicon.svg?v=1" />
     <link rel="icon" type="image/png" sizes="32x32" href="assets/tanj-t-32.png?v=1" />
     <link rel="apple-touch-icon" href="assets/tanj-t-180.png?v=1" />
@@ -3611,11 +3611,11 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="web/responsive.css?v=guest-email-20261115" />
-    <script src="web/config.js?v=guest-email-20261115"></script>
-    <link rel="stylesheet" href="web/manual-payment.css?v=guest-email-20261115" />
-    <link rel="stylesheet" href="web/checkout-experience.css?v=guest-email-20261115" />
-    <link rel="stylesheet" href="web/shopping-improvements.css?v=guest-email-20261115" />
+    <link rel="stylesheet" href="web/responsive.css?v=cart-persist-20261115" />
+    <script src="web/config.js?v=cart-persist-20261115"></script>
+    <link rel="stylesheet" href="web/manual-payment.css?v=cart-persist-20261115" />
+    <link rel="stylesheet" href="web/checkout-experience.css?v=cart-persist-20261115" />
+    <link rel="stylesheet" href="web/shopping-improvements.css?v=cart-persist-20261115" />
     <style>
       .story-social {
         gap: 14px;
@@ -3644,10 +3644,10 @@
         color: #fff !important;
       }
     </style>
-    <link rel="stylesheet" href="web/collection-editorial.css?v=guest-email-20261115" />
-    <link rel="stylesheet" href="web/product-experience.css?v=guest-email-20261115" />
-    <link rel="stylesheet" href="web/hijab-pair-gallery.css?v=guest-email-20261115" />
-    <link rel="stylesheet" href="web/mobile-product-grid.css?v=guest-email-20261115" />
+    <link rel="stylesheet" href="web/collection-editorial.css?v=cart-persist-20261115" />
+    <link rel="stylesheet" href="web/product-experience.css?v=cart-persist-20261115" />
+    <link rel="stylesheet" href="web/hijab-pair-gallery.css?v=cart-persist-20261115" />
+    <link rel="stylesheet" href="web/mobile-product-grid.css?v=cart-persist-20261115" />
   </head>
   <body>
     <header class="nav">
@@ -4502,7 +4502,7 @@
     </section>
 
     <footer class="minimal-footer" id="story" aria-label="TANJ dan media sosial">
-        <a class="footer-wordmark" href="#top" aria-label="TANJ — kembali ke atas">TANJ</a>
+      <a class="footer-wordmark" href="#top" aria-label="TANJ — kembali ke atas">TANJ</a>
       <div class="story-social">
         <a
           href="https://www.instagram.com/tanj.idn?mdxt=MXJ1OTlhOHQzMG9leA=="
@@ -4726,20 +4726,20 @@
       tanjHeroVideo.addEventListener('loadedmetadata', slowTanjHero);
     </script>
     <script type="module">
-      import { mountHijabPairGallery } from './web/hijab-pair-gallery.js?v=guest-email-20261115';
-      import { selectLookbookMedia } from './shared/lookbook.js?v=guest-email-20261115';
-      import { initManualPayment } from './web/manual-payment.js?v=guest-email-20261115';
-      import { mountProductGallery } from './web/product-gallery.js?v=guest-email-20261115';
-      import { mountProductExperience } from './web/product-experience.js?v=guest-email-20261115';
-      import { mountShoppingImprovements } from './web/shopping-improvements.js?v=guest-email-20261115';
-      import { applySitePreferences, sitePreferences } from './web/site-preferences.js?v=guest-email-20261115';
-      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=guest-email-20261115';
+      import { mountHijabPairGallery } from './web/hijab-pair-gallery.js?v=cart-persist-20261115';
+      import { selectLookbookMedia } from './shared/lookbook.js?v=cart-persist-20261115';
+      import { initManualPayment } from './web/manual-payment.js?v=cart-persist-20261115';
+      import { mountProductGallery } from './web/product-gallery.js?v=cart-persist-20261115';
+      import { mountProductExperience } from './web/product-experience.js?v=cart-persist-20261115';
+      import { mountShoppingImprovements } from './web/shopping-improvements.js?v=cart-persist-20261115';
+      import { applySitePreferences, sitePreferences } from './web/site-preferences.js?v=cart-persist-20261115';
+      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=cart-persist-20261115';
       import {
         DEFAULT_PRODUCT_PRICE,
         PUBLISHED_KEY,
         freshSeed,
         storefront,
-      } from './shared/seed.js?v=guest-email-20261115';
+      } from './shared/seed.js?v=cart-persist-20261115';
       // Refresh an already open demo tab after publication, including back/forward restore.
       if (!isApi && !usesCloudCMS) {
         const publishedSnapshot = localStorage.getItem(PUBLISHED_KEY);
@@ -4756,10 +4756,12 @@
         });
       }
       if (location.hash === '#admin') location.replace(new URL('admin/', location.href));
-      let studioState;
+      let studioState,
+        catalogAvailable = true;
       try {
         studioState = await loadStorefront();
       } catch {
+        catalogAvailable = false;
         studioState = storefront(freshSeed());
         const notice = document.createElement('p');
         notice.setAttribute('role', 'status');
@@ -4931,9 +4933,15 @@
       const cmsSafeVideo = (value) => {
         const url = String(value || '').trim();
         // Browser-compatible copy of the current CMS hero; new CMS uploads still take precedence.
-        if (url === 'https://mdvbyrcbuizfycjbcizl.supabase.co/storage/v1/object/public/cms-videos/content/c1aa9aa5-3d34-4311-b732-79dfaf1d6dd6.webm')
+        if (
+          url ===
+          'https://mdvbyrcbuizfycjbcizl.supabase.co/storage/v1/object/public/cms-videos/content/c1aa9aa5-3d34-4311-b732-79dfaf1d6dd6.webm'
+        )
           return 'assets/tanj-hero-compatible.mp4';
-        if (url === 'https://mdvbyrcbuizfycjbcizl.supabase.co/storage/v1/object/public/cms-videos/content/eb0bbd9e-bf6e-4a77-8ea7-edbff6945608.webm')
+        if (
+          url ===
+          'https://mdvbyrcbuizfycjbcizl.supabase.co/storage/v1/object/public/cms-videos/content/eb0bbd9e-bf6e-4a77-8ea7-edbff6945608.webm'
+        )
           return 'assets/tanj-lookbook-compatible.mp4';
         return cmsVideoRef(url) ||
           /^(?:https?:\/\/[^\s]+|assets\/[\w./-]+|data:video\/(?:mp4|webm|ogg);base64,[A-Za-z0-9+/=]+)$/i.test(
@@ -5686,15 +5694,6 @@
       }
       window.addEventListener('hashchange', routeCatalog);
       routeCatalog();
-      try {
-        const stored = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
-        cart = Array.isArray(stored)
-          ? stored.filter(
-              (x) =>
-                typeof x.id === 'string' && Number.isInteger(x.qty) && x.qty > 0 && x.qty <= 99,
-            )
-          : [];
-      } catch {}
       const productModal = document.getElementById('product-modal'),
         productImage = document.getElementById('product-modal-image'),
         productColors = document.getElementById('product-modal-colors');
@@ -5758,12 +5757,30 @@
       const remainingStock = (item) => stockLimit(item);
       function normalizeCart() {
         const quantities = new Map();
+        const snapshots = new Map();
         cart.forEach((line) => {
-          const limit = stockLimit(findProduct(line.id));
-          if (limit && Number.isSafeInteger(line.qty) && line.qty > 0)
-            quantities.set(line.id, Math.min(limit, (quantities.get(line.id) || 0) + line.qty));
+          const item = findProduct(line.id),
+            limit = stockLimit(item);
+          if (Number.isSafeInteger(line.qty) && line.qty > 0) {
+            quantities.set(
+              line.id,
+              Math.min(limit || 99, (quantities.get(line.id) || 0) + line.qty),
+            );
+            snapshots.set(
+              line.id,
+              item && catalogAvailable
+                ? {
+                    name: productFullName(item),
+                    image: item.model || item.image || item.product,
+                    color: item.colorName || item.color,
+                    price: item.price,
+                    isHijab: !!item.isHijab,
+                  }
+                : line.snapshot,
+            );
+          }
         });
-        cart = [...quantities].map(([id, qty]) => ({ id, qty }));
+        cart = [...quantities].map(([id, qty]) => ({ id, qty, snapshot: snapshots.get(id) }));
         try {
           localStorage.setItem(CART_KEY, JSON.stringify(cart));
         } catch {}
@@ -5912,8 +5929,17 @@
       );
       function renderCart() {
         normalizeCart();
+        const unavailable = cart.some((line) => !stockLimit(findProduct(line.id)));
         const count = cart.reduce((sum, x) => sum + x.qty, 0),
-          total = cart.reduce((sum, x) => sum + x.qty * (Number(findProduct(x.id)?.price) || 0), 0);
+          total = cart.reduce(
+            (sum, x) =>
+              sum +
+              x.qty *
+                (Number(
+                  (catalogAvailable ? findProduct(x.id)?.price : null) ?? x.snapshot?.price,
+                ) || 0),
+            0,
+          );
         document.getElementById('bag-count').textContent = count;
         const badge = document.getElementById('bag-badge');
         badge.textContent = count;
@@ -5921,7 +5947,17 @@
         const wrap = document.getElementById('bag-items');
         wrap.replaceChildren();
         cart.forEach((line) => {
-          const item = findProduct(line.id);
+          const current = catalogAvailable ? findProduct(line.id) : null;
+          const item = current || {
+            id: line.id,
+            name: line.snapshot?.name || 'Produk tersimpan',
+            model: line.snapshot?.image,
+            product: line.snapshot?.image,
+            colorName: line.snapshot?.color || '',
+            price: line.snapshot?.price || 0,
+            isHijab: line.snapshot?.isHijab,
+            stock: 0,
+          };
           const article = document.createElement('article');
           article.className = 'bag-line';
           const img = document.createElement('img');
@@ -5931,11 +5967,12 @@
           const title = document.createElement('h3');
           title.textContent = productFullName(item);
           const shade = document.createElement('p');
-          shade.textContent =
-            'Warna: ' +
-            (item.colorName || item.name) +
-            ' · All Size' +
-            (sitePreferences().showStock ? ' · Stok: ' + item.stock : '');
+          shade.textContent = !stockLimit(current)
+            ? 'Produk tersimpan · stok belum tersedia'
+            : 'Warna: ' +
+              (item.colorName || item.name) +
+              ' · All Size' +
+              (sitePreferences().showStock ? ' · Stok: ' + item.stock : '');
           const price = document.createElement('strong');
           renderProductPrice(price, item, line.qty);
           const actions = document.createElement('div');
@@ -5954,7 +5991,7 @@
             button.addEventListener('click', () => {
               line.qty += delta;
               if (line.qty <= 0) cart = cart.filter((x) => x !== line);
-              else line.qty = Math.min(stockLimit(item), line.qty);
+              else line.qty = Math.min(stockLimit(current) || 99, line.qty);
               storeCart();
             });
             if (delta < 0) qty.append(button);
@@ -5980,6 +6017,13 @@
         });
         document.getElementById('bag-empty').hidden = !!count;
         document.getElementById('bag-summary').hidden = !count;
+        document.getElementById('bag-next').disabled = unavailable || !count;
+        if (unavailable)
+          showStockNotice(
+            'Isi tas tetap tersimpan. Stok produk belum tersedia; coba muat ulang sebentar lagi.',
+          );
+        else if (stockNotice.textContent.startsWith('Isi tas tetap tersimpan.'))
+          showStockNotice('');
         document.getElementById('bag-subtotal').textContent = cmsMoney(total);
         document.getElementById('checkout-total').textContent = cmsMoney(total);
         if (!count) document.getElementById('bag-checkout-view').hidden = true;
@@ -6021,6 +6065,7 @@
           ),
         getCatalog: async () => {
           const latest = await loadStorefront();
+          catalogAvailable = true;
           cmsState.products = latest.products.map((item) => ({ ...item }));
           cmsState.hijabs = latest.hijabs.map((item) => ({ ...item }));
           return orderableProducts();
@@ -6044,6 +6089,7 @@
         catalogRefreshing = true;
         try {
           const next = await loadStorefront();
+          catalogAvailable = true;
           if (JSON.stringify(next) !== JSON.stringify(cmsState)) {
             cmsState = next;
             cmsApply();
@@ -6373,6 +6419,6 @@
       syncHeader();
       applyRegion();
     </script>
-    <script type="module" src="web/account.js?v=guest-email-20261115"></script>
+    <script type="module" src="web/account.js?v=cart-persist-20261115"></script>
   </body>
 </html>

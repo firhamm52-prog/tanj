@@ -74,17 +74,13 @@ END; $$;
 REVOKE ALL ON FUNCTION public.tanj_redeem_guest_order_link(text,text) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.tanj_redeem_guest_order_link(text,text) TO authenticated;
 
--- Extend buyer authorization only; provider verification and admin guards stay intact.
+-- Extend automatic payment preparation only; manual updates and admin guards stay intact.
 DO $$ DECLARE definition text; previous text;
 BEGIN
  definition:=pg_get_functiondef('public.tanj_midtrans_prepare_before_bank_change(text)'::regprocedure);
  previous:='o.account_id<>auth.uid()';
  IF position(previous IN definition)=0 THEN RAISE EXCEPTION 'Pemeriksaan akses Midtrans tidak sesuai. Tidak ada perubahan disimpan.'; END IF;
  EXECUTE replace(definition,previous,'(o.account_id<>auth.uid() AND NOT public.tanj_guest_order_access(o.id))');
- definition:=pg_get_functiondef('public.tanj_update_order_before_midtrans(text,integer,text,jsonb)'::regprocedure);
- previous:='o.account_id <> auth.uid() AND NOT public.tanj_is_admin()';
- IF position(previous IN definition)=0 THEN RAISE EXCEPTION 'Pemeriksaan akses pesanan tidak sesuai. Tidak ada perubahan disimpan.'; END IF;
- EXECUTE replace(definition,previous,previous||' AND NOT public.tanj_guest_order_access(o.id)');
 END $$;
 
 -- Make existing guest orders eligible for a NEW email link. Already-delivered emails cannot change.

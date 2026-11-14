@@ -1,17 +1,17 @@
-import { customerSession } from './customer-account.js?v=guest-email-20261115';
-import { formatOrderNumber, numberDemoOrders } from '../shared/order-number.js?v=guest-email-20261115';
-import { normalizePaymentReview } from '../shared/payment-review.js?v=guest-email-20261115';
-import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=guest-email-20261115';
-import { sitePreferences } from './site-preferences.js?v=guest-email-20261115';
+import { customerSession } from './customer-account.js?v=cart-persist-20261115';
+import { formatOrderNumber, numberDemoOrders } from '../shared/order-number.js?v=cart-persist-20261115';
+import { normalizePaymentReview } from '../shared/payment-review.js?v=cart-persist-20261115';
+import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=cart-persist-20261115';
+import { sitePreferences } from './site-preferences.js?v=cart-persist-20261115';
 import {
   cloudEnabled,
   cloudPayments,
   refreshPayments,
   paymentRPC,
   createCloudPayment,
-} from './supabase-payments.js?v=guest-email-20261115';
+} from './supabase-payments.js?v=cart-persist-20261115';
 export { refreshPayments };
-import { validateShippingDestination } from './shipping.js?v=guest-email-20261115';
+import { validateShippingDestination } from './shipping.js?v=cart-persist-20261115';
 export const PAYMENT_KEY = 'tanj-manual-payments-demo-v1';
 export const paymentLabels = {
   WAITING_PAYMENT: 'Menunggu pembayaran',

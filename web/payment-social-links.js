@@ -1,4 +1,4 @@
-import { sitePreferences } from './site-preferences.js?v=guest-email-20261115';
+import { sitePreferences } from './site-preferences.js?v=cart-persist-20261115';
 export function mountPaymentSocialLinks(whatsapp, email) {
   const settings = sitePreferences();
   if (!whatsapp || !email) return;

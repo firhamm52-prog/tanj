@@ -71,8 +71,30 @@ test('Supabase guest checkout validates contact, isolates ownership and preserve
     assert.equal((await db.query('select count(*)::int n from public.tb_t_order')).rows[0].n, 0);
     const beforeLink = await create(args);
     await db.exec('reset role');
+    const legacyDefinition = (
+      await db.query(
+        "select pg_get_functiondef('public.tanj_update_order_before_midtrans(text,integer,text,jsonb)'::regprocedure) d",
+      )
+    ).rows[0].d;
+    await db.exec(
+      legacyDefinition.replace('o.account_id <> auth.uid()', 'o.account_id <> auth.uid ()'),
+    );
+    const originalManualGuard = (
+      await db.query(
+        "select pg_get_functiondef('public.tanj_update_order_before_midtrans(text,integer,text,jsonb)'::regprocedure) d",
+      )
+    ).rows[0].d;
     await db.exec(
       await readFile('supabase/migrations/202611150031_guest_order_email_access.sql', 'utf8'),
+    );
+    assert.equal(
+      (
+        await db.query(
+          "select pg_get_functiondef('public.tanj_update_order_before_midtrans(text,integer,text,jsonb)'::regprocedure) d",
+        )
+      ).rows[0].d,
+      originalManualGuard,
+      'migration tolerates legacy formatting and preserves manual payment guards',
     );
     await db.exec('set role authenticated');
     const order = await create(args);

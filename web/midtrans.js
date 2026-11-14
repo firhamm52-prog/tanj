@@ -1,5 +1,5 @@
-import { cloudClient } from './supabase-customer.js?v=guest-email-20261115';
-import { supabaseConfig } from './supabase-config.js?v=guest-email-20261115';
+import { cloudClient } from './supabase-customer.js?v=cart-persist-20261115';
+import { supabaseConfig } from './supabase-config.js?v=cart-persist-20261115';
 const base = supabaseConfig.url + '/functions/v1/midtrans';
 let config;
 export async function midtransConfiguration() {

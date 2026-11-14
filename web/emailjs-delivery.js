@@ -1,4 +1,4 @@
-import { orderPaymentUrl } from '../shared/order-email.js?v=guest-email-20261115';
+import { orderPaymentUrl } from '../shared/order-email.js?v=cart-persist-20261115';
 const RECEIPTS = 'tanj-email-receipts-v1';
 const money = (value) => 'Rp' + Number(value).toLocaleString('id-ID');
 const hasTracking = (order) => order?.status === 'PAID' && Boolean(order.tracking?.number?.trim());
