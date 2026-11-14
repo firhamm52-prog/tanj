@@ -1,27 +1,27 @@
-import { orderReference } from '../shared/order-number.js?v=cart-persist-20261115';
-import { mountMidtransCheckout } from './midtrans-checkout.js?v=cart-persist-20261115';
-import { isPaymentLink, paymentOrderId, paymentAccessToken } from '../shared/payment-link.js?v=cart-persist-20261115';
-import { cloudEnabled, paymentRPC } from './supabase-payments.js?v=cart-persist-20261115';
-import { cropQrisArtwork } from './qris-crop.js?v=cart-persist-20261115';
-import { mountPaymentSocialLinks } from './payment-social-links.js?v=cart-persist-20261115';
-import { shipmentTracking } from '../shared/shipment-tracking.js?v=cart-persist-20261115';
+import { orderReference } from '../shared/order-number.js?v=orders-label-20261115';
+import { mountMidtransCheckout } from './midtrans-checkout.js?v=orders-label-20261115';
+import { isPaymentLink, paymentOrderId, paymentAccessToken } from '../shared/payment-link.js?v=orders-label-20261115';
+import { cloudEnabled, paymentRPC } from './supabase-payments.js?v=orders-label-20261115';
+import { cropQrisArtwork } from './qris-crop.js?v=orders-label-20261115';
+import { mountPaymentSocialLinks } from './payment-social-links.js?v=orders-label-20261115';
+import { shipmentTracking } from '../shared/shipment-tracking.js?v=orders-label-20261115';
 import {
   customerSession,
   requireCustomer,
   ensureCustomerSession,
   ensureCheckoutSession,
-} from './customer-account.js?v=cart-persist-20261115';
-import { isAdmin } from './admin-session.js?v=cart-persist-20261115';
-import { mountCheckoutExperience } from './checkout-experience.js?v=cart-persist-20261115';
-import { buildOrderEmail } from '../shared/order-email.js?v=cart-persist-20261115';
-import { notifyPayment } from './payment-notifications.js?v=cart-persist-20261115';
-import { orderContactLinks } from './order-contact.js?v=cart-persist-20261115';
+} from './customer-account.js?v=orders-label-20261115';
+import { isAdmin } from './admin-session.js?v=orders-label-20261115';
+import { mountCheckoutExperience } from './checkout-experience.js?v=orders-label-20261115';
+import { buildOrderEmail } from '../shared/order-email.js?v=orders-label-20261115';
+import { notifyPayment } from './payment-notifications.js?v=orders-label-20261115';
+import { orderContactLinks } from './order-contact.js?v=orders-label-20261115';
 import {
   shippingProvinces,
   shippingCities,
   shippingDistricts,
   getShippingEstimate,
-} from './shipping.js?v=cart-persist-20261115';
+} from './shipping.js?v=orders-label-20261115';
 import {
   readPayments,
   refreshPayments,
@@ -32,7 +32,7 @@ import {
   paymentLabels,
   money,
   escapeHTML as esc,
-} from './manual-payment-store.js?v=cart-persist-20261115';
+} from './manual-payment-store.js?v=orders-label-20261115';
 export const demoNotice = '';
 export async function confirmManual(title, message, label = 'Lanjutkan') {
   const dialog = document.createElement('dialog');
@@ -198,7 +198,7 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
   history.id = 'manual-orders';
   history.type = 'button';
   history.className = 'checkout-back';
-  history.textContent = 'Pesanan saya';
+  history.innerHTML = '<span class="order-history-copy"><strong>Lihat pesanan &amp; status pembayaran</strong><small>Pesanan yang sudah dibuat dan nomor resi ada di sini.</small></span>';
   $('bag-cart-view').prepend(history);
   let selected = null;
   let requested = paymentOrderId(location.href);

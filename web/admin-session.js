@@ -5,7 +5,7 @@ import {
   cloudIsAdmin,
   cloudAuthenticate,
   cloudLogout,
-} from './supabase-customer.js?v=cart-persist-20261115';
+} from './supabase-customer.js?v=orders-label-20261115';
 export const usesCloudAdmin = cloudEnabled;
 if (cloudEnabled) await cloudReady.catch(() => {});
 const key = 'tanj-payment-admin-local-v1',

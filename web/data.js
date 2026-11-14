@@ -1,8 +1,8 @@
-import { freshSeed, DEMO_KEY, PUBLISHED_KEY, storefront } from '../shared/seed.js?v=cart-persist-20261115';
-import { validate } from '../shared/validation.js?v=cart-persist-20261115';
-import { supabaseConfig } from './supabase-config.js?v=cart-persist-20261115';
+import { freshSeed, DEMO_KEY, PUBLISHED_KEY, storefront } from '../shared/seed.js?v=orders-label-20261115';
+import { validate } from '../shared/validation.js?v=orders-label-20261115';
+import { supabaseConfig } from './supabase-config.js?v=orders-label-20261115';
 export const usesCloudCMS = !!supabaseConfig.enabled;
-const cloudCMS = () => import('./cloud-cms.js?v=cart-persist-20261115');
+const cloudCMS = () => import('./cloud-cms.js?v=orders-label-20261115');
 export const isApi = window.TANJ_CONFIG?.mode === 'api';
 const apiBase = window.TANJ_CONFIG?.apiBase || '/api';
 function read(key) {

@@ -1,4 +1,4 @@
-import { orderReference } from '../shared/order-number.js?v=cart-persist-20261115';
+import { orderReference } from '../shared/order-number.js?v=orders-label-20261115';
 import {
   readPayments,
   subscribePayments,
@@ -9,8 +9,8 @@ import {
   resetPayments,
   money,
   escapeHTML as esc,
-} from '../web/manual-payment-store.js?v=cart-persist-20261115';
-import { demoNotice, confirmManual } from '../web/manual-payment.js?v=cart-persist-20261115';
+} from '../web/manual-payment-store.js?v=orders-label-20261115';
+import { demoNotice, confirmManual } from '../web/manual-payment.js?v=orders-label-20261115';
 let selected = null,
   filter = 'open',
   query = '';

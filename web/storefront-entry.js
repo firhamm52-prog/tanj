@@ -1,4 +1,4 @@
-import { paymentAccessToken } from '../shared/payment-link.js?v=cart-persist-20261115';
+import { paymentAccessToken } from '../shared/payment-link.js?v=orders-label-20261115';
 // Reloading ordinary visits starts at home; explicit guest email links remain usable.
 export function prepareStorefrontEntry({ navigationType, history, href }) {
   if (navigationType === 'back_forward') return;

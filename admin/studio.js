@@ -1,16 +1,16 @@
-import { selectLookbookMedia } from '../shared/lookbook.js?v=cart-persist-20261115';
-import { prepareCmsVideo } from '../web/cms-video-convert.js?v=cart-persist-20261115';
-import { cropCmsVideo } from '../web/cms-video-crop.js?v=cart-persist-20261115';
+import { selectLookbookMedia } from '../shared/lookbook.js?v=orders-label-20261115';
+import { prepareCmsVideo } from '../web/cms-video-convert.js?v=orders-label-20261115';
+import { cropCmsVideo } from '../web/cms-video-crop.js?v=orders-label-20261115';
 import {
   siteSettingFields,
   defaultSiteSettings,
-} from '../shared/site-settings.js?v=cart-persist-20261115';
-import { mountManualAdmin } from './manual-payments.js?v=cart-persist-20261115';
-import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=cart-persist-20261115';
-import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js?v=cart-persist-20261115';
-import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=cart-persist-20261115';
-import { cropCmsImage } from '../web/cms-image-crop.js?v=cart-persist-20261115';
-import { mountProductGalleryEditor } from './product-gallery-editor.js?v=cart-persist-20261115';
+} from '../shared/site-settings.js?v=orders-label-20261115';
+import { mountManualAdmin } from './manual-payments.js?v=orders-label-20261115';
+import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=orders-label-20261115';
+import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js?v=orders-label-20261115';
+import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=orders-label-20261115';
+import { cropCmsImage } from '../web/cms-image-crop.js?v=orders-label-20261115';
+import { mountProductGalleryEditor } from './product-gallery-editor.js?v=orders-label-20261115';
 let uploadingImage = false;
 import {
   isApi,
@@ -21,7 +21,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=cart-persist-20261115';
+} from '../web/data.js?v=orders-label-20261115';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(

@@ -1,4 +1,4 @@
-import { validateSiteSettings } from './site-settings.js?v=cart-persist-20261115';
+import { validateSiteSettings } from './site-settings.js?v=orders-label-20261115';
 export class ValidationError extends Error {}
 const fail = (message) => {
   throw new ValidationError(message);

@@ -1,4 +1,4 @@
-import { isPaymentLink } from '../shared/payment-link.js?v=cart-persist-20261115';
+import { isPaymentLink } from '../shared/payment-link.js?v=orders-label-20261115';
 // Store screen references only; Back/Forward must never replay shopping actions.
 export function mountScreenHistory({ getCatalog, openProduct }) {
   const $ = (id) => document.getElementById(id);

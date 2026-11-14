@@ -1,4 +1,4 @@
-import { orderReference } from './order-number.js?v=cart-persist-20261115';
+import { orderReference } from './order-number.js?v=orders-label-20261115';
 const esc = (value) =>
   String(value ?? '').replace(
     /[&<>"']/g,

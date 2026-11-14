@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TANJ</title>
-    <script type="module" src="web/page-title.js?v=cart-persist-20261115"></script>
+    <script type="module" src="web/page-title.js?v=orders-label-20261115"></script>
     <link rel="icon" type="image/svg+xml" href="assets/tanj-t-favicon.svg?v=1" />
     <link rel="icon" type="image/png" sizes="32x32" href="assets/tanj-t-32.png?v=1" />
     <link rel="apple-touch-icon" href="assets/tanj-t-180.png?v=1" />
@@ -3611,11 +3611,11 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="web/responsive.css?v=cart-persist-20261115" />
-    <script src="web/config.js?v=cart-persist-20261115"></script>
-    <link rel="stylesheet" href="web/manual-payment.css?v=cart-persist-20261115" />
-    <link rel="stylesheet" href="web/checkout-experience.css?v=cart-persist-20261115" />
-    <link rel="stylesheet" href="web/shopping-improvements.css?v=cart-persist-20261115" />
+    <link rel="stylesheet" href="web/responsive.css?v=orders-label-20261115" />
+    <script src="web/config.js?v=orders-label-20261115"></script>
+    <link rel="stylesheet" href="web/manual-payment.css?v=orders-label-20261115" />
+    <link rel="stylesheet" href="web/checkout-experience.css?v=orders-label-20261115" />
+    <link rel="stylesheet" href="web/shopping-improvements.css?v=orders-label-20261115" />
     <style>
       .story-social {
         gap: 14px;
@@ -3644,10 +3644,10 @@
         color: #fff !important;
       }
     </style>
-    <link rel="stylesheet" href="web/collection-editorial.css?v=cart-persist-20261115" />
-    <link rel="stylesheet" href="web/product-experience.css?v=cart-persist-20261115" />
-    <link rel="stylesheet" href="web/hijab-pair-gallery.css?v=cart-persist-20261115" />
-    <link rel="stylesheet" href="web/mobile-product-grid.css?v=cart-persist-20261115" />
+    <link rel="stylesheet" href="web/collection-editorial.css?v=orders-label-20261115" />
+    <link rel="stylesheet" href="web/product-experience.css?v=orders-label-20261115" />
+    <link rel="stylesheet" href="web/hijab-pair-gallery.css?v=orders-label-20261115" />
+    <link rel="stylesheet" href="web/mobile-product-grid.css?v=orders-label-20261115" />
   </head>
   <body>
     <header class="nav">
@@ -4726,20 +4726,20 @@
       tanjHeroVideo.addEventListener('loadedmetadata', slowTanjHero);
     </script>
     <script type="module">
-      import { mountHijabPairGallery } from './web/hijab-pair-gallery.js?v=cart-persist-20261115';
-      import { selectLookbookMedia } from './shared/lookbook.js?v=cart-persist-20261115';
-      import { initManualPayment } from './web/manual-payment.js?v=cart-persist-20261115';
-      import { mountProductGallery } from './web/product-gallery.js?v=cart-persist-20261115';
-      import { mountProductExperience } from './web/product-experience.js?v=cart-persist-20261115';
-      import { mountShoppingImprovements } from './web/shopping-improvements.js?v=cart-persist-20261115';
-      import { applySitePreferences, sitePreferences } from './web/site-preferences.js?v=cart-persist-20261115';
-      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=cart-persist-20261115';
+      import { mountHijabPairGallery } from './web/hijab-pair-gallery.js?v=orders-label-20261115';
+      import { selectLookbookMedia } from './shared/lookbook.js?v=orders-label-20261115';
+      import { initManualPayment } from './web/manual-payment.js?v=orders-label-20261115';
+      import { mountProductGallery } from './web/product-gallery.js?v=orders-label-20261115';
+      import { mountProductExperience } from './web/product-experience.js?v=orders-label-20261115';
+      import { mountShoppingImprovements } from './web/shopping-improvements.js?v=orders-label-20261115';
+      import { applySitePreferences, sitePreferences } from './web/site-preferences.js?v=orders-label-20261115';
+      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=orders-label-20261115';
       import {
         DEFAULT_PRODUCT_PRICE,
         PUBLISHED_KEY,
         freshSeed,
         storefront,
-      } from './shared/seed.js?v=cart-persist-20261115';
+      } from './shared/seed.js?v=orders-label-20261115';
       // Refresh an already open demo tab after publication, including back/forward restore.
       if (!isApi && !usesCloudCMS) {
         const publishedSnapshot = localStorage.getItem(PUBLISHED_KEY);
@@ -6419,6 +6419,6 @@
       syncHeader();
       applyRegion();
     </script>
-    <script type="module" src="web/account.js?v=cart-persist-20261115"></script>
+    <script type="module" src="web/account.js?v=orders-label-20261115"></script>
   </body>
 </html>
