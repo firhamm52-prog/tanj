@@ -11,7 +11,7 @@ import {
   ensureCustomerSession,
 } from './customer-account.js?v=sync-20261115';
 import { isAdmin } from './admin-session.js?v=sync-20261115';
-import { mountCheckoutExperience } from './checkout-experience.js?v=sync-20261115';
+import { mountCheckoutExperience } from './checkout-experience.js?v=qris-20261115';
 import { buildOrderEmail } from '../shared/order-email.js?v=sync-20261115';
 import { notifyPayment } from './payment-notifications.js?v=sync-20261115';
 import { orderContactLinks } from './order-contact.js?v=sync-20261115';

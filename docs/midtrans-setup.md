@@ -47,7 +47,7 @@ The customer-facing **Cek status pembayaran** button has been removed. Active Mi
 
 ### Two payment choices (021)
 
-QRIS is temporarily disabled in the production chooser after Snap returned No payment channels available for a QRIS-only order. It displays Segera tersedia and cannot be selected; Virtual Account remains enabled. Confirm GoPay QRIS or ShopeePay QRIS and Other QRIS availability in Production before re-enabling qrisEnabled. This frontend change needs no SQL, secrets or Edge Function redeploy and does not modify existing orders.
+QRIS was re-enabled on 2026-11-15 after the merchant confirmed activation. Both Virtual Account and QRIS can be selected when the Midtrans gateway is enabled. QRIS uses other_qris; ensure its GoPay/ShopeePay QRIS acquirer is active in Production and included under Snap Preferences ? Payment Channels. This frontend change needs no SQL, secrets or Edge Function redeploy and does not modify existing orders.
 
 Run `supabase/migrations/202610230021_midtrans_payment_channels.sql` once after 020, then deploy the rebuilt `supabase/dashboard/midtrans.ts` to the Midtrans Edge Function. Enabled production checkout now shows exactly **Virtual Account** and **QRIS**. Both use Midtrans; manual QRIS and unavailable gateway placeholders are removed from the production chooser. The stored order records the chosen channel before creating a Snap session; QRIS requests `other_qris` only, VA requests bank transfer channels only. Historical sessions retain their original methods. QRIS requires an active GoPay or ShopeePay QRIS acquirer in the matching Midtrans merchant environment; code changes alone do not activate it. See [Other QRIS](https://docs.midtrans.com/reference/other-qris).
 
