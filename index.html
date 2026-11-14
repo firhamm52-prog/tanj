@@ -4933,6 +4933,8 @@
         // Browser-compatible copy of the current CMS hero; new CMS uploads still take precedence.
         if (url === 'https://mdvbyrcbuizfycjbcizl.supabase.co/storage/v1/object/public/cms-videos/content/c1aa9aa5-3d34-4311-b732-79dfaf1d6dd6.webm')
           return 'assets/tanj-hero-compatible.mp4';
+        if (url === 'https://mdvbyrcbuizfycjbcizl.supabase.co/storage/v1/object/public/cms-videos/content/eb0bbd9e-bf6e-4a77-8ea7-edbff6945608.webm')
+          return 'assets/tanj-lookbook-compatible.mp4';
         return cmsVideoRef(url) ||
           /^(?:https?:\/\/[^\s]+|assets\/[\w./-]+|data:video\/(?:mp4|webm|ogg);base64,[A-Za-z0-9+/=]+)$/i.test(
             url,
