@@ -24,6 +24,10 @@ test('freshly opened email payment links retain their order route', () => {
   const href = 'https://example.com/tanj/?order=email-order#pesanan';
   assert.equal(entry('navigate', href).url, href);
 });
+test('an explicit guest email link stays usable after refreshing', () => {
+  const href = 'https://example.com/tanj/?order=guest#pesanan?order=guest&access=' + 'a'.repeat(64);
+  assert.equal(entry('reload', href).url, href);
+});
 
 test('new visits discard saved screens, while Back/Forward retains navigation', () => {
   assert.equal(entry('navigate', 'https://example.com/tanj/').state.tanjScreen.screen, 'page');

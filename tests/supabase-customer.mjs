@@ -177,7 +177,7 @@ try {
     const page = await context.newPage();
     await page.goto(url);
     await page.evaluate(async () => {
-      const m = await import('./web/customer-account.js?v=shipping-cache-20261115');
+      const m = await import('./web/customer-account.js?v=guest-email-20261115');
       await m.customerReady;
     });
     return { context, page };
@@ -186,7 +186,7 @@ try {
   const login = async (page, password) =>
     page.evaluate(async (password) => {
       try {
-        const m = await import('./web/customer-account.js?v=shipping-cache-20261115');
+        const m = await import('./web/customer-account.js?v=guest-email-20261115');
         return await m.authenticateCustomer({ email: 'cloud@example.com', password });
       } catch (e) {
         return { error: e.message };
@@ -195,7 +195,7 @@ try {
   assert.match((await login(laptop.page, 'wrong-password-123')).error, /Email atau password salah/);
   assert.equal((await login(laptop.page, 'cloud-password-123')).id, user.id);
   await laptop.page.evaluate(async () => {
-    const m = await import('./web/customer-account.js?v=shipping-cache-20261115');
+    const m = await import('./web/customer-account.js?v=guest-email-20261115');
     m.showCustomerAccount();
   });
   assert.equal(await laptop.page.locator('#customer-admin').count(), 0);
@@ -213,7 +213,7 @@ try {
   );
   await laptop.page.locator('#account-close').click();
   await laptop.page.evaluate(async () => {
-    const m = await import('./web/customer-account.js?v=shipping-cache-20261115');
+    const m = await import('./web/customer-account.js?v=guest-email-20261115');
     await m.saveAddress({
       name: 'Customer',
       phone: '081200000000',
@@ -228,19 +228,19 @@ try {
   const phone = await device();
   assert.equal(
     await phone.page.evaluate(async () =>
-      (await import('./web/customer-account.js?v=shipping-cache-20261115')).customerSession(),
+      (await import('./web/customer-account.js?v=guest-email-20261115')).customerSession(),
     ),
     null,
   );
   assert.equal((await login(phone.page, 'cloud-password-123')).id, user.id);
   const addresses = await phone.page.evaluate(async () => {
-    const m = await import('./web/customer-account.js?v=shipping-cache-20261115');
+    const m = await import('./web/customer-account.js?v=guest-email-20261115');
     return m.loadAddresses();
   });
   assert.equal(addresses[0].address, 'Jalan cloud');
   assert.equal(addresses[0].email, user.email);
   const order = await laptop.page.evaluate(async () => {
-    const store = await import('./web/manual-payment-store.js?v=shipping-cache-20261115');
+    const store = await import('./web/manual-payment-store.js?v=guest-email-20261115');
     return store.createPayment(
       {
         name: 'Cloud buyer',
@@ -264,7 +264,7 @@ try {
   await phone.page.reload();
   assert.equal(
     await phone.page.evaluate(async () => {
-      const m = await import('./web/customer-account.js?v=shipping-cache-20261115');
+      const m = await import('./web/customer-account.js?v=guest-email-20261115');
       await m.customerReady;
       return m.customerSession()?.id;
     }),
@@ -291,7 +291,7 @@ try {
     assert.equal(new URL(emailTab.url()).searchParams.has('order'), false);
     assert.equal(
       await emailTab.evaluate(async () => {
-        const m = await import('./web/customer-account.js?v=shipping-cache-20261115');
+        const m = await import('./web/customer-account.js?v=guest-email-20261115');
         await m.customerReady;
         return m.customerSession()?.id;
       }),
@@ -303,12 +303,12 @@ try {
   }
   assert.equal(loginRequests, beforeEmailClicks);
   await phone.page.evaluate(async () => {
-    const m = await import('./web/customer-account.js?v=shipping-cache-20261115');
+    const m = await import('./web/customer-account.js?v=guest-email-20261115');
     await m.customerLogout();
   });
   assert.equal(
     await phone.page.evaluate(async () =>
-      (await import('./web/customer-account.js?v=shipping-cache-20261115')).customerSession(),
+      (await import('./web/customer-account.js?v=guest-email-20261115')).customerSession(),
     ),
     null,
   );
@@ -322,11 +322,11 @@ try {
   await phone.page.locator('#manual-payment').waitFor({ state: 'hidden' });
   assert.equal(await phone.page.locator('#customer-account[open]').count(), 0);
   await phone.page.evaluate(async () =>
-    (await import('./web/customer-account.js?v=shipping-cache-20261115')).customerLogout(),
+    (await import('./web/customer-account.js?v=guest-email-20261115')).customerLogout(),
   );
   for (const email of ['duplicate@example.com', 'hidden@example.com', 'existing@example.com']) {
     const message = await phone.page.evaluate(async (email) => {
-      const m = await import('./web/customer-account.js?v=shipping-cache-20261115');
+      const m = await import('./web/customer-account.js?v=guest-email-20261115');
       try {
         await m.authenticateCustomer(
           {
@@ -344,7 +344,7 @@ try {
     assert.equal(message, 'Akun sudah terdaftar, silahkan buat email yang belum terdaftar');
   }
   const signup = await phone.page.evaluate(async () => {
-    const m = await import('./web/customer-account.js?v=shipping-cache-20261115');
+    const m = await import('./web/customer-account.js?v=guest-email-20261115');
     return m.authenticateCustomer(
       {
         name: 'New customer',
@@ -373,12 +373,12 @@ try {
   await phone.page.locator('#account-modal').waitFor({ state: 'hidden' });
   assert.equal(
     await phone.page.evaluate(async () =>
-      (await import('./web/admin-session.js?v=shipping-cache-20261115')).isAdmin(),
+      (await import('./web/admin-session.js?v=guest-email-20261115')).isAdmin(),
     ),
     true,
   );
   await phone.page.evaluate(async (id) => {
-    const store = await import('./web/manual-payment-store.js?v=shipping-cache-20261115');
+    const store = await import('./web/manual-payment-store.js?v=guest-email-20261115');
     await store.reviewPayment(id, 1, 'approve', {
       paidAt: '2026-10-16T20:29',
       amount: 697123,
@@ -390,7 +390,7 @@ try {
   assert.equal(orders[0].status, 'PAID');
   orders[0] = { ...orders[0], status: 'CHECKING', version: 1 };
   await phone.page.evaluate(async (id) => {
-    const store = await import('./web/manual-payment-store.js?v=shipping-cache-20261115');
+    const store = await import('./web/manual-payment-store.js?v=guest-email-20261115');
     await store.decidePayment(id, 1, 'approve', true);
     await store.saveTracking(id, 2, 'JNE', 'JNE-TEST-123');
   }, order.id);
@@ -443,7 +443,7 @@ try {
   await studio.page.locator('#app').waitFor({ state: 'visible' });
   await studio.page.goto(url);
   assert.equal(await studio.page.evaluate(async () => {
-    const m = await import('./web/supabase-customer.js?v=shipping-cache-20261115');
+    const m = await import('./web/supabase-customer.js?v=guest-email-20261115');
     await m.cloudReady;
     return m.cloudIsAdmin();
   }), true);
@@ -456,13 +456,13 @@ try {
   const owner = await device();
   await login(owner.page, 'cloud-password-123');
   await owner.page.evaluate(async () => {
-    const m = await import('./web/customer-account.js?v=shipping-cache-20261115');
+    const m = await import('./web/customer-account.js?v=guest-email-20261115');
     m.showCustomerAccount();
   });
   await owner.page.locator('#customer-admin').waitFor({ state: 'visible' });
   assert.equal(await owner.page.locator('#customer-account small').count(), 0);
   await owner.page.evaluate(async () => {
-    const m = await import('./web/customer-account.js?v=shipping-cache-20261115');
+    const m = await import('./web/customer-account.js?v=guest-email-20261115');
     const user = m.customerSession();
     const key = 'tanj-customer-until-' + user.id;
     const deadline = Number(localStorage.getItem(key));

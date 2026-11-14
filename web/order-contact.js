@@ -1,5 +1,5 @@
-import { orderReference } from '../shared/order-number.js?v=shipping-cache-20261115';
-import { sitePreferences } from './site-preferences.js?v=shipping-cache-20261115';
+import { orderReference } from '../shared/order-number.js?v=guest-email-20261115';
+import { sitePreferences } from './site-preferences.js?v=guest-email-20261115';
 export const orderContacts = Object.freeze({
   whatsapp: '6281363661703',
   email: 'tanj.indonesia@gmail.com',

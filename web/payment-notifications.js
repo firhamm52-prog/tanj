@@ -1,5 +1,5 @@
-import { emailConfig } from './email-config.js?v=shipping-cache-20261115';
-import { createEmailDelivery } from './emailjs-delivery.js?v=shipping-cache-20261115';
+import { emailConfig } from './email-config.js?v=guest-email-20261115';
+import { createEmailDelivery } from './emailjs-delivery.js?v=guest-email-20261115';
 const browserDelivery = createEmailDelivery({
   config: emailConfig,
   storage: {

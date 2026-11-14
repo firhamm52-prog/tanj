@@ -1,26 +1,27 @@
-import { orderReference } from '../shared/order-number.js?v=shipping-cache-20261115';
-import { mountMidtransCheckout } from './midtrans-checkout.js?v=shipping-cache-20261115';
-import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js?v=shipping-cache-20261115';
-import { cloudEnabled } from './supabase-payments.js?v=shipping-cache-20261115';
-import { cropQrisArtwork } from './qris-crop.js?v=shipping-cache-20261115';
-import { mountPaymentSocialLinks } from './payment-social-links.js?v=shipping-cache-20261115';
-import { shipmentTracking } from '../shared/shipment-tracking.js?v=shipping-cache-20261115';
+import { orderReference } from '../shared/order-number.js?v=guest-email-20261115';
+import { mountMidtransCheckout } from './midtrans-checkout.js?v=guest-email-20261115';
+import { isPaymentLink, paymentOrderId, paymentAccessToken } from '../shared/payment-link.js?v=guest-email-20261115';
+import { cloudEnabled, paymentRPC } from './supabase-payments.js?v=guest-email-20261115';
+import { cropQrisArtwork } from './qris-crop.js?v=guest-email-20261115';
+import { mountPaymentSocialLinks } from './payment-social-links.js?v=guest-email-20261115';
+import { shipmentTracking } from '../shared/shipment-tracking.js?v=guest-email-20261115';
 import {
   customerSession,
   requireCustomer,
   ensureCustomerSession,
-} from './customer-account.js?v=shipping-cache-20261115';
-import { isAdmin } from './admin-session.js?v=shipping-cache-20261115';
-import { mountCheckoutExperience } from './checkout-experience.js?v=shipping-cache-20261115';
-import { buildOrderEmail } from '../shared/order-email.js?v=shipping-cache-20261115';
-import { notifyPayment } from './payment-notifications.js?v=shipping-cache-20261115';
-import { orderContactLinks } from './order-contact.js?v=shipping-cache-20261115';
+  ensureCheckoutSession,
+} from './customer-account.js?v=guest-email-20261115';
+import { isAdmin } from './admin-session.js?v=guest-email-20261115';
+import { mountCheckoutExperience } from './checkout-experience.js?v=guest-email-20261115';
+import { buildOrderEmail } from '../shared/order-email.js?v=guest-email-20261115';
+import { notifyPayment } from './payment-notifications.js?v=guest-email-20261115';
+import { orderContactLinks } from './order-contact.js?v=guest-email-20261115';
 import {
   shippingProvinces,
   shippingCities,
   shippingDistricts,
   getShippingEstimate,
-} from './shipping.js?v=shipping-cache-20261115';
+} from './shipping.js?v=guest-email-20261115';
 import {
   readPayments,
   refreshPayments,
@@ -31,7 +32,7 @@ import {
   paymentLabels,
   money,
   escapeHTML as esc,
-} from './manual-payment-store.js?v=shipping-cache-20261115';
+} from './manual-payment-store.js?v=guest-email-20261115';
 export const demoNotice = '';
 export async function confirmManual(title, message, label = 'Lanjutkan') {
   const dialog = document.createElement('dialog');
@@ -204,7 +205,8 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
   if (requested) selected = requested;
   const visibleOrders = (state) =>
     state.orders.filter(
-      (o) => isAdmin() || (customerSession() && o.customerId === customerSession().id),
+      (o) =>
+        isAdmin() || (customerSession() && (cloudEnabled || o.customerId === customerSession().id)),
     );
 
   const showError = (e) => {
@@ -592,11 +594,17 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
     if (routingOrder) return;
     routingOrder = true;
     const revision = orderRouteRevision;
+    const hasAccessToken = new URLSearchParams(new URL(location.href).hash.split('?')[1] || '').has(
+      'access',
+    );
     try {
       await ensureCustomerSession();
       if (revision !== orderRouteRevision) return;
       // Only opening a payment link may prompt; revisiting the tab must not.
-      if (!customerSession() && !isAdmin() && !promptLogin) return;
+      const accessToken = paymentAccessToken(location.href);
+      if (hasAccessToken && !accessToken)
+        throw Error('Tautan pesanan tidak valid atau kedaluwarsa.');
+      if (!customerSession() && !isAdmin() && !promptLogin && !accessToken) return;
       requested = paymentOrderId(location.href);
       const targetOrder = requested;
       const resume = async () => {
@@ -610,6 +618,15 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
             '.';
         }
       };
+      if (accessToken && cloudEnabled) {
+        await ensureCheckoutSession();
+        await paymentRPC('tanj_redeem_guest_order_link', {
+          oid: targetOrder,
+          access_token: accessToken,
+        });
+        await resume();
+        return;
+      }
       if (isAdmin()) {
         resume();
         return;
@@ -618,6 +635,14 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
         void resume().catch(showError);
       });
     } catch (error) {
+      if (hasAccessToken) {
+        openBag();
+        $('bag-cart-view').hidden = true;
+        $('bag-checkout-view').hidden = true;
+        panel.hidden = false;
+        panel.innerHTML =
+          '<h3 tabindex="-1">Tautan pesanan</h3><p id="manual-payment-error" role="alert"></p>';
+      }
       showError(error);
     } finally {
       routingOrder = false;

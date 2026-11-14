@@ -56,14 +56,14 @@ test('disabled email requires account setup and never makes a network request', 
   await assert.rejects(() => t.notify(sample()), /belum aktif/);
   assert.equal(t.calls.length, 0);
 });
-test('email preserves gross courier cost and reports subsidy with net customer fee', () => {
+test('email displays the gross courier cost and its subsidy separately', () => {
   const order = sample();
   const params = emailTemplateParams(
     { ...order, shipping: { ...order.shipping, originalFee: 35000, subsidy: 20000, fee: 15000 } },
     'https://example.com/tanj/',
   );
   assert.equal(params.has_shipping_discount, true);
-  assert.equal(params.shipping_fee, 'Rp15.000');
+  assert.equal(params.shipping_fee, 'Rp35.000');
   assert.equal(params.original_shipping_fee, 'Rp35.000');
   assert.equal(params.shipping_discount, 'Rp20.000');
 });
@@ -119,6 +119,19 @@ test('provider receives exact template parameters; concurrent and repeated Order
   assert.equal(t.calls.length, 2);
   assert.equal(t.sleeps[0], 1100);
 });
+test('explicit guest-link resend sends the new scoped URL while ordinary refresh stays deduplicated', async () => {
+  const t = setup(),
+    order = { ...sample(), guestAccessToken: 'c'.repeat(64) };
+  await t.notify(order);
+  assert.equal((await t.notify(order)).alreadySent, true);
+  assert.equal(t.calls.length, 1);
+  await t.notify(order, { resend: true });
+  assert.equal(t.calls.length, 2);
+  const params = JSON.parse(t.calls[1].body).template_params;
+  assert.ok(params.order_url.endsWith('&access=' + order.guestAccessToken));
+  assert.equal(new URL(params.order_url).searchParams.has('access'), false);
+});
+
 test('provider refusal is not a success; a later explicit retry can succeed', async () => {
   let count = 0;
   const t = setup({

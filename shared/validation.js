@@ -1,4 +1,4 @@
-import { validateSiteSettings } from './site-settings.js?v=shipping-cache-20261115';
+import { validateSiteSettings } from './site-settings.js?v=guest-email-20261115';
 export class ValidationError extends Error {}
 const fail = (message) => {
   throw new ValidationError(message);

@@ -1,8 +1,9 @@
-// Reloading a previous visit starts at home; newly opened order links still work.
+import { paymentAccessToken } from '../shared/payment-link.js?v=guest-email-20261115';
+// Reloading ordinary visits starts at home; explicit guest email links remain usable.
 export function prepareStorefrontEntry({ navigationType, history, href }) {
   if (navigationType === 'back_forward') return;
   const url = new URL(href);
-  if (navigationType === 'reload') {
+  if (navigationType === 'reload' && !paymentAccessToken(href)) {
     url.searchParams.delete('order');
     if (url.hash.startsWith('#pesanan')) url.hash = '';
   }

@@ -1,7 +1,7 @@
-import { cloudEnabled } from '../web/supabase-payments.js?v=shipping-cache-20261115';
-import { customerWhatsAppLink } from '../shared/customer-whatsapp.js?v=shipping-cache-20261115';
-import { emailConfig } from '../web/email-config.js?v=shipping-cache-20261115';
-import { notifyPayment } from '../web/payment-notifications.js?v=shipping-cache-20261115';
+import { cloudEnabled } from '../web/supabase-payments.js?v=guest-email-20261115';
+import { customerWhatsAppLink } from '../shared/customer-whatsapp.js?v=guest-email-20261115';
+import { emailConfig } from '../web/email-config.js?v=guest-email-20261115';
+import { notifyPayment } from '../web/payment-notifications.js?v=guest-email-20261115';
 import {
   readPayments,
   refreshPayments,
@@ -14,8 +14,8 @@ import {
   savePaymentQR,
   money,
   escapeHTML as esc,
-} from '../web/manual-payment-store.js?v=shipping-cache-20261115';
-import { isAdmin } from '../web/admin-session.js?v=shipping-cache-20261115';
+} from '../web/manual-payment-store.js?v=guest-email-20261115';
+import { isAdmin } from '../web/admin-session.js?v=guest-email-20261115';
 const $ = (id) => document.getElementById(id);
 if (!isAdmin()) location.replace('../#admin-login');
 $('email-delivery-state').textContent =
@@ -131,6 +131,36 @@ function detail(o) {
     notice.textContent =
       'Pembayaran ini diverifikasi otomatis oleh Midtrans. Approve dan Reject manual tidak tersedia. Untuk membatalkan tagihan yang belum dibayar, periksa transaksi di dashboard Midtrans. Status TANJ diperbarui setelah konfirmasi Midtrans diterima.';
     $('detail').querySelector('h3')?.before(notice);
+  }
+  if (o.guestAccessToken && o.status === 'WAITING_PAYMENT') {
+    const section = document.createElement('section');
+    const button = document.createElement('button'),
+      status = document.createElement('p');
+    button.type = 'button';
+    button.className = 'primary';
+    button.id = 'resend-guest-payment-link';
+    button.textContent = 'Kirim ulang tautan pembayaran';
+    status.setAttribute('role', 'status');
+    button.onclick = async () => {
+      button.disabled = true;
+      reviewing = true;
+      status.textContent = 'Mengirim tautan pembayaran...';
+      try {
+        await refreshPayments();
+        const latest = readPayments().orders.find((item) => item.id === o.id);
+        if (!latest?.guestAccessToken || latest.status !== 'WAITING_PAYMENT')
+          throw Error('Status pesanan sudah berubah. Muat ulang pesanan.');
+        await notifyPayment(latest, { resend: true });
+        status.textContent = 'Tautan pembayaran dikirim ulang ke email customer.';
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        reviewing = false;
+        button.disabled = false;
+      }
+    };
+    section.append(button, status);
+    $('detail').querySelector('h3')?.before(section);
   }
   if (o.status === 'PAID' && !o.completedAt) trackingForm(o);
   if (o.completedAt) {

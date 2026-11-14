@@ -1,4 +1,4 @@
-import { orderReference } from '../shared/order-number.js?v=shipping-cache-20261115';
+import { orderReference } from '../shared/order-number.js?v=guest-email-20261115';
 import {
   readPayments,
   subscribePayments,
@@ -9,8 +9,8 @@ import {
   resetPayments,
   money,
   escapeHTML as esc,
-} from '../web/manual-payment-store.js?v=shipping-cache-20261115';
-import { demoNotice, confirmManual } from '../web/manual-payment.js?v=shipping-cache-20261115';
+} from '../web/manual-payment-store.js?v=guest-email-20261115';
+import { demoNotice, confirmManual } from '../web/manual-payment.js?v=guest-email-20261115';
 let selected = null,
   filter = 'open',
   query = '';

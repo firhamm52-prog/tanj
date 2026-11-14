@@ -1,5 +1,5 @@
-import { cropCmsImage } from '../web/cms-image-crop.js?v=shipping-cache-20261115';
-import { uploadCmsImage } from '../web/cms-upload.js?v=shipping-cache-20261115';
+import { cropCmsImage } from '../web/cms-image-crop.js?v=guest-email-20261115';
+import { uploadCmsImage } from '../web/cms-upload.js?v=guest-email-20261115';
 
 export function mountProductGalleryEditor(host, item, { onBusy, onDirty, requireAdmin }) {
   const form = host.closest('form');

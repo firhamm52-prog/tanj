@@ -3,8 +3,8 @@ import {
   cloudReady,
   cloudClient,
   cloudSession,
-} from './supabase-customer.js?v=shipping-cache-20261115';
-import { forgetShippingQuotes } from './shipping-quote-cache.js?v=shipping-cache-20261115';
+} from './supabase-customer.js?v=guest-email-20261115';
+import { forgetShippingQuotes } from './shipping-quote-cache.js?v=guest-email-20261115';
 export { cloudEnabled };
 let state = { version: 1, orders: [], settings: { hours: 2, admin: 'Admin TANJ' } },
   generation = 0;

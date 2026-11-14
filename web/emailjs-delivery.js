@@ -1,4 +1,4 @@
-import { orderPaymentUrl } from '../shared/order-email.js?v=shipping-cache-20261115';
+import { orderPaymentUrl } from '../shared/order-email.js?v=guest-email-20261115';
 const RECEIPTS = 'tanj-email-receipts-v1';
 const money = (value) => 'Rp' + Number(value).toLocaleString('id-ID');
 const hasTracking = (order) => order?.status === 'PAID' && Boolean(order.tracking?.number?.trim());
@@ -19,7 +19,7 @@ export function emailTemplateParams(order, baseUrl) {
     has_tracking: hasTracking(order),
     tracking_number: hasTracking(order) ? order.tracking.number : '',
     tracking_courier: hasTracking(order) ? order.tracking.courier : '',
-    order_url: orderPaymentUrl(baseUrl, order.id),
+    order_url: orderPaymentUrl(baseUrl, order.id, order.guestAccessToken),
     order_id: order.orderNumber || order.id,
     customer_name: String(customer.name || ''),
     customer_email: email,
@@ -49,7 +49,8 @@ export function emailTemplateParams(order, baseUrl) {
     payment_method: order.payment?.name || 'QRIS manual',
     payment_deadline:
       new Date(order.deadline).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB',
-    payment_url: order.status === 'PAID' ? '' : orderPaymentUrl(baseUrl, order.id),
+    payment_url:
+      order.status === 'PAID' ? '' : orderPaymentUrl(baseUrl, order.id, order.guestAccessToken),
   };
 }
 export function createEmailDelivery({
@@ -95,7 +96,7 @@ export function createEmailDelivery({
         'Catatan email tidak dapat dibaca. Periksa inbox admin sebelum mencoba kirim ulang.',
       );
     }
-    if (receipts[key]?.status === 'accepted' && !(resend && hasTracking(order)))
+    if (receipts[key]?.status === 'accepted' && !resend)
       return { sent: true, accepted: true, alreadySent: true };
     // Web Locks and a shared timestamp also serialize separate tabs at the provider rate limit.
     const previous = Number(receipts._lastAttemptAt) || 0;

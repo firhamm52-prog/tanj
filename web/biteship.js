@@ -1,6 +1,6 @@
-import { cloudClient } from './supabase-customer.js?v=shipping-cache-20261115';
-import { supabaseConfig } from './supabase-config.js?v=shipping-cache-20261115';
-import { cachedShippingQuote, saveShippingQuote } from './shipping-quote-cache.js?v=shipping-cache-20261115';
+import { cloudClient } from './supabase-customer.js?v=guest-email-20261115';
+import { supabaseConfig } from './supabase-config.js?v=guest-email-20261115';
+import { cachedShippingQuote, saveShippingQuote } from './shipping-quote-cache.js?v=guest-email-20261115';
 const useEdge =
   supabaseConfig.enabled &&
   window.TANJ_CONFIG?.mode !== 'api' &&

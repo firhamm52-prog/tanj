@@ -1,4 +1,4 @@
-import { orderPaymentUrl } from './order-email.js?v=shipping-cache-20261115';
+import { orderPaymentUrl } from './order-email.js?v=guest-email-20261115';
 export function customerWhatsAppLink(order, status, baseUrl) {
   const raw = String(order.customer?.phone || '').trim();
   if (!/^\+?[0-9\s().-]+$/.test(raw)) return null;
@@ -21,8 +21,10 @@ export function customerWhatsAppLink(order, status, baseUrl) {
     'Total pesanan: ' + money(order.total),
     '',
     order.status === 'WAITING_PAYMENT' ? 'Cek cara membayar:' : 'Lihat detail pesanan:',
-    orderPaymentUrl(baseUrl, order.id),
-    'Login dengan akun pemesan untuk membuka detail.',
+    orderPaymentUrl(baseUrl, order.id, order.guestAccessToken),
+    order.guestAccessToken
+      ? 'Tautan ini khusus untuk pesanan kamu. Jangan dibagikan.'
+      : 'Login dengan akun pemesan untuk membuka detail.',
     ...(order.tracking
       ? ['', 'Kurir: ' + order.tracking.courier, 'Nomor resi: ' + order.tracking.number]
       : []),
