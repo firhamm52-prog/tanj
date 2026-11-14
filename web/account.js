@@ -4,13 +4,15 @@ import {
   logout,
   loginAdmin,
   usesCloudAdmin,
-} from './admin-session.js?v=orders-label-20261115';
-import { sendReset } from './password-recovery.js?v=orders-label-20261115';
+} from './admin-session.js?v=cms-entry-20261115';
+import { sendReset } from './password-recovery.js?v=cms-entry-20261115';
 const $ = (id) => document.getElementById(id);
 let lastFocus;
 const cmsLink = document.getElementById('cms-admin-link');
 function updateCmsAccess() {
-  if (cmsLink) cmsLink.hidden = !isAdmin();
+  const signed = isAdmin();
+  if (cmsLink) cmsLink.hidden = !signed;
+  if ($('admin-view-switch')) $('admin-view-switch').hidden = !signed;
 }
 window.addEventListener('pageshow', updateCmsAccess);
 updateCmsAccess();

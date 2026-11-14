@@ -2,7 +2,7 @@ const extensions = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'web
 export async function uploadCmsVideo(
   file,
   {
-    getClient = async () => (await import('./supabase-customer.js?v=orders-label-20261115')).cloudClient(),
+    getClient = async () => (await import('./supabase-customer.js?v=cms-entry-20261115')).cloudClient(),
   } = {},
 ) {
   const contentType =
@@ -34,7 +34,7 @@ export async function uploadCmsVideo(
 export async function uploadCmsImage(
   file,
   {
-    getClient = async () => (await import('./supabase-customer.js?v=orders-label-20261115')).cloudClient(),
+    getClient = async () => (await import('./supabase-customer.js?v=cms-entry-20261115')).cloudClient(),
   } = {},
 ) {
   if (!file || !extensions[file.type]) throw Error('Pilih foto JPG, PNG atau WebP.');

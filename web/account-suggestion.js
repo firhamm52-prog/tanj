@@ -8,7 +8,7 @@ export function mountAccountSuggestion({ ready, getUser, openAccount }) {
   if (dismissed || !document.getElementById('product-modal')) return;
   const css = document.createElement('link');
   css.rel = 'stylesheet';
-  css.href = new URL('./account-suggestion.css?v=orders-label-20261115', import.meta.url).href;
+  css.href = new URL('./account-suggestion.css?v=cms-entry-20261115', import.meta.url).href;
   document.head.append(css);
   const card = document.createElement('aside');
   card.className = 'account-suggestion';

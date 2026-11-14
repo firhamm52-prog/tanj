@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TANJ</title>
-    <script type="module" src="web/page-title.js?v=orders-label-20261115"></script>
+    <script type="module" src="web/page-title.js?v=cms-entry-20261115"></script>
     <link rel="icon" type="image/svg+xml" href="assets/tanj-t-favicon.svg?v=1" />
     <link rel="icon" type="image/png" sizes="32x32" href="assets/tanj-t-32.png?v=1" />
     <link rel="apple-touch-icon" href="assets/tanj-t-180.png?v=1" />
@@ -3611,11 +3611,11 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="web/responsive.css?v=orders-label-20261115" />
-    <script src="web/config.js?v=orders-label-20261115"></script>
-    <link rel="stylesheet" href="web/manual-payment.css?v=orders-label-20261115" />
-    <link rel="stylesheet" href="web/checkout-experience.css?v=orders-label-20261115" />
-    <link rel="stylesheet" href="web/shopping-improvements.css?v=orders-label-20261115" />
+    <link rel="stylesheet" href="web/responsive.css?v=cms-entry-20261115" />
+    <script src="web/config.js?v=cms-entry-20261115"></script>
+    <link rel="stylesheet" href="web/manual-payment.css?v=cms-entry-20261115" />
+    <link rel="stylesheet" href="web/checkout-experience.css?v=cms-entry-20261115" />
+    <link rel="stylesheet" href="web/shopping-improvements.css?v=cms-entry-20261115" />
     <style>
       .story-social {
         gap: 14px;
@@ -3644,10 +3644,10 @@
         color: #fff !important;
       }
     </style>
-    <link rel="stylesheet" href="web/collection-editorial.css?v=orders-label-20261115" />
-    <link rel="stylesheet" href="web/product-experience.css?v=orders-label-20261115" />
-    <link rel="stylesheet" href="web/hijab-pair-gallery.css?v=orders-label-20261115" />
-    <link rel="stylesheet" href="web/mobile-product-grid.css?v=orders-label-20261115" />
+    <link rel="stylesheet" href="web/collection-editorial.css?v=cms-entry-20261115" />
+    <link rel="stylesheet" href="web/product-experience.css?v=cms-entry-20261115" />
+    <link rel="stylesheet" href="web/hijab-pair-gallery.css?v=cms-entry-20261115" />
+    <link rel="stylesheet" href="web/mobile-product-grid.css?v=cms-entry-20261115" />
   </head>
   <body>
     <header class="nav">
@@ -3680,7 +3680,7 @@
       <div class="navright">
         <div id="admin-view-switch" hidden>
           <a href="#top" aria-current="page">Pembeli</a
-          ><a href="admin/payments.html?v=20261016-admin-2">Admin</a>
+          ><a id="cms-admin-link" href="admin/index.html" hidden>CMS</a>
         </div>
         <div class="region-control">
           <button
@@ -4711,6 +4711,7 @@
         </section>
         <div id="admin-account-signed" hidden>
           <p id="admin-account-name"></p>
+          <a class="button" href="admin/index.html">Buka CMS</a>
           <a class="button" href="admin/payments.html?v=20261016-admin-2">Buka admin</a
           ><button id="admin-signout" class="plain-button" type="button">Logout</button>
         </div>
@@ -4726,20 +4727,20 @@
       tanjHeroVideo.addEventListener('loadedmetadata', slowTanjHero);
     </script>
     <script type="module">
-      import { mountHijabPairGallery } from './web/hijab-pair-gallery.js?v=orders-label-20261115';
-      import { selectLookbookMedia } from './shared/lookbook.js?v=orders-label-20261115';
-      import { initManualPayment } from './web/manual-payment.js?v=orders-label-20261115';
-      import { mountProductGallery } from './web/product-gallery.js?v=orders-label-20261115';
-      import { mountProductExperience } from './web/product-experience.js?v=orders-label-20261115';
-      import { mountShoppingImprovements } from './web/shopping-improvements.js?v=orders-label-20261115';
-      import { applySitePreferences, sitePreferences } from './web/site-preferences.js?v=orders-label-20261115';
-      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=orders-label-20261115';
+      import { mountHijabPairGallery } from './web/hijab-pair-gallery.js?v=cms-entry-20261115';
+      import { selectLookbookMedia } from './shared/lookbook.js?v=cms-entry-20261115';
+      import { initManualPayment } from './web/manual-payment.js?v=cms-entry-20261115';
+      import { mountProductGallery } from './web/product-gallery.js?v=cms-entry-20261115';
+      import { mountProductExperience } from './web/product-experience.js?v=cms-entry-20261115';
+      import { mountShoppingImprovements } from './web/shopping-improvements.js?v=cms-entry-20261115';
+      import { applySitePreferences, sitePreferences } from './web/site-preferences.js?v=cms-entry-20261115';
+      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=cms-entry-20261115';
       import {
         DEFAULT_PRODUCT_PRICE,
         PUBLISHED_KEY,
         freshSeed,
         storefront,
-      } from './shared/seed.js?v=orders-label-20261115';
+      } from './shared/seed.js?v=cms-entry-20261115';
       // Refresh an already open demo tab after publication, including back/forward restore.
       if (!isApi && !usesCloudCMS) {
         const publishedSnapshot = localStorage.getItem(PUBLISHED_KEY);
@@ -6419,6 +6420,6 @@
       syncHeader();
       applyRegion();
     </script>
-    <script type="module" src="web/account.js?v=orders-label-20261115"></script>
+    <script type="module" src="web/account.js?v=cms-entry-20261115"></script>
   </body>
 </html>

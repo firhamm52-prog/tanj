@@ -1,4 +1,4 @@
-import { defaultSiteSettings } from '../shared/site-settings.js?v=orders-label-20261115';
+import { defaultSiteSettings } from '../shared/site-settings.js?v=cms-entry-20261115';
 let current = { ...defaultSiteSettings };
 export const sitePreferences = () => ({ ...current });
 export function applySitePreferences(settings) {
