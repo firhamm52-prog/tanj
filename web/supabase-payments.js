@@ -3,7 +3,7 @@ import {
   cloudReady,
   cloudClient,
   cloudSession,
-} from './supabase-customer.js?v=improve-2';
+} from './supabase-customer.js?v=sync-20261115';
 export { cloudEnabled };
 let state = { version: 1, orders: [], settings: { hours: 2, admin: 'Admin TANJ' } },
   generation = 0;

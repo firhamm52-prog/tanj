@@ -1,8 +1,8 @@
-import { freshSeed, DEMO_KEY, PUBLISHED_KEY, storefront } from '../shared/seed.js';
-import { validate } from '../shared/validation.js?v=detail-1';
-import { supabaseConfig } from './supabase-config.js?v=improve-2';
+import { freshSeed, DEMO_KEY, PUBLISHED_KEY, storefront } from '../shared/seed.js?v=sync-20261115';
+import { validate } from '../shared/validation.js?v=sync-20261115';
+import { supabaseConfig } from './supabase-config.js?v=sync-20261115';
 export const usesCloudCMS = !!supabaseConfig.enabled;
-const cloudCMS = () => import('./cloud-cms.js?v=public-catalog-34');
+const cloudCMS = () => import('./cloud-cms.js?v=sync-20261115');
 export const isApi = window.TANJ_CONFIG?.mode === 'api';
 const apiBase = window.TANJ_CONFIG?.apiBase || '/api';
 function read(key) {

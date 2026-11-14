@@ -1,6 +1,25 @@
-import { supabaseConfig } from './supabase-config.js?v=improve-2';
-import { getShippingEstimate } from './shipping.js?v=districts-1';
+import { supabaseConfig } from './supabase-config.js?v=sync-20261115';
+import { getShippingEstimate } from './shipping.js?v=sync-20261115';
 export const cloudEnabled = supabaseConfig.enabled;
+// Anonymous Auth provides an owner ID without requiring customer registration.
+let guestSessionRequest = null;
+export async function cloudGuestSession() {
+  const existing = await cloudEnsureSession();
+  if (existing) return existing;
+  if (!guestSessionRequest)
+    guestSessionRequest = (async () => {
+      const capability = await client.rpc('tanj_checkout_capabilities');
+      if (capability.error || !capability.data?.guestCheckout)
+        throw Error('Checkout tamu sedang disiapkan. Silakan masuk ke akun untuk melanjutkan.');
+      const { data, error } = await client.auth.signInAnonymously();
+      if (error) throw Error('Checkout tamu belum aktif. Silakan masuk ke akun untuk melanjutkan.');
+      await accept(data.session);
+      return cloudSession();
+    })().finally(() => {
+      guestSessionRequest = null;
+    });
+  return guestSessionRequest;
+}
 let client,
   user = null,
   list = [],
@@ -13,7 +32,12 @@ function check(error) {
 }
 function profile(u) {
   return u
-    ? { id: u.id, email: u.email, name: u.user_metadata?.full_name || u.email.split('@')[0] }
+    ? {
+        id: u.id,
+        email: u.email || '',
+        name: u.user_metadata?.full_name || (u.email || '').split('@')[0],
+        role: u.is_anonymous === true ? 'guest' : 'customer',
+      }
     : null;
 }
 function address(row) {
@@ -22,7 +46,7 @@ function address(row) {
     id: row.id,
     name: row.recipient,
     phone: row.phone,
-    email: user?.email || '',
+    email: user?.role === 'guest' ? row.contact_email || '' : user?.email || '',
     address: row.address,
     provinceId: row.province_id,
     province: shipping.province,
@@ -56,7 +80,11 @@ const sessionExpired = (id) => {
 async function accept(session) {
   if (session?.user) {
     const key = sessionKey(session.user.id);
-    if (!localStorage.getItem(key)) localStorage.setItem(key, String(Date.now() + 60 * 60 * 1000));
+    if (!localStorage.getItem(key))
+      localStorage.setItem(
+        key,
+        String(Date.now() + (session.user.is_anonymous ? 7 * 24 : 1) * 60 * 60 * 1000),
+      );
     if (sessionExpired(session.user.id)) session = null;
   }
   revision++;
@@ -67,7 +95,7 @@ async function accept(session) {
 }
 export const cloudIsAdmin = () => admin && Boolean(cloudSession());
 async function loadRole() {
-  if (!user) {
+  if (!user || user.role === 'guest') {
     admin = false;
     return;
   }
@@ -77,7 +105,7 @@ async function loadRole() {
 }
 export const cloudReady = (async () => {
   if (!cloudEnabled) return;
-  const { createClient } = await import('./vendor/supabase.js');
+  const { createClient } = await import('./vendor/supabase.js?v=sync-20261115');
   client = createClient(supabaseConfig.url, supabaseConfig.publishableKey, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
   });
@@ -230,6 +258,13 @@ export async function cloudSaveAddress(a) {
     city_id: a.cityId,
     district_id: a.districtId,
     postcode: a.zip,
+    ...(user.role === 'guest'
+      ? {
+          contact_email: String(a.email || '')
+            .trim()
+            .toLowerCase(),
+        }
+      : {}),
   };
   const query = a.id
     ? client.from('tb_m_address').update(values).eq('id', a.id).eq('account_id', id)

@@ -1,16 +1,16 @@
-import { selectLookbookMedia } from '../shared/lookbook.js';
-import { prepareCmsVideo } from '../web/cms-video-convert.js';
-import { cropCmsVideo } from '../web/cms-video-crop.js';
+import { selectLookbookMedia } from '../shared/lookbook.js?v=sync-20261115';
+import { prepareCmsVideo } from '../web/cms-video-convert.js?v=sync-20261115';
+import { cropCmsVideo } from '../web/cms-video-crop.js?v=sync-20261115';
 import {
   siteSettingFields,
   defaultSiteSettings,
-} from '../shared/site-settings.js?v=shipping-discount-28';
-import { mountManualAdmin } from './manual-payments.js?v=owner-ui-3';
-import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=improve-2';
-import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js';
-import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=mov-upload-1';
-import { cropCmsImage } from '../web/cms-image-crop.js?v=media-upload-1';
-import { mountProductGalleryEditor } from './product-gallery-editor.js?v=gallery-1';
+} from '../shared/site-settings.js?v=sync-20261115';
+import { mountManualAdmin } from './manual-payments.js?v=sync-20261115';
+import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=sync-20261115';
+import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js?v=sync-20261115';
+import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=sync-20261115';
+import { cropCmsImage } from '../web/cms-image-crop.js?v=sync-20261115';
+import { mountProductGalleryEditor } from './product-gallery-editor.js?v=sync-20261115';
 let uploadingImage = false;
 import {
   isApi,
@@ -21,7 +21,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=detail-1';
+} from '../web/data.js?v=sync-20261115';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(

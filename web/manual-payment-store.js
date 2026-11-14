@@ -1,16 +1,17 @@
-import { customerSession } from './customer-account.js?v=owner-ui-3';
-import { normalizePaymentReview } from '../shared/payment-review.js';
-import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=shipping-discount-28';
-import { sitePreferences } from './site-preferences.js';
+import { customerSession } from './customer-account.js?v=sync-20261115';
+import { formatOrderNumber, numberDemoOrders } from '../shared/order-number.js?v=sync-20261115';
+import { normalizePaymentReview } from '../shared/payment-review.js?v=sync-20261115';
+import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=sync-20261115';
+import { sitePreferences } from './site-preferences.js?v=sync-20261115';
 import {
   cloudEnabled,
   cloudPayments,
   refreshPayments,
   paymentRPC,
   createCloudPayment,
-} from './supabase-payments.js?v=improve-2';
+} from './supabase-payments.js?v=sync-20261115';
 export { refreshPayments };
-import { validateShippingDestination } from './shipping.js?v=districts-1';
+import { validateShippingDestination } from './shipping.js?v=sync-20261115';
 export const PAYMENT_KEY = 'tanj-manual-payments-demo-v1';
 export const paymentLabels = {
   WAITING_PAYMENT: 'Menunggu pembayaran',
@@ -35,7 +36,7 @@ export function readPayments() {
     if (!raw) return empty();
     const result = JSON.parse(raw);
     if (result.version !== 1 || !Array.isArray(result.orders) || !result.settings) throw Error();
-    return result;
+    return numberDemoOrders(result);
   } catch {
     throw Error('Simulasi tidak dapat dibaca. Izinkan penyimpanan browser atau coba browser lain.');
   }
@@ -92,9 +93,12 @@ export async function createPayment(customer, lines, catalog) {
     !(cloudEnabled && customer.paymentMethod === 'midtrans')
   )
     throw Error('Metode gateway belum aktif. Gunakan QRIS manual.');
-  customer = { ...customer, email: owner.email };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(owner.email || '')))
-    throw Error('Email akun belum valid. Login kembali.');
+  customer = {
+    ...customer,
+    email: owner.role === 'guest' ? String(customer.email || '').trim() : owner.email,
+  };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(customer.email || '')))
+    throw Error('Isi email yang valid untuk notifikasi pesanan.');
   const delivery = await validateShippingDestination(
     customer.provinceId,
     customer.cityId,
@@ -163,6 +167,7 @@ export async function createPayment(customer, lines, catalog) {
       adjustment = (code - (base % 1000) + 1000) % 1000;
     const at = Date.now();
     const order = {
+      orderNumber: formatOrderNumber((state.orderSequence || 0) + 1),
       customerId: owner.id,
       payment: { id: 'qris-manual', name: 'QRIS manual' },
       id:
@@ -216,6 +221,7 @@ export async function createPayment(customer, lines, catalog) {
       ],
       review: null,
     };
+    state.orderSequence = (state.orderSequence || 0) + 1;
     state.orders.push(order);
     return order;
   });

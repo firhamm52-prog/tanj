@@ -1,7 +1,7 @@
-import { cloudEnabled } from '../web/supabase-payments.js?v=improve-2';
-import { customerWhatsAppLink } from '../shared/customer-whatsapp.js';
-import { emailConfig } from '../web/email-config.js?v=tracking-email-6';
-import { notifyPayment } from '../web/payment-notifications.js?v=shipping-subsidy-1';
+import { cloudEnabled } from '../web/supabase-payments.js?v=sync-20261115';
+import { customerWhatsAppLink } from '../shared/customer-whatsapp.js?v=sync-20261115';
+import { emailConfig } from '../web/email-config.js?v=sync-20261115';
+import { notifyPayment } from '../web/payment-notifications.js?v=sync-20261115';
 import {
   readPayments,
   refreshPayments,
@@ -14,8 +14,8 @@ import {
   savePaymentQR,
   money,
   escapeHTML as esc,
-} from '../web/manual-payment-store.js?v=order-completion-1';
-import { isAdmin } from '../web/admin-session.js?v=improve-2';
+} from '../web/manual-payment-store.js?v=sync-20261115';
+import { isAdmin } from '../web/admin-session.js?v=sync-20261115';
 const $ = (id) => document.getElementById(id);
 if (!isAdmin()) location.replace('../#admin-login');
 $('email-delivery-state').textContent =

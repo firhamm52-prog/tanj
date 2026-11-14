@@ -1,11 +1,13 @@
-import { prepareStorefrontEntry, showStorefrontHome } from './storefront-entry.js';
-import { mountSignupVerification } from './signup-verification.js';
-import { sendReset } from './password-recovery.js?v=improve-2';
-import { digest, isAdmin } from './admin-session.js?v=improve-2';
+import { prepareStorefrontEntry, showStorefrontHome } from './storefront-entry.js?v=sync-20261115';
+import { mountSignupVerification } from './signup-verification.js?v=sync-20261115';
+import { mountAccountSuggestion } from './account-suggestion.js?v=sync-20261115';
+import { sendReset } from './password-recovery.js?v=sync-20261115';
+import { digest, isAdmin } from './admin-session.js?v=sync-20261115';
 import {
   cloudEnabled,
   cloudReady,
   cloudEnsureSession,
+  cloudGuestSession,
   cloudSession,
   cloudAuthenticate,
   cloudVerifySignup,
@@ -15,7 +17,7 @@ import {
   refreshAddresses,
   cloudSaveAddress,
   cloudDeleteAddress,
-} from './supabase-customer.js?v=improve-2';
+} from './supabase-customer.js?v=sync-20261115';
 export const customerReady = cloudReady;
 if (document.getElementById('product-modal')) {
   prepareStorefrontEntry({
@@ -26,6 +28,32 @@ if (document.getElementById('product-modal')) {
 }
 export async function ensureCustomerSession() {
   if (cloudEnabled) await cloudEnsureSession();
+  return customerSession();
+}
+let guestRequest;
+export async function ensureCheckoutSession() {
+  await customerReady.catch(() => {});
+  if (customerSession()) return customerSession();
+  if (cloudEnabled) {
+    if (!guestRequest)
+      guestRequest = cloudGuestSession().finally(() => {
+        guestRequest = null;
+      });
+    return guestRequest;
+  }
+  const user = {
+    id: crypto.randomUUID(),
+    role: 'guest',
+    name: '',
+    email: '',
+    hash: crypto.randomUUID(),
+  };
+  localStorage.setItem(USERS, JSON.stringify([...read(USERS, []), user]));
+  localStorage.setItem(
+    SESSION,
+    JSON.stringify({ id: user.id, hash: user.hash, expires: Date.now() + 7 * 86400000 }),
+  );
+  window.dispatchEvent(new Event('tanj-customer-change'));
   return customerSession();
 }
 // Keep fixed overlays outside gallery sections that use layout/paint containment.
@@ -45,7 +73,9 @@ export function customerSession() {
     const session = JSON.parse(localStorage.getItem(SESSION) || 'null');
     if (!session || !Number.isFinite(session.expires) || session.expires <= Date.now()) return null;
     const user = read(USERS, []).find((u) => u.id === session.id && u.hash === session.hash);
-    return user ? { id: user.id, name: user.name, email: user.email } : null;
+    return user
+      ? { id: user.id, name: user.name, email: user.email, role: user.role || 'customer' }
+      : null;
   } catch {
     return null;
   }
@@ -118,7 +148,7 @@ export function saveAddress(address) {
   if (!user) throw Error('Login terlebih dahulu.');
   const list = addresses(),
     id = address.id || crypto.randomUUID(),
-    entry = { ...address, id, email: user.email };
+    entry = { ...address, id, email: user.role === 'guest' ? address.email : user.email };
   const index = list.findIndex((a) => a.id === id);
   if (index < 0) {
     if (list.length >= 10)
@@ -146,10 +176,11 @@ let dialog,
 function render() {
   verificationCleanup?.();
   verificationCleanup = null;
-  const user = customerSession();
+  const session = customerSession();
+  const user = session?.role === 'guest' ? null : session;
   const showAdmin =
     isAdmin() && (!cloudEnabled || user?.email?.toLowerCase() === 'tanj.indonesia@gmail.com');
-  dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup account">&times;</button><p class="checkout-eyebrow">TANJ / YOUR ACCOUNT</p><h2>${user ? 'Account kamu' : register ? 'Daftar' : 'Selamat datang kembali'}</h2><p>${user ? 'Kelola pesanan dan alamat pengirimanmu.' : register ? 'Buat akun untuk menyimpan alamat dan melanjutkan pesanan.' : 'Login untuk menambahkan produk ke tas dan membuat pesanan.'}</p>${user ? '<p id="customer-profile"></p><button type="button" class="shop-primary" id="customer-orders">Pesanan saya</button><button type="button" class="customer-text" id="customer-logout">Logout</button>' : `<form id="customer-auth" novalidate>${register ? '<label>Nama lengkap<input name="name" autocomplete="name" maxlength="80" required></label>' : ''}<label>Email<input name="email" type="email" autocomplete="email" maxlength="120" required></label><label>Password<input name="password" type="password" autocomplete="${register ? 'new-password' : 'current-password'}" minlength="12" maxlength="128" required></label>${register ? '<label>Ulangi password<input name="repeat" type="password" autocomplete="new-password" required></label>' : ''}${cloudEnabled && !register ? '<button type="button" class="customer-text" id="customer-forgot">Lupa password?</button>' : ''}<p id="customer-auth-error" role="alert"></p><button class="shop-primary" type="submit">${register ? 'Buat akun baru' : 'Login'}</button></form><button type="button" class="customer-text" id="customer-auth-toggle">${register ? 'Sudah punya akun? Login di sini' : 'Belum punya akun? Daftar di sini'}</button>`}${showAdmin ? '<div class="customer-account-footer"><button type="button" class="customer-text" id="customer-admin">Admin TANJ</button></div>' : ''}`;
+  dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup account">&times;</button><p class="checkout-eyebrow">TANJ / YOUR ACCOUNT</p><h2>${user ? 'Account kamu' : register ? 'Daftar' : 'Selamat datang kembali'}</h2><p>${user ? 'Kelola pesanan dan alamat pengirimanmu.' : register ? 'Buat akun untuk menyimpan alamat dan melanjutkan pesanan.' : 'Login bersifat opsional. Kamu juga bisa checkout dengan email dan nomor HP.'}</p>${user ? '<p id="customer-profile"></p><button type="button" class="shop-primary" id="customer-orders">Pesanan saya</button><button type="button" class="customer-text" id="customer-logout">Logout</button>' : `<form id="customer-auth" novalidate>${register ? '<label>Nama lengkap<input name="name" autocomplete="name" maxlength="80" required></label>' : ''}<label>Email<input name="email" type="email" autocomplete="email" maxlength="120" required></label><label>Password<input name="password" type="password" autocomplete="${register ? 'new-password' : 'current-password'}" minlength="12" maxlength="128" required></label>${register ? '<label>Ulangi password<input name="repeat" type="password" autocomplete="new-password" required></label>' : ''}${cloudEnabled && !register ? '<button type="button" class="customer-text" id="customer-forgot">Lupa password?</button>' : ''}<p id="customer-auth-error" role="alert"></p><button class="shop-primary" type="submit">${register ? 'Buat akun baru' : 'Login'}</button></form><button type="button" class="customer-text" id="customer-auth-toggle">${register ? 'Sudah punya akun? Login di sini' : 'Belum punya akun? Daftar di sini'}</button>`}${showAdmin ? '<div class="customer-account-footer"><button type="button" class="customer-text" id="customer-admin">Admin TANJ</button></div>' : ''}`;
   dialog.querySelector('.customer-close').onclick = () => dialog.close();
   dialog.querySelector('#customer-admin')?.addEventListener('click', () => {
     if (!showAdmin) return;
@@ -282,15 +313,11 @@ document.querySelectorAll('[data-account-open]').forEach((button) =>
     customerReady.then(() => showCustomerAccount()).catch(() => showCustomerAccount());
   }),
 );
-document.addEventListener(
-  'click',
-  (e) => {
-    const target = e.target.closest('#product-add,#product-buy-now,#bag-next');
-    if (target && !customerSession()) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      requireCustomer(() => target.click());
-    }
+mountAccountSuggestion({
+  ready: customerReady,
+  getUser: () => {
+    const user = customerSession();
+    return user?.role === 'guest' ? null : user;
   },
-  true,
-);
+  openAccount: showCustomerAccount,
+});

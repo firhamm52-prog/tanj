@@ -1,4 +1,5 @@
-import { sitePreferences } from './site-preferences.js';
+import { orderReference } from '../shared/order-number.js?v=sync-20261115';
+import { sitePreferences } from './site-preferences.js?v=sync-20261115';
 export const orderContacts = Object.freeze({
   whatsapp: '6281363661703',
   email: 'tanj.indonesia@gmail.com',
@@ -9,7 +10,7 @@ export function orderContactLinks(order, status) {
   const c = order.customer;
   const body = [
     'PESANAN TANJ',
-    'Nomor: ' + order.id,
+    'Nomor: ' + orderReference(order),
     'Status: ' + status,
     'Nama: ' + c.name,
     'WhatsApp pembeli: ' + c.phone,
@@ -50,7 +51,7 @@ export function orderContactLinks(order, status) {
       '?cc=' +
       encodeURIComponent(c.email || '') +
       '&subject=' +
-      encodeURIComponent('Pesanan TANJ ' + order.id) +
+      encodeURIComponent('Pesanan TANJ ' + orderReference(order)) +
       '&body=' +
       encodeURIComponent(body),
   };

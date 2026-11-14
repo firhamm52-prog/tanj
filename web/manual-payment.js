@@ -1,25 +1,26 @@
-import { mountMidtransCheckout } from './midtrans-checkout.js?v=expired-visual-31';
-import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js';
-import { cloudEnabled } from './supabase-payments.js?v=improve-2';
-import { cropQrisArtwork } from './qris-crop.js';
-import { mountPaymentSocialLinks } from './payment-social-links.js';
-import { shipmentTracking } from '../shared/shipment-tracking.js';
+import { orderReference } from '../shared/order-number.js?v=sync-20261115';
+import { mountMidtransCheckout } from './midtrans-checkout.js?v=sync-20261115';
+import { isPaymentLink, paymentOrderId } from '../shared/payment-link.js?v=sync-20261115';
+import { cloudEnabled } from './supabase-payments.js?v=sync-20261115';
+import { cropQrisArtwork } from './qris-crop.js?v=sync-20261115';
+import { mountPaymentSocialLinks } from './payment-social-links.js?v=sync-20261115';
+import { shipmentTracking } from '../shared/shipment-tracking.js?v=sync-20261115';
 import {
   customerSession,
   requireCustomer,
   ensureCustomerSession,
-} from './customer-account.js?v=owner-ui-3';
-import { isAdmin } from './admin-session.js?v=improve-2';
-import { mountCheckoutExperience } from './checkout-experience.js?v=shipping-discount-28';
-import { buildOrderEmail } from '../shared/order-email.js';
-import { notifyPayment } from './payment-notifications.js?v=product-discounts-20';
-import { orderContactLinks } from './order-contact.js?v=gmail-compose-2';
+} from './customer-account.js?v=sync-20261115';
+import { isAdmin } from './admin-session.js?v=sync-20261115';
+import { mountCheckoutExperience } from './checkout-experience.js?v=sync-20261115';
+import { buildOrderEmail } from '../shared/order-email.js?v=sync-20261115';
+import { notifyPayment } from './payment-notifications.js?v=sync-20261115';
+import { orderContactLinks } from './order-contact.js?v=sync-20261115';
 import {
   shippingProvinces,
   shippingCities,
   shippingDistricts,
   getShippingEstimate,
-} from './shipping.js?v=districts-1';
+} from './shipping.js?v=sync-20261115';
 import {
   readPayments,
   refreshPayments,
@@ -30,7 +31,7 @@ import {
   paymentLabels,
   money,
   escapeHTML as esc,
-} from './manual-payment-store.js?v=product-discounts-20';
+} from './manual-payment-store.js?v=sync-20261115';
 export const demoNotice = '';
 export async function confirmManual(title, message, label = 'Lanjutkan') {
   const dialog = document.createElement('dialog');
@@ -65,8 +66,6 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
   submit.innerHTML = 'Lanjut pembayaran <span aria-hidden="true">→</span>';
   $('bag-summary').querySelector('p').textContent =
     'Checkout dan pembayaran manual. Ongkir mengikuti kota/kabupaten tujuan.';
-  form.querySelector('.checkout-fine').textContent =
-    'Bukti pembayaran tidak wajib. Admin dapat mencocokkan dana tanpa menunggu konfirmasi pembeli.';
   document.querySelector('#bag-checkout-view .checkout-help').textContent =
     'Isi detail kontak dan alamat pengiriman untuk pesanan Anda.';
   form.insertAdjacentHTML(
@@ -79,12 +78,12 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
   $('checkout-address').placeholder =
     'Jalan, nomor rumah, RT/RW, desa/kelurahan, dan patokan alamat';
   const fields = document.createElement('div');
-  fields.innerHTML = `<p class="manual-muted">Ongkir memakai perkiraan bawah master wilayah, dari Matraman, Jakarta Timur, dengan patokan paket 1 kg. Harga tetap mengikuti kota/kabupaten. Pilih kecamatan dan kode pos; alamat lengkap diisi bebas pada kolom alamat. Bukan tarif live JNE/J&T.</p><p id="manual-checkout-error" role="alert"></p>`;
+  fields.innerHTML = '<p id="manual-checkout-error" role="alert"></p>';
   form.insertBefore(fields, form.querySelector('.checkout-total'));
   const quote = document.createElement('div');
   quote.className = 'manual-breakdown';
   quote.innerHTML =
-    '<p><span>Ongkir</span><strong id="checkout-shipping-estimate">Pilih kota/kabupaten</strong></p><p><span>Total sebelum kode unik</span><strong id="checkout-base-total">-</strong></p>';
+    '<p><span>Ongkir</span><strong id="checkout-shipping-estimate">Pilih kota/kabupaten</strong></p><p><span>Total</span><strong id="checkout-base-total">-</strong></p>';
   form.querySelector('.checkout-total').after(quote);
   function updateShipping() {
     const city = $('checkout-city').value,
@@ -258,7 +257,7 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
             .reverse()
             .map(
               (o) =>
-                `<button class="manual-order" data-order-status="${orderStatus(o)}" data-order-id="${o.id}"><span>${esc(o.id)}</span><strong>${money(o.total)}</strong><small>${esc(paymentLabels[orderStatus(o)])}</small></button>`,
+                `<button class="manual-order" data-order-status="${orderStatus(o)}" data-order-id="${o.id}"><span>${esc(orderReference(o))}</span><strong>${money(o.total)}</strong><small>${esc(paymentLabels[orderStatus(o)])}</small></button>`,
             )
             .join('') || '<p>Belum ada pesanan. Pilih produk dan lanjut ke checkout.</p>'
         }</div>`;
@@ -295,8 +294,7 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
       const messages = {
         REJECTED:
           'Pembayaran ditolak. Periksa alasan admin dan hubungi admin jika dana sudah terdebit.',
-        WAITING_PAYMENT:
-          'Sudah membayar? Konfirmasi boleh, bukti tidak wajib. Admin tetap dapat memeriksa transaksi meskipun Anda tidak menekan tombol.',
+        WAITING_PAYMENT: '',
         CHECKING:
           'Pernyataan atau bukti Anda sudah tercatat. Admin akan mencocokkan dana masuk. Jangan bayar ulang.',
         NEEDS_HELP:
@@ -307,7 +305,7 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
         CANCELLED:
           'Pesanan dibatalkan. Jika ternyata sudah membayar, hubungi admin; pembayaran tetap bisa ditelusuri.',
       };
-      panel.innerHTML = `<button type="button" class="checkout-back" id="manual-all">← Pesanan saya</button><p class="shop-step">03 / PEMBAYARAN MANUAL</p><h3 tabindex="-1">${esc(paymentLabels[status])}</h3>${demoNotice}<p class="manual-id">${esc(order.id)}</p><div class="order-overview"><p><span>Tanggal pemesanan</span><strong>${new Date(order.createdAt).toLocaleDateString('id-ID')}</strong></p><p><span>Metode pengiriman</span><strong>${esc(order.shipping.methodName || 'Reguler')}</strong></p><p><span>Metode pembayaran</span><strong>${esc(order.payment?.name || 'QRIS manual')}</strong></p></div>${order.status === 'PAID' ? `<section class="order-tracking"><p class="checkout-eyebrow">PENGIRIMAN</p><h4>Nomor resi</h4>${order.tracking ? `<p>${esc(order.tracking.courier)}</p><strong>${esc(order.tracking.number)}</strong><button type="button" class="customer-text" id="tracking-copy">Salin nomor resi</button><p id="tracking-copy-result" role="status"></p>` : '<p>Nomor resi akan tampil setelah pesanan dikirim oleh admin.</p>'}</section>` : ''}<div class="order-items">${order.items.map((i) => `<article class="order-item"><strong>${esc(i.name)}</strong><small>${esc(i.color)} · All Size · ${i.qty} barang</small></article>`).join('')}</div><p class="manual-status" role="status">${esc(messages[status])}</p>${['NEEDS_HELP', 'REJECTED'].includes(status) ? `<p>Catatan admin: ${esc(lastNote)}</p>` : ''}<div class="manual-breakdown"><p><span>Subtotal:</span><strong>${money(order.originalSubtotal ?? order.subtotal)}</strong></p><p><span>Diskon Ongkir</span><strong>${money(order.shipping.subsidy || 0)}</strong></p><p><span>Diskon Produk</span><strong>${money(order.productDiscount || 0)}</strong></p><p><span>Ongkos Kirim:</span><strong>${money(order.shipping.originalFee ?? order.shipping.fee)}</strong></p>${order.payment?.provider !== 'midtrans' || order.adjustment ? `<p><span>${order.payment?.provider === 'midtrans' ? 'Penyesuaian nominal' : 'Kode unik'}</span><strong>+${money(order.adjustment)}</strong></p>` : ''}<p class="manual-total"><span>Total pembayaran</span><strong id="manual-amount">${money(order.total)}</strong></p></div><p id="manual-deadline" data-deadline="${order.deadline}"></p>${unpaid ? `<div class="manual-qr" aria-label="QRIS TANJ">${state.settings.qris ? `<img id="checkout-qris-image" src="${esc(state.settings.qris.data)}" alt="QRIS dari admin" style="max-width:100%;max-height:300px;object-fit:contain">` : '<p>QRIS belum tersedia. Hubungi admin sebelum membayar.</p>'}<strong>TANJ INDONESIA</strong><small>Gunakan nominal sesuai total pembayaran.</small></div><button type="button" class="shop-outline" id="manual-copy">Salin nominal</button><p id="manual-copy-result" role="status"></p><details class="manual-details"><summary>Metode Pembayaran</summary><ol><li>Scan QRIS yang tersedia.</li><li>Buka aplikasi bank/e-wallet, pilih scan QRIS atau gambar galeri jika QRIS disimpan sebagai screenshot.</li><li>Periksa nama TANJ INDONESIA dan masukkan nominal sesuai angka di website.</li><li>Setelah membayar, tunggu verifikasi pembayaran dari admin.</li><li>Upload bukti pembayaran (opsional).</li></ol></details>${status !== 'CHECKING' ? '<button type="button" class="shop-primary" id="manual-confirm">Saya sudah bayar</button>' : ''}<details class="manual-details"><summary>Tambahkan bukti (opsional)</summary><p>Upload bukti jika diperlukan untuk membantu penelusuran pembayaran.</p><form id="manual-proof-form"><label for="manual-proof">Gambar JPG/PNG/WebP, maksimal 1 MB</label><input id="manual-proof" type="file" accept="image/jpeg,image/png,image/webp" required><button class="shop-outline" type="submit">Upload bukti pembayaran</button></form></details>` : ''}<p id="manual-payment-error" role="alert"></p>${order.proofs.length ? `<details class="manual-details"><summary>Riwayat bukti opsional (${order.proofs.length})</summary>${order.proofs.map((p) => `<p>${esc(p.name)} · ${new Date(p.at).toLocaleString('id-ID')}</p><img class="manual-proof-image" src="${esc(p.data)}" alt="Bukti pembayaran">`).join('')}</details>` : ''}<button type="button" class="customer-text" id="preview-payment-email">Pratinjau email pesanan</button><div class="manual-actions"><a id="order-notify-whatsapp" class="shop-outline" href="${esc(contact.whatsapp)}" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.6A8.5 8.5 0 1 1 20.5 11.5Z"/><path d="M8 7c0 4.5 2.5 7 7 7l1-2-3-1-1 1-2-2 1-1-1-3Z"/></svg> +6281363661703</a><a id="order-notify-email" class="shop-outline" href="${esc(contact.gmail)}" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg> tanj.indonesia@gmail.com</a></div><p class="manual-muted">Kontak membuka WhatsApp atau draf Gmail. Tekan Kirim di Gmail untuk mengirim email. Notifikasi otomatis dikirim saat Order jika layanan email telah diaktifkan.</p>${['WAITING_PAYMENT', 'REVIEW_DUE'].includes(status) ? '<button type="button" class="checkout-back" id="manual-cancel">Batalkan jika belum membayar</button>' : ''}`;
+      panel.innerHTML = `<button type="button" class="checkout-back" id="manual-all">← Pesanan saya</button><p class="shop-step">03 / PEMBAYARAN MANUAL</p><h3 tabindex="-1">${esc(paymentLabels[status])}</h3>${demoNotice}<p class="manual-id">${esc(orderReference(order))}</p><div class="order-overview"><p><span>Tanggal pemesanan</span><strong>${new Date(order.createdAt).toLocaleDateString('id-ID')}</strong></p><p><span>Metode pengiriman</span><strong>${esc(order.shipping.methodName || 'Reguler')}</strong></p><p><span>Metode pembayaran</span><strong>${esc(order.payment?.name || 'QRIS manual')}</strong></p></div>${order.status === 'PAID' ? `<section class="order-tracking"><p class="checkout-eyebrow">PENGIRIMAN</p><h4>Nomor resi</h4>${order.tracking ? `<p>${esc(order.tracking.courier)}</p><strong>${esc(order.tracking.number)}</strong><button type="button" class="customer-text" id="tracking-copy">Salin nomor resi</button><p id="tracking-copy-result" role="status"></p>` : '<p>Nomor resi akan tampil setelah pesanan dikirim oleh admin.</p>'}</section>` : ''}<div class="order-items">${order.items.map((i) => `<article class="order-item"><strong>${esc(i.name)}</strong><small>${esc(i.color)} · All Size · ${i.qty} barang</small></article>`).join('')}</div><p class="manual-status" role="status" ${messages[status] ? '' : 'hidden'}>${esc(messages[status])}</p>${['NEEDS_HELP', 'REJECTED'].includes(status) ? `<p>Catatan admin: ${esc(lastNote)}</p>` : ''}<div class="manual-breakdown"><p><span>Subtotal:</span><strong>${money(order.originalSubtotal ?? order.subtotal)}</strong></p><p><span>Diskon Ongkir</span><strong>${money(order.shipping.subsidy || 0)}</strong></p><p><span>Diskon Produk</span><strong>${money(order.productDiscount || 0)}</strong></p><p><span>Ongkos Kirim:</span><strong>${money(order.shipping.originalFee ?? order.shipping.fee)}</strong></p>${order.payment?.provider !== 'midtrans' || order.adjustment ? `<p><span>${order.payment?.provider === 'midtrans' ? 'Penyesuaian nominal' : 'Kode unik'}</span><strong>+${money(order.adjustment)}</strong></p>` : ''}<p class="manual-total"><span>Total pembayaran</span><strong id="manual-amount">${money(order.total)}</strong></p></div><p id="manual-deadline" data-deadline="${order.deadline}"></p>${unpaid ? `<div class="manual-qr" aria-label="QRIS TANJ">${state.settings.qris ? `<img id="checkout-qris-image" src="${esc(state.settings.qris.data)}" alt="QRIS dari admin" style="max-width:100%;max-height:300px;object-fit:contain">` : '<p>QRIS belum tersedia. Hubungi admin sebelum membayar.</p>'}<strong>TANJ INDONESIA</strong><small>Gunakan nominal sesuai total pembayaran.</small></div><button type="button" class="shop-outline" id="manual-copy">Salin nominal</button><p id="manual-copy-result" role="status"></p><details class="manual-details"><summary>Metode Pembayaran</summary><ol><li>Scan QRIS yang tersedia.</li><li>Buka aplikasi bank/e-wallet, pilih scan QRIS atau gambar galeri jika QRIS disimpan sebagai screenshot.</li><li>Periksa nama TANJ INDONESIA dan masukkan nominal sesuai angka di website.</li><li>Setelah membayar, tunggu verifikasi pembayaran dari admin.</li><li>Upload bukti pembayaran (opsional).</li></ol></details>${status !== 'CHECKING' ? '<button type="button" class="shop-primary" id="manual-confirm">Saya sudah bayar</button>' : ''}<details class="manual-details"><summary>Tambahkan bukti (opsional)</summary><p>Upload bukti jika diperlukan untuk membantu penelusuran pembayaran.</p><form id="manual-proof-form"><label for="manual-proof">Gambar JPG/PNG/WebP, maksimal 1 MB</label><input id="manual-proof" type="file" accept="image/jpeg,image/png,image/webp" required><button class="shop-outline" type="submit">Upload bukti pembayaran</button></form></details>` : ''}<p id="manual-payment-error" role="alert"></p>${order.proofs.length ? `<details class="manual-details"><summary>Riwayat bukti opsional (${order.proofs.length})</summary>${order.proofs.map((p) => `<p>${esc(p.name)} · ${new Date(p.at).toLocaleString('id-ID')}</p><img class="manual-proof-image" src="${esc(p.data)}" alt="Bukti pembayaran">`).join('')}</details>` : ''}<button type="button" class="customer-text" id="preview-payment-email">Pratinjau email pesanan</button><div class="manual-actions"><a id="order-notify-whatsapp" class="shop-outline" href="${esc(contact.whatsapp)}" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.6A8.5 8.5 0 1 1 20.5 11.5Z"/><path d="M8 7c0 4.5 2.5 7 7 7l1-2-3-1-1 1-2-2 1-1-1-3Z"/></svg> +6281363661703</a><a id="order-notify-email" class="shop-outline" href="${esc(contact.gmail)}" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg> tanj.indonesia@gmail.com</a></div><p class="manual-muted">Kontak membuka WhatsApp atau draf Gmail. Tekan Kirim di Gmail untuk mengirim email. Notifikasi otomatis dikirim saat Order jika layanan email telah diaktifkan.</p>${['WAITING_PAYMENT', 'REVIEW_DUE'].includes(status) ? '<button type="button" class="checkout-back" id="manual-cancel">Batalkan jika belum membayar</button>' : ''}`;
       if (order.payment?.provider === 'midtrans') {
         panel.querySelector('.shop-step').textContent = '03 / PEMBAYARAN';
         panel

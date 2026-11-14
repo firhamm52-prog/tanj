@@ -1,4 +1,4 @@
-import { midtransRequest } from './midtrans.js?v=change-feedback-12';
+import { midtransRequest } from './midtrans.js?v=sync-20261115';
 
 let snapOwner;
 let activeSnap;

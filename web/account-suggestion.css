@@ -1,0 +1,90 @@
+.account-suggestion {
+  position: fixed;
+  right: 28px;
+  bottom: max(28px, env(safe-area-inset-bottom));
+  z-index: 900;
+  width: min(430px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 38px 34px 24px;
+  border: 1px solid #302b26;
+  background: #eeebe3;
+  color: #25221e;
+  box-shadow: 0 12px 40px #0000001c;
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+.account-suggestion[hidden] {
+  display: none;
+}
+body:has(dialog[open]) .account-suggestion {
+  visibility: hidden;
+}
+.account-suggestion-close {
+  position: absolute;
+  top: 7px;
+  right: 9px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 25px;
+  cursor: pointer;
+}
+.account-suggestion .account-suggestion-brand {
+  margin: 0 0 15px;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+}
+.account-suggestion h2 {
+  margin: 0 0 13px;
+  font:
+    400 25px/1.2 Georgia,
+    serif;
+}
+.account-suggestion p {
+  margin: 0 0 21px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.account-suggestion-login {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  font:
+    11px Arial,
+    sans-serif;
+  letter-spacing: 1.2px;
+  cursor: pointer;
+}
+.account-suggestion-later {
+  min-height: 36px;
+  margin-top: 8px;
+  padding: 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font:
+    11px Arial,
+    sans-serif;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.account-suggestion button:focus-visible {
+  outline: 2px solid #75624e;
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .account-suggestion {
+    right: 16px;
+    bottom: max(42px, env(safe-area-inset-bottom));
+    padding: 32px 24px 17px;
+  }
+  .account-suggestion h2 {
+    font-size: 23px;
+  }
+}

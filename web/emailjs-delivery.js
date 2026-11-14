@@ -1,4 +1,4 @@
-import { orderPaymentUrl } from '../shared/order-email.js';
+import { orderPaymentUrl } from '../shared/order-email.js?v=sync-20261115';
 const RECEIPTS = 'tanj-email-receipts-v1';
 const money = (value) => 'Rp' + Number(value).toLocaleString('id-ID');
 const hasTracking = (order) => order?.status === 'PAID' && Boolean(order.tracking?.number?.trim());
@@ -20,7 +20,7 @@ export function emailTemplateParams(order, baseUrl) {
     tracking_number: hasTracking(order) ? order.tracking.number : '',
     tracking_courier: hasTracking(order) ? order.tracking.courier : '',
     order_url: orderPaymentUrl(baseUrl, order.id),
-    order_id: order.id,
+    order_id: order.orderNumber || order.id,
     customer_name: String(customer.name || ''),
     customer_email: email,
     customer_phone: String(customer.phone || ''),

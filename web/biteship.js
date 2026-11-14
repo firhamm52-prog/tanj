@@ -1,5 +1,5 @@
-import { cloudClient } from './supabase-customer.js?v=improve-2';
-import { supabaseConfig } from './supabase-config.js?v=improve-2';
+import { cloudClient } from './supabase-customer.js?v=sync-20261115';
+import { supabaseConfig } from './supabase-config.js?v=sync-20261115';
 const useEdge =
   supabaseConfig.enabled &&
   window.TANJ_CONFIG?.mode !== 'api' &&

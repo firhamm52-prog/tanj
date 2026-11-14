@@ -1,3 +1,4 @@
+import { orderReference } from '../shared/order-number.js?v=sync-20261115';
 import {
   readPayments,
   subscribePayments,
@@ -8,8 +9,8 @@ import {
   resetPayments,
   money,
   escapeHTML as esc,
-} from '../web/manual-payment-store.js?v=owner-ui-3';
-import { demoNotice, confirmManual } from '../web/manual-payment.js?v=owner-account-8';
+} from '../web/manual-payment-store.js?v=sync-20261115';
+import { demoNotice, confirmManual } from '../web/manual-payment.js?v=sync-20261115';
 let selected = null,
   filter = 'open',
   query = '';
@@ -70,7 +71,9 @@ export function mountManualAdmin(root) {
         return (
           (filter === 'all' ||
             (filter === 'open' ? !['PAID', 'CANCELLED'].includes(status) : status === filter)) &&
-          `${o.id} ${o.customer.name} ${o.total}`.toLowerCase().includes(query.toLowerCase())
+          `${o.id} ${o.orderNumber || ''} ${o.customer.name} ${o.total}`
+            .toLowerCase()
+            .includes(query.toLowerCase())
         );
       })
       .sort((a, b) => a.createdAt - b.createdAt);
@@ -79,7 +82,7 @@ export function mountManualAdmin(root) {
       orders
         .map(
           (o) =>
-            `<button type="button" class="manual-order" data-select-order="${o.id}" aria-pressed="${selected === o.id}"><span>${esc(o.customer.name)} · ${esc(o.id)}</span><strong>${money(o.total)}</strong><small>${esc(paymentLabels[orderStatus(o)])} · ${o.proofs.length ? 'Bukti opsional tersedia' : 'Tanpa bukti upload'}</small></button>`,
+            `<button type="button" class="manual-order" data-select-order="${o.id}" aria-pressed="${selected === o.id}"><span>${esc(o.customer.name)} · ${esc(orderReference(o))}</span><strong>${money(o.total)}</strong><small>${esc(paymentLabels[orderStatus(o)])} · ${o.proofs.length ? 'Bukti opsional tersedia' : 'Tanpa bukti upload'}</small></button>`,
         )
         .join('') || '<p>Tidak ada pesanan untuk filter ini.</p>';
     list.querySelectorAll('[data-select-order]').forEach(
@@ -92,12 +95,12 @@ export function mountManualAdmin(root) {
   }
   function detail(o) {
     const status = orderStatus(o);
-    return `<h2>${esc(o.customer.name)}</h2><p class="manual-id">${esc(o.id)}</p><p class="manual-status">${esc(paymentLabels[status])}</p><div class="manual-breakdown"><p><span>Subtotal</span><strong>${money(o.subtotal)}</strong></p><p><span>${esc(o.shipping.name)}</span><strong>${money(o.shipping.fee)}</strong></p><p><span>Penyesuaian kode</span><strong>+${money(o.adjustment)}</strong></p><p class="manual-total"><span>Cocokkan nominal bruto transaksi</span><strong>${money(o.total)}</strong></p></div><p>Kode: <strong class="manual-code">${String(o.code).padStart(3, '0')}</strong></p><p>${esc(o.customer.phone)}<br>${esc(o.customer.address)}${o.customer.district ? ', Kecamatan ' + esc(o.customer.district) : ''}, ${esc(o.customer.city)}${o.customer.province ? ', ' + esc(o.customer.province) : ''} ${esc(o.customer.zip)}</p>${o.customer.note ? `<p>Catatan: ${esc(o.customer.note)}</p>` : ''}<ul>${o.items.map((i) => `<li>${esc(i.name)} · ${esc(i.color)} × ${i.qty}</li>`).join('')}</ul><p>Dibuat ${new Date(o.createdAt).toLocaleString('id-ID')}<br>Batas bayar ${new Date(o.deadline).toLocaleString('id-ID')}</p>${status === 'REVIEW_DUE' || status === 'CANCELLED' ? '<p class="manual-status">Periksa juga kemungkinan pembayaran terlambat. Status ini tidak membuktikan bahwa dana belum masuk.</p>' : ''}${o.review ? `<p>Diterima oleh ${esc(o.review.admin)}<br>Referensi ${esc(o.review.reference)}<br>Waktu transaksi ${new Date(o.review.paidAt).toLocaleString('id-ID')}</p>` : ''}${status !== 'PAID' ? '<div class="manual-actions"><button class="primary" id="manual-review">Cocokkan & terima pembayaran</button><button class="secondary" id="manual-help">Perlu bantuan / penelusuran</button></div>' : ''}<h3>Bukti opsional</h3>${o.proofs.length ? o.proofs.map((p) => `<details class="manual-details"><summary>${esc(p.name)} · ${new Date(p.at).toLocaleString('id-ID')}</summary><a href="${esc(p.data)}" download="bukti-contoh.png">Simpan gambar contoh</a><img class="manual-proof-image" src="${esc(p.data)}" alt="Bukti contoh dari pembeli"></details>`).join('') : '<p>Belum ada bukti. Admin tetap dapat menyetujui setelah dana dicocokkan.</p>'}<h3>Riwayat pemeriksaan</h3><ol class="manual-timeline">${o.logs.map((l) => `<li>${new Date(l.at).toLocaleString('id-ID')} · ${esc(l.actor)}<br>${esc(l.note)}</li>`).join('')}</ol>`;
+    return `<h2>${esc(o.customer.name)}</h2><p class="manual-id">${esc(orderReference(o))}</p><p class="manual-status">${esc(paymentLabels[status])}</p><div class="manual-breakdown"><p><span>Subtotal</span><strong>${money(o.subtotal)}</strong></p><p><span>${esc(o.shipping.name)}</span><strong>${money(o.shipping.fee)}</strong></p><p><span>Penyesuaian kode</span><strong>+${money(o.adjustment)}</strong></p><p class="manual-total"><span>Cocokkan nominal bruto transaksi</span><strong>${money(o.total)}</strong></p></div><p>Kode: <strong class="manual-code">${String(o.code).padStart(3, '0')}</strong></p><p>${esc(o.customer.phone)}<br>${esc(o.customer.address)}${o.customer.district ? ', Kecamatan ' + esc(o.customer.district) : ''}, ${esc(o.customer.city)}${o.customer.province ? ', ' + esc(o.customer.province) : ''} ${esc(o.customer.zip)}</p>${o.customer.note ? `<p>Catatan: ${esc(o.customer.note)}</p>` : ''}<ul>${o.items.map((i) => `<li>${esc(i.name)} · ${esc(i.color)} × ${i.qty}</li>`).join('')}</ul><p>Dibuat ${new Date(o.createdAt).toLocaleString('id-ID')}<br>Batas bayar ${new Date(o.deadline).toLocaleString('id-ID')}</p>${status === 'REVIEW_DUE' || status === 'CANCELLED' ? '<p class="manual-status">Periksa juga kemungkinan pembayaran terlambat. Status ini tidak membuktikan bahwa dana belum masuk.</p>' : ''}${o.review ? `<p>Diterima oleh ${esc(o.review.admin)}<br>Referensi ${esc(o.review.reference)}<br>Waktu transaksi ${new Date(o.review.paidAt).toLocaleString('id-ID')}</p>` : ''}${status !== 'PAID' ? '<div class="manual-actions"><button class="primary" id="manual-review">Cocokkan & terima pembayaran</button><button class="secondary" id="manual-help">Perlu bantuan / penelusuran</button></div>' : ''}<h3>Bukti opsional</h3>${o.proofs.length ? o.proofs.map((p) => `<details class="manual-details"><summary>${esc(p.name)} · ${new Date(p.at).toLocaleString('id-ID')}</summary><a href="${esc(p.data)}" download="bukti-contoh.png">Simpan gambar contoh</a><img class="manual-proof-image" src="${esc(p.data)}" alt="Bukti contoh dari pembeli"></details>`).join('') : '<p>Belum ada bukti. Admin tetap dapat menyetujui setelah dana dicocokkan.</p>'}<h3>Riwayat pemeriksaan</h3><ol class="manual-timeline">${o.logs.map((l) => `<li>${new Date(l.at).toLocaleString('id-ID')} · ${esc(l.actor)}<br>${esc(l.note)}</li>`).join('')}</ol>`;
   }
   function openReview(order, action) {
     dialog = document.createElement('dialog');
     dialog.className = 'manual-dialog';
-    dialog.innerHTML = `<form id="manual-review-form"><h2>${action === 'approve' ? 'Cocokkan pembayaran' : 'Bantu telusuri pembayaran'}</h2><p>${esc(order.id)} · ${money(order.total)}</p><p>SIMULASI. Tidak ada akses ke transaksi bank atau merchant.</p>${action === 'approve' ? `<label>Nominal bruto pada transaksi contoh<input name="amount" type="number" min="1" step="1" value="${order.total}" required></label><label>Referensi transaksi merchant (contoh)<input name="reference" maxlength="100" placeholder="Contoh: DEMO-REF-001" required></label><label>Waktu transaksi contoh<input name="paidAt" type="datetime-local" value="${localTime()}" required></label><label class="manual-check"><input name="checked" type="checkbox" required> Saya sudah mencocokkan nominal, waktu, dan referensi transaksi contoh. Tidak hanya melihat screenshot.</label>` : ''}<label>Catatan untuk pembeli<textarea name="note" maxlength="300" required placeholder="${action === 'approve' ? 'Contoh: nominal dan referensi sudah cocok.' : 'Contoh: nominal perlu ditelusuri. Jangan bayar ulang; admin akan membantu.'}"></textarea></label><p id="manual-review-error" role="alert"></p><div class="manual-actions"><button type="button" id="manual-review-close">Kembali</button><button type="submit" class="manual-primary">${action === 'approve' ? 'Dana cocok · terima pembayaran' : 'Simpan catatan bantuan'}</button></div></form>`;
+    dialog.innerHTML = `<form id="manual-review-form"><h2>${action === 'approve' ? 'Cocokkan pembayaran' : 'Bantu telusuri pembayaran'}</h2><p>${esc(orderReference(order))} · ${money(order.total)}</p><p>SIMULASI. Tidak ada akses ke transaksi bank atau merchant.</p>${action === 'approve' ? `<label>Nominal bruto pada transaksi contoh<input name="amount" type="number" min="1" step="1" value="${order.total}" required></label><label>Referensi transaksi merchant (contoh)<input name="reference" maxlength="100" placeholder="Contoh: DEMO-REF-001" required></label><label>Waktu transaksi contoh<input name="paidAt" type="datetime-local" value="${localTime()}" required></label><label class="manual-check"><input name="checked" type="checkbox" required> Saya sudah mencocokkan nominal, waktu, dan referensi transaksi contoh. Tidak hanya melihat screenshot.</label>` : ''}<label>Catatan untuk pembeli<textarea name="note" maxlength="300" required placeholder="${action === 'approve' ? 'Contoh: nominal dan referensi sudah cocok.' : 'Contoh: nominal perlu ditelusuri. Jangan bayar ulang; admin akan membantu.'}"></textarea></label><p id="manual-review-error" role="alert"></p><div class="manual-actions"><button type="button" id="manual-review-close">Kembali</button><button type="submit" class="manual-primary">${action === 'approve' ? 'Dana cocok · terima pembayaran' : 'Simpan catatan bantuan'}</button></div></form>`;
     document.body.append(dialog);
     const opened = dialog;
     opened.showModal();

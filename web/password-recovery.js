@@ -4,7 +4,7 @@ import {
   requestPasswordReset,
   finishPasswordReset,
   needsPasswordRecovery,
-} from './supabase-customer.js?v=improve-2';
+} from './supabase-customer.js?v=sync-20261115';
 let dialog;
 export async function sendReset(email, output, button) {
   if (button) button.disabled = true;

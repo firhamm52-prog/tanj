@@ -1,16 +1,17 @@
-import { midtransConfiguration } from './midtrans.js';
+import { midtransConfiguration } from './midtrans.js?v=sync-20261115';
 import {
   customerSession,
+  ensureCheckoutSession,
   requireCustomer,
   addresses,
   loadAddresses,
   saveAddress,
   deleteAddress,
-} from './customer-account.js?v=owner-ui-3';
-import { getShippingEstimate, validateShippingDestination } from './shipping.js?v=districts-1';
-import { shippingConfiguration, shippingRates } from './biteship.js?v=jne-jnt-2';
-import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=shipping-discount-28';
-import { sitePreferences } from './site-preferences.js';
+} from './customer-account.js?v=sync-20261115';
+import { getShippingEstimate, validateShippingDestination } from './shipping.js?v=sync-20261115';
+import { shippingConfiguration, shippingRates } from './biteship.js?v=sync-20261115';
+import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=sync-20261115';
+import { sitePreferences } from './site-preferences.js?v=sync-20261115';
 const $ = (id) => document.getElementById(id);
 const esc = (value) =>
   String(value ?? '').replace(
@@ -30,32 +31,33 @@ export const deliveryMethods = [
 ];
 // Enable only after the merchant's QRIS channel is active in Midtrans.
 const qrisEnabled = false;
-export const paymentMethods = ['localhost', '127.0.0.1'].includes(location.hostname)
-  ? [
-      {
-        id: 'qris-manual',
-        name: 'QRIS',
-        detail: 'Pembayaran manual · diverifikasi admin',
-        enabled: true,
-      },
-      { id: 'midtrans-va', name: 'Virtual Account', channel: 'va' },
-    ]
-  : [
-      {
-        id: 'midtrans-va',
-        name: 'Virtual Account',
-        channel: 'va',
-        detail: 'Memuat layanan pembayaran…',
-        enabled: false,
-      },
-      {
-        id: 'midtrans-qris',
-        name: 'QRIS',
-        channel: 'qris',
-        detail: 'Segera tersedia',
-        enabled: false,
-      },
-    ];
+export const paymentMethods =
+  ['localhost', '127.0.0.1'].includes(location.hostname) || window.TANJ_CONFIG?.mode === 'demo'
+    ? [
+        {
+          id: 'qris-manual',
+          name: 'QRIS',
+          detail: '',
+          enabled: true,
+        },
+        { id: 'midtrans-va', name: 'Virtual Account', channel: 'va' },
+      ]
+    : [
+        {
+          id: 'midtrans-va',
+          name: 'Virtual Account',
+          channel: 'va',
+          detail: 'Memuat layanan pembayaran…',
+          enabled: false,
+        },
+        {
+          id: 'midtrans-qris',
+          name: 'QRIS',
+          channel: 'qris',
+          detail: 'Segera tersedia',
+          enabled: false,
+        },
+      ];
 
 export function mountCheckoutExperience({ form, locations, getItems, getSubtotal, getCatalog }) {
   let selectedAddress = null,
@@ -105,8 +107,6 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     ]);
   shippingConfiguration().then((config) => {
     liveShipping = config.enabled;
-    if (liveShipping && rateNote)
-      rateNote.textContent = 'Ongkir dihitung berdasarkan kode pos dan perkiraan berat barang.';
     render().catch(() => {});
   });
   const addressDialog = document.createElement('dialog');
@@ -121,12 +121,12 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     const el = $(id);
     fields.append(form.querySelector(`label[for="${id}"]`), el);
   }
-  $('checkout-email').readOnly = true;
+  $('checkout-email').readOnly = false;
   $('checkout-email').setAttribute('aria-describedby', 'checkout-account-email-note');
-  fields.querySelector('label[for="checkout-email"]').textContent = 'Email akun yang login';
+  fields.querySelector('label[for="checkout-email"]').textContent = 'Email untuk notifikasi';
   const emailNote = document.createElement('p');
   emailNote.id = 'checkout-account-email-note';
-  emailNote.textContent = 'Notifikasi pesanan dikirim ke email akun ini.';
+  emailNote.textContent = 'Wajib diisi. Email order dan resi dikirim ke alamat ini.';
   $('checkout-email').after(emailNote);
   fields.append(locations);
   const street = $('checkout-address');
@@ -147,10 +147,6 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
   const submit = form.querySelector('[type=submit]');
   submit.textContent = 'Buat pesanan';
   submit.id = 'checkout-order';
-  const rateNote = $('manual-checkout-error')?.previousElementSibling;
-  if (rateNote)
-    rateNote.textContent =
-      'Tarif wilayah untuk paket 1 kg. Admin mengonfirmasi layanan pengiriman.';
   const oldTotal = form.querySelector('.checkout-total');
   if (oldTotal) oldTotal.hidden = true;
   form.querySelector('.manual-breakdown')?.setAttribute('hidden', '');
@@ -158,8 +154,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
   form.noValidate = true;
   $('checkout-back').textContent = '← Kembali ke tas';
   $('bag-checkout-view').querySelector('h3').textContent = 'Lengkapi pesanan';
-  $('address-summary').onclick = $('address-change').onclick = () =>
-    requireCustomer(() => openAddresses());
+  $('address-summary').onclick = $('address-change').onclick = () => openAddresses();
   addressDialog.querySelector('.customer-close').onclick = () => addressDialog.close();
   addressDialog.addEventListener('click', (e) => {
     if (e.target === addressDialog) addressDialog.close();
@@ -172,6 +167,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
   async function openAddresses() {
     if (!addressDialog.open) addressDialog.showModal();
     try {
+      await ensureCheckoutSession();
       await loadAddresses();
     } catch (error) {
       showError(error);
@@ -228,7 +224,10 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
   }
   async function applyAddress(a) {
     if (!a) throw Error('Pilih alamat yang tersedia.');
-    a = { ...a, email: customerSession()?.email || '' };
+    a = {
+      ...a,
+      email: customerSession()?.role === 'guest' ? a.email || '' : customerSession()?.email || '',
+    };
     for (const [key, id] of Object.entries({
       name: 'checkout-name',
       phone: 'checkout-phone',
@@ -249,6 +248,8 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     render();
   }
   async function editAddress(a = null) {
+    await ensureCheckoutSession();
+    $('checkout-email').readOnly = customerSession()?.role !== 'guest';
     editing = a?.id || null;
     $('address-error').textContent = '';
     $('address-list').hidden = true;
@@ -277,6 +278,16 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     const button = e.submitter;
     button.disabled = true;
     try {
+      const contactEmail = $('checkout-email').value.trim();
+      const contactPhone = $('checkout-phone').value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail))
+        throw Error('Isi email yang valid untuk notifikasi pesanan.');
+      if (
+        !/^\+?[\d ()-]{8,20}$/.test(contactPhone) ||
+        contactPhone.replace(/\D/g, '').length < 8 ||
+        contactPhone.replace(/\D/g, '').length > 15
+      )
+        throw Error('Isi nomor HP yang valid.');
       const delivery = await validateShippingDestination(
         $('checkout-province').value,
         $('checkout-city').value,
@@ -287,7 +298,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
         id: editing,
         name: $('checkout-name').value.trim(),
         phone: $('checkout-phone').value.trim(),
-        email: customerSession()?.email || '',
+        email: contactEmail,
         address: $('checkout-address').value.trim(),
         provinceId: $('checkout-province').value,
         cityId: $('checkout-city').value,
@@ -350,7 +361,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
           : deliveryMethods
         : paymentMethods,
       selected = shippingMode ? shipping : payment;
-    dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup pilihan">&times;</button><p class="checkout-eyebrow">TANJ / CHECKOUT</p><h2>${shippingMode ? 'Metode pengiriman' : 'Metode pembayaran'}</h2><p>${shippingMode ? (liveShipping ? 'Pilih layanan pengiriman. Tarif berdasarkan kode pos dan perkiraan berat paket.' : 'Ongkir dihitung untuk paket 1 kg. Hubungi admin untuk memastikan layanan pengiriman.') : 'Metode pembayaran menggunakan Virtual Account &amp; QRIS.'}</p><form>${options.map((o) => `<label class="checkout-method ${!shippingMode && !o.enabled ? 'unavailable' : ''}"><input type="radio" name="method" value="${esc(o.id)}" required ${selected.id === o.id ? 'checked' : ''} ${!shippingMode && !o.enabled ? 'disabled' : ''}><span><strong>${esc(o.name)}</strong><small>${shippingMode ? esc(serviceLabel(o.service)) + ' - ' + (liveShipping ? esc(durationLabel(o.duration)) : 'tarif wilayah') : esc(o.detail || 'Belum tersedia')}</small></span>${shippingMode ? `<strong>${selectedAddress ? money(liveShipping ? o.fee : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee) : 'Pilih alamat'}</strong>` : ''}</label>`).join('')}<button type="submit" class="shop-primary">Konfirmasi</button></form>`;
+    dialog.innerHTML = `<button type="button" class="customer-close" aria-label="Tutup pilihan">&times;</button><p class="checkout-eyebrow">TANJ / CHECKOUT</p><h2>${shippingMode ? 'Metode pengiriman' : 'Metode pembayaran'}</h2><p>${shippingMode ? (liveShipping ? 'Pilih layanan pengiriman. Tarif berdasarkan kode pos dan perkiraan berat paket.' : 'Pilih layanan pengiriman.') : 'Metode pembayaran menggunakan Virtual Account &amp; QRIS.'}</p><form>${options.map((o) => `<label class="checkout-method ${!shippingMode && !o.enabled ? 'unavailable' : ''}"><input type="radio" name="method" value="${esc(o.id)}" required ${selected.id === o.id ? 'checked' : ''} ${!shippingMode && !o.enabled ? 'disabled' : ''}><span><strong>${esc(o.name)}</strong><small>${shippingMode ? esc(serviceLabel(o.service)) + (liveShipping ? ' - ' + esc(durationLabel(o.duration)) : '') : esc(o.detail || (o.enabled ? '' : 'Belum tersedia'))}</small></span>${shippingMode ? `<strong>${selectedAddress ? money(liveShipping ? o.fee : getShippingEstimate(selectedAddress.provinceId, selectedAddress.cityId).fee) : 'Pilih alamat'}</strong>` : ''}</label>`).join('')}<button type="submit" class="shop-primary">Konfirmasi</button></form>`;
     document.body.append(dialog);
     dialog.showModal();
     dialog.querySelector('.customer-close').onclick = () => dialog.close();
@@ -386,9 +397,9 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
         `<span><strong>${esc(selectedAddress.name)}</strong><small>${esc(selectedAddress.phone)} · ${esc(selectedAddress.email)}</small><small>${esc(selectedAddress.address)}, ${esc(selectedAddress.district)}, ${esc(selectedAddress.city)} ${esc(selectedAddress.zip)}</small></span><span>→</span>`;
     else $('address-summary').innerHTML = '+ Tambahkan alamat pengiriman <span>→</span>';
     $('shipping-choice').innerHTML =
-      `<span class="method-mark">${esc(liveShipping && !liveChoice ? 'Pilih kurir' : shipping.name)}</span><span><strong>${esc(liveShipping && !liveChoice ? 'Cek ongkir' : serviceLabel(shipping.service))}</strong><small>${liveShipping ? (liveChoice ? esc(durationLabel(shipping.duration)) + ' - ' + money(shipping.fee) : 'Sesuai alamat dan berat barang') : 'Tarif wilayah - 1 kg'}</small></span><span>&rarr;</span>`;
+      `<span class="method-mark">${esc(liveShipping && !liveChoice ? 'Pilih kurir' : shipping.name)}</span><span><strong>${esc(liveShipping && !liveChoice ? 'Cek ongkir' : serviceLabel(shipping.service))}</strong>${liveShipping ? '<small>' + (liveChoice ? esc(durationLabel(shipping.duration)) + ' - ' + money(shipping.fee) : 'Sesuai alamat dan berat barang') + '</small>' : ''}</span><span>&rarr;</span>`;
     $('payment-choice').innerHTML =
-      `<span class="method-mark">${payment.id.startsWith('midtrans') ? 'PAY' : 'QRIS'}</span><span><strong>${esc(payment.name)}</strong><small>${esc(payment.detail)}</small></span><span>→</span>`;
+      `<span class="method-mark">${payment.id.startsWith('midtrans') ? 'PAY' : 'QRIS'}</span><span><strong>${esc(payment.name)}</strong>${payment.detail ? '<small>' + esc(payment.detail) + '</small>' : ''}</span><span>→</span>`;
     let fee = 0;
     if (selectedAddress)
       fee = liveShipping
@@ -403,7 +414,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
       );
     }, 0);
     $('checkout-price-summary').innerHTML =
-      `<p><span>Subtotal · ${getItems().reduce((n, i) => n + i.qty, 0)} barang</span><strong>${money(getSubtotal())}</strong></p><p><span>Ongkir · ${esc(shippingLabel)}</span><strong>${selectedAddress ? (liveShipping && !liveChoice ? 'Pilih kurir' : money(fee)) : 'Pilih alamat'}</strong></p><p class="checkout-grand-total"><span>${payment.id.startsWith('midtrans') ? 'Total pembayaran' : 'Total sebelum kode unik'}</span><strong>${liveShipping && !liveChoice ? 'Pilih kurir untuk total' : money(getSubtotal() + fee)}</strong></p>${payment.id.startsWith('midtrans') ? '' : '<small>Kode unik akan ditambahkan setelah pesanan dibuat.</small>'}`;
+      `<p><span>Subtotal · ${getItems().reduce((n, i) => n + i.qty, 0)} barang</span><strong>${money(getSubtotal())}</strong></p><p><span>Ongkir · ${esc(shippingLabel)}</span><strong>${selectedAddress ? (liveShipping && !liveChoice ? 'Pilih kurir' : money(fee)) : 'Pilih alamat'}</strong></p><p class="checkout-grand-total"><span>Total</span><strong>${liveShipping && !liveChoice ? 'Pilih kurir untuk total' : money(getSubtotal() + fee)}</strong></p>`;
     const total = $('checkout-price-summary').querySelector('.checkout-grand-total strong');
     $('checkout-price-summary').querySelector('p strong').textContent = money(
       getSubtotal() + productDiscount,
@@ -430,6 +441,7 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
   $('bag-next').addEventListener('click', async () => {
     $('bag-modal').classList.add('checkout-surface');
     try {
+      await ensureCheckoutSession();
       const list = await loadAddresses();
       if (!selectedAddress && list.length) await applyAddress(list[0]);
       else await render();
@@ -450,14 +462,16 @@ export function mountCheckoutExperience({ form, locations, getItems, getSubtotal
     async validate() {
       if (!payment.enabled)
         throw Error('Layanan pembayaran belum tersedia. Muat ulang dan coba lagi.');
-      if (!customerSession()) {
-        requireCustomer(() => {});
-        throw Error('Login untuk melanjutkan pesanan.');
-      }
+      await ensureCheckoutSession();
       if (!selectedAddress) {
         openAddresses();
         throw Error('Pilih atau buat alamat pengiriman terlebih dahulu.');
       }
+      if (
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(selectedAddress.email || '') ||
+        !/^\+?[\d ()-]{8,20}$/.test(selectedAddress.phone || '')
+      )
+        throw Error('Email dan nomor HP wajib diisi sebelum membuat pesanan.');
       await applyAddress(selectedAddress);
       await validateShippingDestination(
         selectedAddress.provinceId,

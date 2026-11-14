@@ -1,4 +1,4 @@
-import { shippingMaster } from './shipping-master.js?v=districts-1';
+import { shippingMaster } from './shipping-master.js?v=sync-20261115';
 export const shippingProvinces = shippingMaster.provinces
   .slice()
   .sort((a, b) => a.name.localeCompare(b.name, 'id'));

@@ -4,7 +4,7 @@ export function mountHijabPairGallery(
 ) {
   root.classList.add('hijab-pair-gallery');
   root.innerHTML =
-    '<header><p class="eyebrow">TANJ / HIJAB EDIT</p><h2>Everyday, beautifully framed.</h2></header><div class="hijab-pair-stage" tabindex="0" aria-label="Galeri hijab, geser kiri atau kanan"><figure><img data-model draggable="false"><figcaption>On the model</figcaption></figure><figure><img data-mockup draggable="false"><span data-placeholder hidden>Mockup belum tersedia</span><figcaption>The hijab</figcaption></figure></div><div class="hijab-pair-controls"><button type="button" data-prev aria-label="Hijab sebelumnya">‹</button><div><p data-name aria-live="polite"></p><span data-count></span></div><button type="button" data-next aria-label="Hijab berikutnya">›</button></div><button type="button" class="hijab-pair-detail">Lihat hijab</button>';
+    '<header><h2>Beautiful Frames</h2></header><div class="hijab-pair-stage" tabindex="0" aria-label="Galeri hijab, geser kiri atau kanan"><figure><img data-model draggable="false"><figcaption>On the model</figcaption></figure><figure><img data-mockup draggable="false"><span data-placeholder hidden>Mockup belum tersedia</span><figcaption>The hijab</figcaption></figure></div><div class="hijab-pair-controls"><button type="button" data-prev aria-label="Hijab sebelumnya">‹</button><div><p data-name aria-live="polite"></p><span data-count></span></div><button type="button" data-next aria-label="Hijab berikutnya">›</button></div><button type="button" class="hijab-pair-detail">Preview</button>';
   const model = root.querySelector('[data-model]');
   const mockup = root.querySelector('[data-mockup]');
   const stage = root.querySelector('.hijab-pair-stage');

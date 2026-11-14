@@ -1,4 +1,4 @@
-import { sitePreferences } from './site-preferences.js';
+import { sitePreferences } from './site-preferences.js?v=sync-20261115';
 export function mountPaymentSocialLinks(whatsapp, email) {
   const settings = sitePreferences();
   if (!whatsapp || !email) return;

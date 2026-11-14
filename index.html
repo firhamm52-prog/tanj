@@ -3,9 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TANJ — Modest essentials</title>
-    <link rel="icon" type="image/png" href="assets/tanj-wordmark-icon.png?v=3" />
-    <link rel="apple-touch-icon" href="assets/tanj-wordmark-touch.png?v=3" />
+    <title>TANJ</title>
+    <script type="module" src="web/page-title.js?v=sync-20261115"></script>
+    <link rel="icon" type="image/svg+xml" href="assets/tanj-t-favicon.svg?v=1" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/tanj-t-32.png?v=1" />
+    <link rel="apple-touch-icon" href="assets/tanj-t-180.png?v=1" />
     <meta name="theme-color" content="#f6f3ec" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="TANJ — Modest wear · Indonesia" />
@@ -3035,11 +3037,11 @@
         margin-bottom: 34px;
       }
       .hijab-heading h2 {
-        font-family: Georgia, serif;
+        font-family: 'Times New Roman', Times, serif;
         font-weight: 400;
-        font-size: clamp(28px, 3.6vw, 46px);
-        line-height: 1.12;
-        letter-spacing: -0.04em;
+        font-size: clamp(20px, 1.8vw, 24px);
+        line-height: 1.3;
+        letter-spacing: 0.02em;
         margin: 16px 0 8px;
       }
       .hijab-heading p {
@@ -3554,12 +3556,66 @@
       .account-panel [hidden] {
         display: none !important;
       }
+
+      .minimal-footer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        padding: 62px 24px 70px;
+        background: #eeebe3;
+        color: #161513;
+        text-align: center;
+      }
+      .minimal-footer .footer-wordmark {
+        display: block;
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 40px;
+        font-weight: 400;
+        line-height: 1;
+        letter-spacing: 0.14em;
+        padding-left: 0.14em;
+        text-decoration: none;
+        color: inherit;
+      }
+      .minimal-footer .story-social {
+        display: flex;
+        gap: 10px;
+        margin: 0;
+      }
+      .minimal-footer .story-social a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #111;
+        color: #fff;
+      }
+      .minimal-footer .story-social svg {
+        width: 21px;
+        height: 21px;
+      }
+      .minimal-footer a:focus-visible {
+        outline: 2px solid #75624e;
+        outline-offset: 5px;
+      }
+      @media (max-width: 600px) {
+        .minimal-footer {
+          padding: 48px 20px 68px;
+          gap: 18px;
+        }
+        .minimal-footer .footer-wordmark {
+          font-size: 34px;
+        }
+      }
     </style>
-    <link rel="stylesheet" href="web/responsive.css?v=mobile-landscape-1" />
-    <script src="web/config.js"></script>
-    <link rel="stylesheet" href="web/manual-payment.css?v=expired-visual-31" />
-    <link rel="stylesheet" href="web/checkout-experience.css?v=checkout-2" />
-    <link rel="stylesheet" href="web/shopping-improvements.css?v=cart-design-6" />
+    <link rel="stylesheet" href="web/responsive.css?v=sync-20261115" />
+    <script src="web/config.js?v=sync-20261115"></script>
+    <link rel="stylesheet" href="web/manual-payment.css?v=sync-20261115" />
+    <link rel="stylesheet" href="web/checkout-experience.css?v=sync-20261115" />
+    <link rel="stylesheet" href="web/shopping-improvements.css?v=sync-20261115" />
     <style>
       .story-social {
         gap: 14px;
@@ -3588,10 +3644,10 @@
         color: #fff !important;
       }
     </style>
-    <link rel="stylesheet" href="web/collection-editorial.css?v=broken-white-32" />
-    <link rel="stylesheet" href="web/product-experience.css?v=raised-thumbnails-3" />
-    <link rel="stylesheet" href="web/hijab-pair-gallery.css?v=1" />
-    <link rel="stylesheet" href="web/mobile-product-grid.css?v=1" />
+    <link rel="stylesheet" href="web/collection-editorial.css?v=sync-20261115" />
+    <link rel="stylesheet" href="web/product-experience.css?v=sync-20261115" />
+    <link rel="stylesheet" href="web/hijab-pair-gallery.css?v=sync-20261115" />
+    <link rel="stylesheet" href="web/mobile-product-grid.css?v=sync-20261115" />
   </head>
   <body>
     <header class="nav">
@@ -3806,9 +3862,6 @@
           <source data-asset="assets/noireaterial-desert-three-models-v3.mp4" type="video/mp4" />
         </video>
         <div class="video-scrim" aria-hidden="true"></div>
-        <a class="scroll-cue" href="#collection" aria-label="Lihat koleksi"
-          ><span aria-hidden="true">↓</span></a
-        >
       </section>
       <section class="site-banner" id="site-banner" hidden>
         <img id="site-banner-image" alt="Banner koleksi TANJ" /><video
@@ -4307,41 +4360,6 @@
           </div>
         </div>
       </section>
-      <section class="type-story" id="story">
-        <span class="eyebrow">THE TANJ PHILOSOPHY</span>
-        <h2>Grace in<br /><em>every detail.</em></h2>
-        <p>
-          Siluet yang mengalir, warna yang menenangkan. Temani setiap langkah dengan anggun, dalam
-          caramu sendiri.
-        </p>
-        <div class="story-social">
-          <a
-            href="https://www.instagram.com/tanj.idn?mdxt=MXJ1OTlhOHQzMG9leA=="
-            target="_blank"
-            rel="noopener"
-            aria-label="Instagram TANJ"
-            ><svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              aria-hidden="true"
-            >
-              <rect x="2.3" y="2.3" width="19.4" height="19.4" rx="5" />
-              <circle cx="12" cy="12" r="4" />
-              <circle cx="18.2" cy="5.8" r="1" fill="currentColor" stroke="none" /></svg></a
-          ><a
-            href="https://www.tiktok.com/@tanj.co.id"
-            target="_blank"
-            rel="noopener"
-            aria-label="TikTok TANJ"
-            ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path
-                d="M15.7 2h2.6c.2 2.1 1.4 3.5 3.5 3.7v2.8a8 8 0 0 1-5.6-2.1v8.2a6.2 6.2 0 1 1-6.2-6.2c.4 0 .8 0 1.2.1v2.9a3.3 3.3 0 1 0 2.1 3.1V2h2.4Z"
-              /></svg
-          ></a>
-        </div>
-      </section>
     </main>
     <section class="catalog-page" id="all-products" aria-label="Semua koleksi" hidden>
       <a class="catalog-back" href="#top">← Kembali ke beranda</a>
@@ -4356,8 +4374,7 @@
       <p class="catalog-count" id="catalog-count"></p>
       <section class="hijab-catalog" id="hijab-catalog" aria-label="Koleksi hijab TANJ">
         <div class="hijab-heading">
-          <span class="eyebrow">TANJ / HIJAB EDIT</span>
-          <h2>Everyday, beautifully framed.</h2>
+          <h2>Beautiful Frames</h2>
           <p>Selcuk &amp; Georgia — pilih warna yang terasa seperti kamu.</p>
         </div>
         <div class="hijab-grid" id="hijab-grid">
@@ -4484,29 +4501,35 @@
       </section>
     </section>
 
-    <footer>
-      <div class="foot">
-        <div>
-          <div class="logo">TANJ</div>
-          <p>Modest pieces for the moments you make your own.</p>
-        </div>
-        <div class="foot-links">
-          <div>
-            <strong>Explore</strong><a href="#all-products">Collection</a
-            ><a href="#lookbook">Lookbook</a><a href="#story">Our story</a>
-          </div>
-          <div>
-            <strong>Follow</strong
-            ><a
-              href="https://www.instagram.com/tanj.idn?mdxt=MXJ1OTlhOHQzMG9leA=="
-              target="_blank"
-              rel="noopener"
-              >Instagram</a
-            ><a href="https://www.tiktok.com/@tanj.co.id" target="_blank" rel="noopener">TikTok</a>
-          </div>
-        </div>
+    <footer class="minimal-footer" id="story" aria-label="TANJ dan media sosial">
+        <a class="footer-wordmark" href="#top" aria-label="TANJ — kembali ke atas">TANJ</a>
+      <div class="story-social">
+        <a
+          href="https://www.instagram.com/tanj.idn?mdxt=MXJ1OTlhOHQzMG9leA=="
+          target="_blank"
+          rel="noopener"
+          aria-label="Instagram TANJ"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+          >
+            <rect x="2.3" y="2.3" width="19.4" height="19.4" rx="5" />
+            <circle cx="12" cy="12" r="4" />
+            <circle cx="18.2" cy="5.8" r="1" fill="currentColor" stroke="none" /></svg></a
+        ><a
+          href="https://www.tiktok.com/@tanj.co.id"
+          target="_blank"
+          rel="noopener"
+          aria-label="TikTok TANJ"
+          ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path
+              d="M15.7 2h2.6c.2 2.1 1.4 3.5 3.5 3.7v2.8a8 8 0 0 1-5.6-2.1v8.2a6.2 6.2 0 1 1-6.2-6.2c.4 0 .8 0 1.2.1v2.9a3.3 3.3 0 1 0 2.1 3.1V2h2.4Z"
+            /></svg
+        ></a>
       </div>
-      <div class="copyright">© 2026 TANJ <a id="cms-admin-link" href="admin/" hidden>· CMS</a></div>
     </footer>
     <div class="utility-backdrop" id="search-modal" hidden>
       <div class="utility-panel" role="dialog" aria-modal="true" aria-labelledby="search-title">
@@ -4539,7 +4562,7 @@
         >
           ×</button
         ><span class="eyebrow">TANJ / Your selection</span>
-        <h2 id="bag-title">Tas belanja <span id="bag-count" class="bag-count">0</span></h2>
+        <h2 id="bag-title" hidden>Tas belanja <span id="bag-count" class="bag-count">0</span></h2>
         <div id="bag-cart-view">
           <div id="bag-items" class="bag-items" aria-live="polite"></div>
           <div id="bag-summary" class="bag-summary" hidden>
@@ -4560,9 +4583,7 @@
           <button class="checkout-back" id="checkout-back" type="button">← Kembali ke tas</button>
           <p class="shop-step">02 / DETAIL PESANAN</p>
           <h3>Hampir selesai.</h3>
-          <p class="checkout-help">
-            Isi detail pengiriman untuk mencoba pembayaran manual. Bukti pembayaran tidak wajib.
-          </p>
+          <p class="checkout-help">Isi detail kontak dan alamat pengiriman.</p>
           <form id="checkout-form">
             <input type="hidden" name="text" id="checkout-wa-message" /><label for="checkout-name"
               >Nama lengkap</label
@@ -4604,16 +4625,6 @@
             <button class="shop-primary" type="submit">
               Lanjut pembayaran <span aria-hidden="true">↗</span>
             </button>
-            <p class="checkout-fine">
-              Simulasi pembayaran manual. Bukti tidak wajib; admin mencocokkan transaksi masuk.
-            </p>
-            <a
-              class="checkout-fallback"
-              href="https://wa.me/6281363661703"
-              target="_blank"
-              rel="noopener noreferrer"
-              >Chat admin langsung ↗</a
-            >
           </form>
         </div>
       </div>
@@ -4715,20 +4726,20 @@
       tanjHeroVideo.addEventListener('loadedmetadata', slowTanjHero);
     </script>
     <script type="module">
-      import { mountHijabPairGallery } from './web/hijab-pair-gallery.js';
-      import { selectLookbookMedia } from './shared/lookbook.js';
-      import { initManualPayment } from './web/manual-payment.js?v=expired-visual-31';
-      import { mountProductGallery } from './web/product-gallery.js?v=gallery-1';
-      import { mountProductExperience } from './web/product-experience.js?v=detail-1';
-      import { mountShoppingImprovements } from './web/shopping-improvements.js?v=cloud-cms-7';
-      import { applySitePreferences, sitePreferences } from './web/site-preferences.js';
-      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=public-catalog-34';
+      import { mountHijabPairGallery } from './web/hijab-pair-gallery.js?v=sync-20261115';
+      import { selectLookbookMedia } from './shared/lookbook.js?v=sync-20261115';
+      import { initManualPayment } from './web/manual-payment.js?v=sync-20261115';
+      import { mountProductGallery } from './web/product-gallery.js?v=sync-20261115';
+      import { mountProductExperience } from './web/product-experience.js?v=sync-20261115';
+      import { mountShoppingImprovements } from './web/shopping-improvements.js?v=sync-20261115';
+      import { applySitePreferences, sitePreferences } from './web/site-preferences.js?v=sync-20261115';
+      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=sync-20261115';
       import {
         DEFAULT_PRODUCT_PRICE,
         PUBLISHED_KEY,
         freshSeed,
         storefront,
-      } from './shared/seed.js';
+      } from './shared/seed.js?v=sync-20261115';
       // Refresh an already open demo tab after publication, including back/forward restore.
       if (!isApi && !usesCloudCMS) {
         const publishedSnapshot = localStorage.getItem(PUBLISHED_KEY);
@@ -4919,6 +4930,9 @@
         /\.(?:mp4|webm|ogv|ogg|mov)(?:[?#]|$)/i.test(String(value || ''));
       const cmsSafeVideo = (value) => {
         const url = String(value || '').trim();
+        // Browser-compatible copy of the current CMS hero; new CMS uploads still take precedence.
+        if (url === 'https://mdvbyrcbuizfycjbcizl.supabase.co/storage/v1/object/public/cms-videos/content/c1aa9aa5-3d34-4311-b732-79dfaf1d6dd6.webm')
+          return 'assets/tanj-hero-compatible.mp4';
         return cmsVideoRef(url) ||
           /^(?:https?:\/\/[^\s]+|assets\/[\w./-]+|data:video\/(?:mp4|webm|ogg);base64,[A-Za-z0-9+/=]+)$/i.test(
             url,
@@ -5040,6 +5054,13 @@
         true,
       );
       document.addEventListener(
+        'canplay',
+        (event) => {
+          if (event.target.tagName === 'VIDEO') cmsPlayVideo(event.target);
+        },
+        true,
+      );
+      document.addEventListener(
         'loadedmetadata',
         (event) => {
           if (event.target.tagName === 'VIDEO') {
@@ -5053,7 +5074,7 @@
       document.addEventListener(
         'pointerdown',
         () =>
-          document.querySelectorAll('.photo-track video').forEach((video) => {
+          document.querySelectorAll('video').forEach((video) => {
             if (video.paused) cmsPlayVideo(video);
           }),
         { passive: true },
@@ -5183,10 +5204,21 @@
               if (src) {
                 heroSource.src = cmsAssetMap[heroMedia] || src;
                 heroSource.removeAttribute('type');
-                heroVideo.load();
                 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                heroVideo.muted = true;
+                heroVideo.defaultMuted = true;
+                heroVideo.playsInline = true;
                 heroVideo.autoplay = !reduceMotion;
-                if (!reduceMotion) heroVideo.play().catch(() => {});
+                heroVideo.addEventListener(
+                  'canplay',
+                  () => {
+                    if (heroSource.dataset.cmsMedia === heroMedia && !reduceMotion)
+                      cmsPlayVideo(heroVideo);
+                  },
+                  { once: true },
+                );
+                heroVideo.load();
+                if (!reduceMotion) cmsPlayVideo(heroVideo);
               }
             })
             .catch(() => {});
@@ -6339,6 +6371,6 @@
       syncHeader();
       applyRegion();
     </script>
-    <script type="module" src="web/account.js?v=owner-account-5"></script>
+    <script type="module" src="web/account.js?v=sync-20261115"></script>
   </body>
 </html>
