@@ -199,7 +199,7 @@ export function initManualPayment({ getItems, getCatalog, getSubtotal, onCreated
   history.type = 'button';
   history.className = 'checkout-back';
   history.innerHTML =
-    '<span class="order-history-copy"><strong>Pesanan saya</strong><small>Status pembayaran &amp; nomor resi</small></span>';
+    '<svg class="order-history-bag" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14l1 14H4L5 7Z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg><span class="order-history-copy"><strong>Pesanan saya</strong><small>Status pembayaran &amp; nomor resi</small></span>';
   $('bag-cart-view').prepend(history);
   let selected = null;
   let requested = paymentOrderId(location.href);

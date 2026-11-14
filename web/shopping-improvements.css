@@ -415,6 +415,7 @@
 }
 #bag-modal #manual-orders {
   display: flex;
+  gap: 14px;
   align-items: center;
   justify-content: space-between;
   width: 100%;
@@ -438,8 +439,15 @@
 }
 #bag-modal #manual-orders .order-history-copy {
   display: grid;
+  flex: 1;
   gap: 6px;
   padding-right: 12px;
+}
+#bag-modal #manual-orders .order-history-bag {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  color: #8d7c65;
 }
 #bag-modal #manual-orders strong {
   font-family: 'Times New Roman', Times, serif;
