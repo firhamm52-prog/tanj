@@ -3,10 +3,19 @@ export const DEFAULT_PRODUCT_PRICE = 687000;
 export const DEMO_KEY = 'tanj-studio-draft-v1';
 export const PUBLISHED_KEY = 'tanj-studio-published-v1';
 const collections = [
-  ['Embroidered Outer', 'Detail bordir untuk hari yang istimewa.'],
-  ['Everyday Drape Outer', 'Lapisan ringan untuk setiap hari.'],
+  [
+    'TANJ Lira',
+    'Dress panjang dengan siluet mengalir dan belt yang dapat disesuaikan di pinggang. Dikenakan longgar atau dengan belt, keduanya memberi tampilan yang anggun dan nyaman.',
+  ],
+  [
+    'TANJ Runa',
+    'Outer dengan potongan ringan dan tepian bergelombang yang memberi bentuk khas saat dikenakan. Mudah dipadukan dengan busana dalam untuk tampilan yang effortless dan tertata.',
+  ],
   ['Flow Dress', 'Siluet sederhana yang bergerak bersamamu.'],
-  ['Flow Dress Belted', 'Potongan anggun dengan detail ikat pinggang.'],
+  [
+    'TANJ Sera',
+    'Outer panjang dengan siluet bersih dan detail bordir pada kedua ujung lengan. Dirancang untuk melengkapi tampilan sehari-hari maupun momen yang lebih istimewa, tanpa terasa berlebihan.',
+  ],
 ].map(([name, description], i) => ({ id: `base-${i}`, name, description }));
 const variants = [
   ['TANJ Sand', 'Cream', '#eee6d7', 'campaign-beige', 'look-2'],

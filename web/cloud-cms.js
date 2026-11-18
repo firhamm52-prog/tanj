@@ -1,5 +1,6 @@
+import { collectionCopy } from '../shared/collection-copy.js?v=collections-20261118';
 import { cloudClient } from './supabase-customer.js?v=hero-ios-20261118';
-import { freshSeed, storefront } from '../shared/seed.js?v=hero-ios-20261118';
+import { freshSeed, storefront } from '../shared/seed.js?v=collections-20261118';
 import { supabaseConfig } from './supabase-config.js?v=hero-ios-20261118';
 let draft;
 async function call(name, args = {}) {
@@ -11,7 +12,7 @@ async function call(name, args = {}) {
         ? 'CMS online belum siap. Jalankan migrasi 202610170007_shared_cms.sql di Supabase.'
         : error.message,
     );
-  return data;
+  return collectionCopy(data);
 }
 export async function loadCloudStorefront() {
   // Public catalog loading must not wait for a customer's auth refresh or lock.
@@ -24,7 +25,7 @@ export async function loadCloudStorefront() {
   const result = await response.json();
   const data = response.ok ? result : null;
   const error = response.ok ? null : result;
-  if (!error && data?.products) return data;
+  if (!error && data?.products) return collectionCopy(data);
   if (error && !['PGRST202', '42P01', '42883'].includes(error.code)) throw Error(error.message);
   // Safe rollout: no local-browser drafts are published before the SQL is installed.
   const initial = storefront(freshSeed());

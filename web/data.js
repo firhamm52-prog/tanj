@@ -1,8 +1,9 @@
-import { freshSeed, DEMO_KEY, PUBLISHED_KEY, storefront } from '../shared/seed.js?v=hero-ios-20261118';
+import { collectionCopy } from '../shared/collection-copy.js?v=collections-20261118';
+import { freshSeed, DEMO_KEY, PUBLISHED_KEY, storefront } from '../shared/seed.js?v=collections-20261118';
 import { validate } from '../shared/validation.js?v=hero-ios-20261118';
 import { supabaseConfig } from './supabase-config.js?v=hero-ios-20261118';
 export const usesCloudCMS = !!supabaseConfig.enabled;
-const cloudCMS = () => import('./cloud-cms.js?v=hero-ios-20261118');
+const cloudCMS = () => import('./cloud-cms.js?v=collections-20261118');
 export const isApi = window.TANJ_CONFIG?.mode === 'api';
 const apiBase = window.TANJ_CONFIG?.apiBase || '/api';
 function read(key) {
@@ -24,7 +25,7 @@ export async function request(path, options = {}) {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Permintaan gagal.');
-    return data;
+    return collectionCopy(data);
   } catch (error) {
     if (error.name === 'AbortError') throw new Error('Server belum merespons. Coba lagi.');
     throw error;
@@ -35,12 +36,12 @@ export async function request(path, options = {}) {
 export async function loadStorefront() {
   if (usesCloudCMS) return (await cloudCMS()).loadCloudStorefront();
   if (isApi) return request('/storefront');
-  return read(PUBLISHED_KEY) || storefront(freshSeed());
+  return collectionCopy(read(PUBLISHED_KEY) || storefront(freshSeed()));
 }
 export async function loadAdmin() {
   if (usesCloudCMS) return (await cloudCMS()).loadCloudAdmin();
   if (isApi) return request('/admin/state');
-  return read(DEMO_KEY) || freshSeed();
+  return collectionCopy(read(DEMO_KEY) || freshSeed());
 }
 export async function save(kind, id, raw) {
   const item = validate(kind, raw);

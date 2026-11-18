@@ -7,7 +7,7 @@ import {
 } from '../shared/site-settings.js?v=hero-ios-20261118';
 import { mountManualAdmin } from './manual-payments.js?v=hero-ios-20261118';
 import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=hero-ios-20261118';
-import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js?v=hero-ios-20261118';
+import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js?v=collections-20261118';
 import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=hero-ios-20261118';
 import { cropCmsImage } from '../web/cms-image-crop.js?v=hero-ios-20261118';
 import { mountProductGalleryEditor } from './product-gallery-editor.js?v=hero-ios-20261118';
@@ -21,7 +21,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=hero-ios-20261118';
+} from '../web/data.js?v=collections-20261118';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(
