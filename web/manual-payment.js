@@ -1,27 +1,27 @@
-import { orderReference } from '../shared/order-number.js?v=admin-links-20261115';
-import { mountMidtransCheckout } from './midtrans-checkout.js?v=admin-links-20261115';
-import { isPaymentLink, paymentOrderId, paymentAccessToken } from '../shared/payment-link.js?v=admin-links-20261115';
-import { cloudEnabled, paymentRPC } from './supabase-payments.js?v=admin-links-20261115';
-import { cropQrisArtwork } from './qris-crop.js?v=admin-links-20261115';
-import { mountPaymentSocialLinks } from './payment-social-links.js?v=admin-links-20261115';
-import { shipmentTracking } from '../shared/shipment-tracking.js?v=admin-links-20261115';
+import { orderReference } from '../shared/order-number.js?v=hero-ios-20261118';
+import { mountMidtransCheckout } from './midtrans-checkout.js?v=hero-ios-20261118';
+import { isPaymentLink, paymentOrderId, paymentAccessToken } from '../shared/payment-link.js?v=hero-ios-20261118';
+import { cloudEnabled, paymentRPC } from './supabase-payments.js?v=hero-ios-20261118';
+import { cropQrisArtwork } from './qris-crop.js?v=hero-ios-20261118';
+import { mountPaymentSocialLinks } from './payment-social-links.js?v=hero-ios-20261118';
+import { shipmentTracking } from '../shared/shipment-tracking.js?v=hero-ios-20261118';
 import {
   customerSession,
   requireCustomer,
   ensureCustomerSession,
   ensureCheckoutSession,
-} from './customer-account.js?v=admin-links-20261115';
-import { isAdmin } from './admin-session.js?v=admin-links-20261115';
-import { mountCheckoutExperience } from './checkout-experience.js?v=admin-links-20261115';
-import { buildOrderEmail } from '../shared/order-email.js?v=admin-links-20261115';
-import { notifyPayment } from './payment-notifications.js?v=admin-links-20261115';
-import { orderContactLinks } from './order-contact.js?v=admin-links-20261115';
+} from './customer-account.js?v=hero-ios-20261118';
+import { isAdmin } from './admin-session.js?v=hero-ios-20261118';
+import { mountCheckoutExperience } from './checkout-experience.js?v=hero-ios-20261118';
+import { buildOrderEmail } from '../shared/order-email.js?v=hero-ios-20261118';
+import { notifyPayment } from './payment-notifications.js?v=hero-ios-20261118';
+import { orderContactLinks } from './order-contact.js?v=hero-ios-20261118';
 import {
   shippingProvinces,
   shippingCities,
   shippingDistricts,
   getShippingEstimate,
-} from './shipping.js?v=admin-links-20261115';
+} from './shipping.js?v=hero-ios-20261118';
 import {
   readPayments,
   refreshPayments,
@@ -32,7 +32,7 @@ import {
   paymentLabels,
   money,
   escapeHTML as esc,
-} from './manual-payment-store.js?v=admin-links-20261115';
+} from './manual-payment-store.js?v=hero-ios-20261118';
 export const demoNotice = '';
 export async function confirmManual(title, message, label = 'Lanjutkan') {
   const dialog = document.createElement('dialog');

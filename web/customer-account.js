@@ -1,8 +1,8 @@
-import { prepareStorefrontEntry, showStorefrontHome } from './storefront-entry.js?v=admin-links-20261115';
-import { mountSignupVerification } from './signup-verification.js?v=admin-links-20261115';
-import { mountAccountSuggestion } from './account-suggestion.js?v=admin-links-20261115';
-import { sendReset } from './password-recovery.js?v=admin-links-20261115';
-import { digest, isAdmin } from './admin-session.js?v=admin-links-20261115';
+import { prepareStorefrontEntry, showStorefrontHome } from './storefront-entry.js?v=hero-ios-20261118';
+import { mountSignupVerification } from './signup-verification.js?v=hero-ios-20261118';
+import { mountAccountSuggestion } from './account-suggestion.js?v=hero-ios-20261118';
+import { sendReset } from './password-recovery.js?v=hero-ios-20261118';
+import { digest, isAdmin } from './admin-session.js?v=hero-ios-20261118';
 import {
   cloudEnabled,
   cloudReady,
@@ -17,7 +17,7 @@ import {
   refreshAddresses,
   cloudSaveAddress,
   cloudDeleteAddress,
-} from './supabase-customer.js?v=admin-links-20261115';
+} from './supabase-customer.js?v=hero-ios-20261118';
 export const customerReady = cloudReady;
 if (document.getElementById('product-modal')) {
   prepareStorefrontEntry({

@@ -1,7 +1,7 @@
-import { cloudEnabled } from '../web/supabase-payments.js?v=admin-links-20261115';
-import { customerWhatsAppLink } from '../shared/customer-whatsapp.js?v=admin-links-20261115';
-import { emailConfig } from '../web/email-config.js?v=admin-links-20261115';
-import { notifyPayment } from '../web/payment-notifications.js?v=admin-links-20261115';
+import { cloudEnabled } from '../web/supabase-payments.js?v=hero-ios-20261118';
+import { customerWhatsAppLink } from '../shared/customer-whatsapp.js?v=hero-ios-20261118';
+import { emailConfig } from '../web/email-config.js?v=hero-ios-20261118';
+import { notifyPayment } from '../web/payment-notifications.js?v=hero-ios-20261118';
 import {
   readPayments,
   refreshPayments,
@@ -14,8 +14,8 @@ import {
   savePaymentQR,
   money,
   escapeHTML as esc,
-} from '../web/manual-payment-store.js?v=admin-links-20261115';
-import { isAdmin } from '../web/admin-session.js?v=admin-links-20261115';
+} from '../web/manual-payment-store.js?v=hero-ios-20261118';
+import { isAdmin } from '../web/admin-session.js?v=hero-ios-20261118';
 const $ = (id) => document.getElementById(id);
 if (!isAdmin()) location.replace('../#admin-login');
 $('email-delivery-state').textContent =

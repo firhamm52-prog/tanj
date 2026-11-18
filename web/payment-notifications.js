@@ -1,5 +1,5 @@
-import { emailConfig } from './email-config.js?v=admin-links-20261115';
-import { createEmailDelivery } from './emailjs-delivery.js?v=admin-links-20261115';
+import { emailConfig } from './email-config.js?v=hero-ios-20261118';
+import { createEmailDelivery } from './emailjs-delivery.js?v=hero-ios-20261118';
 const browserDelivery = createEmailDelivery({
   config: emailConfig,
   storage: {

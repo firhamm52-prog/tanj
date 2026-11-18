@@ -1,16 +1,16 @@
-import { selectLookbookMedia } from '../shared/lookbook.js?v=admin-links-20261115';
-import { prepareCmsVideo } from '../web/cms-video-convert.js?v=admin-links-20261115';
-import { cropCmsVideo } from '../web/cms-video-crop.js?v=admin-links-20261115';
+import { selectLookbookMedia } from '../shared/lookbook.js?v=hero-ios-20261118';
+import { prepareCmsVideo } from '../web/cms-video-convert.js?v=hero-ios-20261118';
+import { cropCmsVideo } from '../web/cms-video-crop.js?v=hero-ios-20261118';
 import {
   siteSettingFields,
   defaultSiteSettings,
-} from '../shared/site-settings.js?v=admin-links-20261115';
-import { mountManualAdmin } from './manual-payments.js?v=admin-links-20261115';
-import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=admin-links-20261115';
-import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js?v=admin-links-20261115';
-import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=admin-links-20261115';
-import { cropCmsImage } from '../web/cms-image-crop.js?v=admin-links-20261115';
-import { mountProductGalleryEditor } from './product-gallery-editor.js?v=admin-links-20261115';
+} from '../shared/site-settings.js?v=hero-ios-20261118';
+import { mountManualAdmin } from './manual-payments.js?v=hero-ios-20261118';
+import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=hero-ios-20261118';
+import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js?v=hero-ios-20261118';
+import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=hero-ios-20261118';
+import { cropCmsImage } from '../web/cms-image-crop.js?v=hero-ios-20261118';
+import { mountProductGalleryEditor } from './product-gallery-editor.js?v=hero-ios-20261118';
 let uploadingImage = false;
 import {
   isApi,
@@ -21,7 +21,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=admin-links-20261115';
+} from '../web/data.js?v=hero-ios-20261118';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(

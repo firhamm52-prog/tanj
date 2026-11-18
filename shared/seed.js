@@ -1,4 +1,4 @@
-import { defaultSiteSettings } from './site-settings.js?v=admin-links-20261115';
+import { defaultSiteSettings } from './site-settings.js?v=hero-ios-20261118';
 export const DEFAULT_PRODUCT_PRICE = 687000;
 export const DEMO_KEY = 'tanj-studio-draft-v1';
 export const PUBLISHED_KEY = 'tanj-studio-published-v1';

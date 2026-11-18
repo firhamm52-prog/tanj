@@ -88,7 +88,7 @@ try {
   const page = await context.newPage();
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   const result = await page.evaluate(async () => {
-    const m = await import('./web/supabase-customer.js?v=admin-links-20261115');
+    const m = await import('./web/supabase-customer.js?v=hero-ios-20261118');
     await m.cloudReady;
     const sessions = await Promise.all(Array.from({ length: 5 }, () => m.cloudGuestSession()));
     const a = await m.cloudSaveAddress({
@@ -110,7 +110,7 @@ try {
   assert.equal(saved.contact_email, 'guest@example.com');
   assert.equal(result.address.email, 'guest@example.com');
   const quoteId = await page.evaluate(async () => {
-    const { shippingRates } = await import('./web/biteship.js?v=admin-links-20261115');
+    const { shippingRates } = await import('./web/biteship.js?v=hero-ios-20261118');
     const a = { zip: '15115', provinceId: '36', cityId: '36.71', districtId: '36.71.07' };
     const values = await Promise.all(
       Array.from({ length: 4 }, () => shippingRates(a, [{ id: 'dress', qty: 1 }])),
@@ -121,7 +121,7 @@ try {
   await page.reload();
   assert.equal(
     await page.evaluate(async () => {
-      const m = await import('./web/supabase-customer.js?v=admin-links-20261115');
+      const m = await import('./web/supabase-customer.js?v=hero-ios-20261118');
       await m.cloudReady;
       return m.cloudSession()?.role;
     }),
@@ -129,7 +129,7 @@ try {
   );
   assert.equal(
     await page.evaluate(async () => {
-      const { shippingRates } = await import('./web/biteship.js?v=admin-links-20261115');
+      const { shippingRates } = await import('./web/biteship.js?v=hero-ios-20261118');
       return (
         await shippingRates(
           { zip: '15115', provinceId: '36', cityId: '36.71', districtId: '36.71.07' },
@@ -141,7 +141,7 @@ try {
   );
   assert.equal(rateCalls, 1, 'refresh reuses the stored quote without another shipping request');
   await page.evaluate(async () => {
-    const { shippingRates } = await import('./web/biteship.js?v=admin-links-20261115');
+    const { shippingRates } = await import('./web/biteship.js?v=hero-ios-20261118');
     await shippingRates(
       { zip: '15115', provinceId: '36', cityId: '36.71', districtId: '36.71.07' },
       [{ id: 'dress', qty: 2 }],

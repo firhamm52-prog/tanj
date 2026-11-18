@@ -1,4 +1,4 @@
-import { orderReference } from '../shared/order-number.js?v=admin-links-20261115';
+import { orderReference } from '../shared/order-number.js?v=hero-ios-20261118';
 import {
   readPayments,
   subscribePayments,
@@ -9,8 +9,8 @@ import {
   resetPayments,
   money,
   escapeHTML as esc,
-} from '../web/manual-payment-store.js?v=admin-links-20261115';
-import { demoNotice, confirmManual } from '../web/manual-payment.js?v=admin-links-20261115';
+} from '../web/manual-payment-store.js?v=hero-ios-20261118';
+import { demoNotice, confirmManual } from '../web/manual-payment.js?v=hero-ios-20261118';
 let selected = null,
   filter = 'open',
   query = '';

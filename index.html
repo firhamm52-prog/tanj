@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TANJ</title>
-    <script type="module" src="web/page-title.js?v=admin-links-20261115"></script>
+    <script type="module" src="web/page-title.js?v=hero-ios-20261118"></script>
     <link rel="icon" type="image/svg+xml" href="assets/tanj-t-favicon.svg?v=1" />
     <link rel="icon" type="image/png" sizes="32x32" href="assets/tanj-t-32.png?v=1" />
     <link rel="apple-touch-icon" href="assets/tanj-t-180.png?v=1" />
@@ -3611,11 +3611,12 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="web/responsive.css?v=admin-links-20261115" />
-    <script src="web/config.js?v=admin-links-20261115"></script>
-    <link rel="stylesheet" href="web/manual-payment.css?v=admin-links-20261115" />
-    <link rel="stylesheet" href="web/checkout-experience.css?v=admin-links-20261115" />
-    <link rel="stylesheet" href="web/shopping-improvements.css?v=admin-links-20261115" />
+    <link rel="stylesheet" href="web/responsive.css?v=hero-ios-20261118" />
+    <link rel="stylesheet" href="web/hero-video.css?v=hero-ios-20261118" />
+    <script src="web/config.js?v=hero-ios-20261118"></script>
+    <link rel="stylesheet" href="web/manual-payment.css?v=hero-ios-20261118" />
+    <link rel="stylesheet" href="web/checkout-experience.css?v=hero-ios-20261118" />
+    <link rel="stylesheet" href="web/shopping-improvements.css?v=hero-ios-20261118" />
     <style>
       .story-social {
         gap: 14px;
@@ -3644,10 +3645,10 @@
         color: #fff !important;
       }
     </style>
-    <link rel="stylesheet" href="web/collection-editorial.css?v=admin-links-20261115" />
-    <link rel="stylesheet" href="web/product-experience.css?v=admin-links-20261115" />
-    <link rel="stylesheet" href="web/hijab-pair-gallery.css?v=admin-links-20261115" />
-    <link rel="stylesheet" href="web/mobile-product-grid.css?v=admin-links-20261115" />
+    <link rel="stylesheet" href="web/collection-editorial.css?v=hero-ios-20261118" />
+    <link rel="stylesheet" href="web/product-experience.css?v=hero-ios-20261118" />
+    <link rel="stylesheet" href="web/hijab-pair-gallery.css?v=hero-ios-20261118" />
+    <link rel="stylesheet" href="web/mobile-product-grid.css?v=hero-ios-20261118" />
   </head>
   <body>
     <header class="nav">
@@ -3857,11 +3858,23 @@
           muted
           loop
           playsinline
+          webkit-playsinline
           preload="metadata"
+          poster="assets/tanj-hero-poster.webp"
           aria-label="Video brand TANJ menampilkan tiga model dan koleksi"
         >
-          <source data-asset="assets/noireaterial-desert-three-models-v3.mp4" type="video/mp4" />
+          <source
+            src="assets/tanj-hero-compatible.mp4"
+            data-asset="assets/tanj-hero-compatible.mp4"
+            type="video/mp4"
+          />
         </video>
+        <img
+          class="hero-video-poster"
+          src="assets/tanj-hero-poster.webp"
+          alt=""
+          aria-hidden="true"
+        />
         <div class="video-scrim" aria-hidden="true"></div>
       </section>
       <section class="site-banner" id="site-banner" hidden>
@@ -4718,6 +4731,7 @@
         </div>
       </div>
     </div>
+    <script type="module" src="web/hero-video.js?v=hero-ios-20261118"></script>
     <script>
       const tanjHeroVideo = document.querySelector('.brand-video');
       const slowTanjHero = () => {
@@ -4728,20 +4742,21 @@
       tanjHeroVideo.addEventListener('loadedmetadata', slowTanjHero);
     </script>
     <script type="module">
-      import { mountHijabPairGallery } from './web/hijab-pair-gallery.js?v=admin-links-20261115';
-      import { selectLookbookMedia } from './shared/lookbook.js?v=admin-links-20261115';
-      import { initManualPayment } from './web/manual-payment.js?v=admin-links-20261115';
-      import { mountProductGallery } from './web/product-gallery.js?v=admin-links-20261115';
-      import { mountProductExperience } from './web/product-experience.js?v=admin-links-20261115';
-      import { mountShoppingImprovements } from './web/shopping-improvements.js?v=admin-links-20261115';
-      import { applySitePreferences, sitePreferences } from './web/site-preferences.js?v=admin-links-20261115';
-      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=admin-links-20261115';
+      import { heroPlayback } from './web/hero-video.js?v=hero-ios-20261118';
+      import { mountHijabPairGallery } from './web/hijab-pair-gallery.js?v=hero-ios-20261118';
+      import { selectLookbookMedia } from './shared/lookbook.js?v=hero-ios-20261118';
+      import { initManualPayment } from './web/manual-payment.js?v=hero-ios-20261118';
+      import { mountProductGallery } from './web/product-gallery.js?v=hero-ios-20261118';
+      import { mountProductExperience } from './web/product-experience.js?v=hero-ios-20261118';
+      import { mountShoppingImprovements } from './web/shopping-improvements.js?v=hero-ios-20261118';
+      import { applySitePreferences, sitePreferences } from './web/site-preferences.js?v=hero-ios-20261118';
+      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=hero-ios-20261118';
       import {
         DEFAULT_PRODUCT_PRICE,
         PUBLISHED_KEY,
         freshSeed,
         storefront,
-      } from './shared/seed.js?v=admin-links-20261115';
+      } from './shared/seed.js?v=hero-ios-20261118';
       // Refresh an already open demo tab after publication, including back/forward restore.
       if (!isApi && !usesCloudCMS) {
         const publishedSnapshot = localStorage.getItem(PUBLISHED_KEY);
@@ -5006,6 +5021,7 @@
             )
           : null;
       async function cmsPlayVideo(video) {
+        if (video.classList.contains('brand-video')) return heroPlayback?.play();
         const fullscreen = document.fullscreenElement === video || video.webkitDisplayingFullscreen;
         const rect = video.getBoundingClientRect();
         if (
@@ -5206,31 +5222,11 @@
         const heroMedia = cmsState.hero.media;
         if (heroMedia && heroSource.dataset.cmsMedia !== heroMedia) {
           heroSource.dataset.cmsMedia = heroMedia;
-          heroVideo.pause();
-          heroVideo.removeAttribute('poster');
-          heroSource.removeAttribute('src');
-          heroVideo.load();
           cmsResolveVideo(heroMedia)
             .then((src) => {
               if (heroSource.dataset.cmsMedia !== heroMedia) return;
               if (src) {
-                heroSource.src = cmsAssetMap[heroMedia] || src;
-                heroSource.removeAttribute('type');
-                const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                heroVideo.muted = true;
-                heroVideo.defaultMuted = true;
-                heroVideo.playsInline = true;
-                heroVideo.autoplay = !reduceMotion;
-                heroVideo.addEventListener(
-                  'canplay',
-                  () => {
-                    if (heroSource.dataset.cmsMedia === heroMedia && !reduceMotion)
-                      cmsPlayVideo(heroVideo);
-                  },
-                  { once: true },
-                );
-                heroVideo.load();
-                if (!reduceMotion) cmsPlayVideo(heroVideo);
+                heroPlayback.setSource(cmsAssetMap[heroMedia] || src);
               }
             })
             .catch(() => {});
@@ -6421,6 +6417,6 @@
       syncHeader();
       applyRegion();
     </script>
-    <script type="module" src="web/account.js?v=admin-links-20261115"></script>
+    <script type="module" src="web/account.js?v=hero-ios-20261118"></script>
   </body>
 </html>

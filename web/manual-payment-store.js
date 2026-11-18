@@ -1,17 +1,17 @@
-import { customerSession } from './customer-account.js?v=admin-links-20261115';
-import { formatOrderNumber, numberDemoOrders } from '../shared/order-number.js?v=admin-links-20261115';
-import { normalizePaymentReview } from '../shared/payment-review.js?v=admin-links-20261115';
-import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=admin-links-20261115';
-import { sitePreferences } from './site-preferences.js?v=admin-links-20261115';
+import { customerSession } from './customer-account.js?v=hero-ios-20261118';
+import { formatOrderNumber, numberDemoOrders } from '../shared/order-number.js?v=hero-ios-20261118';
+import { normalizePaymentReview } from '../shared/payment-review.js?v=hero-ios-20261118';
+import { shippingSubsidy } from '../shared/shipping-subsidy.js?v=hero-ios-20261118';
+import { sitePreferences } from './site-preferences.js?v=hero-ios-20261118';
 import {
   cloudEnabled,
   cloudPayments,
   refreshPayments,
   paymentRPC,
   createCloudPayment,
-} from './supabase-payments.js?v=admin-links-20261115';
+} from './supabase-payments.js?v=hero-ios-20261118';
 export { refreshPayments };
-import { validateShippingDestination } from './shipping.js?v=admin-links-20261115';
+import { validateShippingDestination } from './shipping.js?v=hero-ios-20261118';
 export const PAYMENT_KEY = 'tanj-manual-payments-demo-v1';
 export const paymentLabels = {
   WAITING_PAYMENT: 'Menunggu pembayaran',

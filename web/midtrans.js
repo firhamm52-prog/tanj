@@ -1,5 +1,5 @@
-import { cloudClient } from './supabase-customer.js?v=admin-links-20261115';
-import { supabaseConfig } from './supabase-config.js?v=admin-links-20261115';
+import { cloudClient } from './supabase-customer.js?v=hero-ios-20261118';
+import { supabaseConfig } from './supabase-config.js?v=hero-ios-20261118';
 const base = supabaseConfig.url + '/functions/v1/midtrans';
 let config;
 export async function midtransConfiguration() {

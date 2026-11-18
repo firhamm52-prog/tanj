@@ -1,4 +1,4 @@
-import { validateSiteSettings } from './site-settings.js?v=admin-links-20261115';
+import { validateSiteSettings } from './site-settings.js?v=hero-ios-20261118';
 export class ValidationError extends Error {}
 const fail = (message) => {
   throw new ValidationError(message);

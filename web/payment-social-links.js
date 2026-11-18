@@ -1,4 +1,4 @@
-import { sitePreferences } from './site-preferences.js?v=admin-links-20261115';
+import { sitePreferences } from './site-preferences.js?v=hero-ios-20261118';
 export function mountPaymentSocialLinks(whatsapp, email) {
   const settings = sitePreferences();
   if (!whatsapp || !email) return;

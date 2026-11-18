@@ -1,4 +1,4 @@
-import { defaultSiteSettings } from '../shared/site-settings.js?v=admin-links-20261115';
+import { defaultSiteSettings } from '../shared/site-settings.js?v=hero-ios-20261118';
 let current = { ...defaultSiteSettings };
 export const sitePreferences = () => ({ ...current });
 export function applySitePreferences(settings) {
