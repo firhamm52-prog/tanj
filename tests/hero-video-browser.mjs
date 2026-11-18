@@ -10,7 +10,7 @@ const server = createServer(async (req, res) => {
     if (path === '/fixture') {
       res.setHeader('Content-Type', 'text/html');
       res.end(
-        '<link rel="stylesheet" href="/web/hero-video.css"><style>.video-hero{position:relative;width:390px;height:220px}.brand-video{width:100%;height:100%}</style><section class="video-hero"><video class="brand-video" muted playsinline poster="/assets/tanj-hero-poster.webp"><source src="/assets/tanj-hero-compatible.mp4" type="video/mp4"></video></section>',
+        '<link rel="stylesheet" href="/web/hero-video.css"><style>.video-hero{position:relative;width:390px;height:220px}.brand-video{width:100%;height:100%}</style><section class="video-hero"><video class="brand-video" muted playsinline poster="/assets/tanj-hero-poster.webp"><source src="/assets/tanj-hero-autoplay.mp4" type="video/mp4"></video></section>',
       );
       return;
     }
@@ -85,12 +85,12 @@ try {
       loads++;
       original();
     };
-    window.hero.setSource('/assets/tanj-hero-compatible.mp4');
+    window.hero.setSource('/assets/tanj-hero-autoplay.mp4');
     return loads;
   });
   assert.equal(sameSource, 0, 'CMS must not reload an already-playing source');
   const blocked = await fixture(true);
-  await blocked.locator('.hero-video-play').waitFor({ state: 'visible' });
+  assert.equal(await blocked.locator('.hero-video-play').count(), 0);
   assert.equal(await blocked.locator('video').getAttribute('controls'), null);
   await blocked.waitForFunction(() => {
     const p = document.querySelector('.hero-video-poster');
@@ -98,15 +98,16 @@ try {
   });
   await blocked.screenshot({ path: 'test-results/hero-autoplay-fallback.png' });
   await blocked.evaluate(() => (window.allowHero = true));
-  await blocked.locator('.hero-video-play').click();
+  await blocked.evaluate(() => document.dispatchEvent(new Event('touchstart')));
   await blocked.waitForFunction(() => document.querySelector('video').currentTime > 0.2);
   await blocked.locator('.hero-video-poster').waitFor({ state: 'hidden' });
   await normal.bringToFront();
   await normal.evaluate(() => window.hero.setSource('/missing-video.mp4'));
-  await normal.locator('.hero-video-play').waitFor({ state: 'visible' });
+  await normal.waitForFunction(() => document.querySelector('video').networkState === 3);
+  assert.equal(await normal.locator('.hero-video-play').count(), 0);
   assert.equal(await normal.locator('video').getAttribute('controls'), null);
   console.log(
-    'PASS: hero plays actual MP4 inline, keeps its source on CMS refresh, shows a poster/custom play action when autoplay is rejected, retries on a tap, and handles failed media without native controls. Chromium mobile simulation; not a physical iPhone test.',
+    'PASS: hero plays actual MP4 inline, keeps its source on CMS refresh, has no play button or timeline, retries deferred autoplay on ordinary interaction, and handles failed media without native controls. Chromium mobile simulation; not a physical iPhone test.',
   );
 } finally {
   await browser?.close();

@@ -3612,7 +3612,7 @@
       }
     </style>
     <link rel="stylesheet" href="web/responsive.css?v=hero-ios-20261118" />
-    <link rel="stylesheet" href="web/hero-video.css?v=hero-ios-20261118" />
+    <link rel="stylesheet" href="web/hero-video.css?v=hero-auto-20261118" />
     <script src="web/config.js?v=hero-ios-20261118"></script>
     <link rel="stylesheet" href="web/manual-payment.css?v=hero-ios-20261118" />
     <link rel="stylesheet" href="web/checkout-experience.css?v=hero-ios-20261118" />
@@ -3859,13 +3859,13 @@
           loop
           playsinline
           webkit-playsinline
-          preload="metadata"
+          preload="auto"
           poster="assets/tanj-hero-poster.webp"
           aria-label="Video brand TANJ menampilkan tiga model dan koleksi"
         >
           <source
-            src="assets/tanj-hero-compatible.mp4"
-            data-asset="assets/tanj-hero-compatible.mp4"
+            src="assets/tanj-hero-autoplay.mp4"
+            data-asset="assets/tanj-hero-autoplay.mp4"
             type="video/mp4"
           />
         </video>
@@ -4731,7 +4731,7 @@
         </div>
       </div>
     </div>
-    <script type="module" src="web/hero-video.js?v=hero-ios-20261118"></script>
+    <script type="module" src="web/hero-video.js?v=hero-auto-20261118"></script>
     <script>
       const tanjHeroVideo = document.querySelector('.brand-video');
       const slowTanjHero = () => {
@@ -4742,7 +4742,7 @@
       tanjHeroVideo.addEventListener('loadedmetadata', slowTanjHero);
     </script>
     <script type="module">
-      import { heroPlayback } from './web/hero-video.js?v=hero-ios-20261118';
+      import { heroPlayback } from './web/hero-video.js?v=hero-auto-20261118';
       import { mountHijabPairGallery } from './web/hijab-pair-gallery.js?v=hero-ios-20261118';
       import { selectLookbookMedia } from './shared/lookbook.js?v=hero-ios-20261118';
       import { initManualPayment } from './web/manual-payment.js?v=hero-ios-20261118';
@@ -4954,7 +4954,7 @@
           url ===
           'https://mdvbyrcbuizfycjbcizl.supabase.co/storage/v1/object/public/cms-videos/content/c1aa9aa5-3d34-4311-b732-79dfaf1d6dd6.webm'
         )
-          return 'assets/tanj-hero-compatible.mp4';
+          return 'assets/tanj-hero-autoplay.mp4';
         if (
           url ===
           'https://mdvbyrcbuizfycjbcizl.supabase.co/storage/v1/object/public/cms-videos/content/eb0bbd9e-bf6e-4a77-8ea7-edbff6945608.webm'
