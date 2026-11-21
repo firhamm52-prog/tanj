@@ -401,3 +401,34 @@
   margin-top: 8px;
   font-size: 10px;
 }
+
+.product-review {
+  font-size: 11px;
+  margin: 0 0 12px;
+}
+.product-review summary {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.product-review form {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+}
+.product-review select,
+.product-review button {
+  min-height: 40px;
+  padding: 8px;
+  font: inherit;
+  border: 1px solid #c8bfb2;
+  background: transparent;
+}
+.product-review button {
+  background: #29231f;
+  color: white;
+  cursor: pointer;
+}
+.product-review [role='status'] {
+  margin: 0;
+}

@@ -1,3 +1,4 @@
+import { productRating } from './product-rating.js?v=ratings-20261121';
 import { shipmentTracking } from '../shared/shipment-tracking.js?v=hero-ios-20261118';
 const heart =
   '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M20.8 4.8a5.4 5.4 0 0 0-7.6 0L12 6l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.6a5.4 5.4 0 0 0 0-7.6Z"/></svg>';
@@ -36,6 +37,55 @@ export function mountProductExperience({ getProducts, openProduct, money, resolv
   rating.innerHTML =
     '<span class="product-rating-stars" aria-hidden="true">&#9734;&#9734;&#9734;&#9734;&#9734;</span><span>Belum ada penilaian</span>';
   heading.after(rating);
+  const review = document.createElement('details');
+  review.className = 'product-review';
+  review.innerHTML =
+    '<summary>Beri penilaian</summary><form><label for="product-review-score">Penilaian kamu</label><select id="product-review-score" required><option value="">Pilih bintang</option><option value="5">5 bintang</option><option value="4">4 bintang</option><option value="3">3 bintang</option><option value="2">2 bintang</option><option value="1">1 bintang</option></select><button type="submit">Kirim penilaian</button><p role="status"></p></form>';
+  rating.after(review);
+  let ratingVersion = 0;
+  function drawRating(data) {
+    const count = Number(data.count) || 0;
+    const average = Number(data.average) || 0;
+    rating.querySelector('.product-rating-stars').textContent = Array.from({ length: 5 }, (_, i) =>
+      i < Math.round(average) ? '\u2605' : '\u2606',
+    ).join('');
+    rating.lastElementChild.textContent = count
+      ? average.toLocaleString('id-ID') + ' (' + count + ' penilaian)'
+      : 'Belum ada penilaian';
+    review.querySelector('select').value = data.mine ? String(data.mine) : '';
+  }
+  async function loadRating() {
+    const version = ++ratingVersion;
+    drawRating({});
+    review.querySelector('[role=status]').textContent = '';
+    review.open = false;
+    try {
+      const data = await productRating(current.id);
+      if (version === ratingVersion) drawRating(data);
+    } catch (error) {
+      if (version === ratingVersion)
+        review.querySelector('[role=status]').textContent = error.message;
+    }
+  }
+  review.querySelector('form').onsubmit = async (event) => {
+    event.preventDefault();
+    const version = ratingVersion,
+      id = current.id;
+    const button = review.querySelector('button'),
+      status = review.querySelector('[role=status]');
+    button.disabled = true;
+    try {
+      const data = await productRating(id, Number(review.querySelector('select').value));
+      if (version === ratingVersion) {
+        drawRating(data);
+        status.textContent = 'Terima kasih, penilaian tersimpan.';
+      }
+    } catch (error) {
+      if (version === ratingVersion) status.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  };
 
   const message = document.createElement('p');
   message.className = 'product-like-message';
@@ -236,6 +286,7 @@ export function mountProductExperience({ getProducts, openProduct, money, resolv
         message.hidden = true;
       }
       showTab(activeTab);
+      loadRating();
       sync();
     },
   };
