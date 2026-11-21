@@ -1,3 +1,4 @@
+import { shipmentTracking } from '../shared/shipment-tracking.js?v=hero-ios-20261118';
 const heart =
   '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M20.8 4.8a5.4 5.4 0 0 0-7.6 0L12 6l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.6a5.4 5.4 0 0 0 0-7.6Z"/></svg>';
 const key = 'tanj-liked-products-v1';
@@ -30,6 +31,12 @@ export function mountProductExperience({ getProducts, openProduct, money, resolv
   like.className = 'product-like';
   like.innerHTML = heart;
   heading.append(like);
+  const rating = document.createElement('div');
+  rating.className = 'product-rating';
+  rating.innerHTML =
+    '<span class="product-rating-stars" aria-hidden="true">?????</span><span>Belum ada penilaian</span>';
+  heading.after(rating);
+
   const message = document.createElement('p');
   message.className = 'product-like-message';
   message.setAttribute('role', 'status');
@@ -68,7 +75,30 @@ export function mountProductExperience({ getProducts, openProduct, money, resolv
     }
     content.id = 'product-tab-panel';
     content.setAttribute('aria-labelledby', 'product-tab-' + id);
-    content.textContent = text()[id];
+    content.classList.toggle('shipping-tab-content', id === 'shippingInfo');
+    if (id === 'shippingInfo') renderShipping();
+    else content.textContent = text()[id];
+  }
+  function renderShipping() {
+    content.innerHTML = `<p class="product-shipping-note">Kurir dan resi pesananmu tersedia di Pesanan saya setelah admin mengisi resi.</p><form class="product-tracking-form"><label for="product-tracking-courier">Kurir</label><select id="product-tracking-courier" name="courier" required><option value="">Pilih kurir</option><option value="jne">JNE</option><option value="j&t">J&T</option><option value="lion">Lion Parcel</option></select><label for="product-tracking-number">Nomor resi</label><input id="product-tracking-number" name="number" required maxlength="80" autocomplete="off" placeholder="Masukkan nomor resi"><button type="submit">Lacak ?</button><p class="product-tracking-status" role="status"></p></form><p class="product-tracking-hint">Resi disalin saat menekan Lacak. Tempel di situs kurir yang terbuka.</p>`;
+    const form = content.querySelector('form');
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      const number = form.elements.number.value.trim();
+      const courier = shipmentTracking(form.elements.courier.value);
+      if (!courier || !number) return;
+      const status = form.querySelector('[role=status]');
+      // Open synchronously from the gesture; do not lose popup permission awaiting clipboard.
+      window.open(courier.url, '_blank', 'noopener,noreferrer');
+      status.textContent = 'Resi: ' + number + '. Tempel di situs ' + courier.name + '.';
+      navigator.clipboard
+        ?.writeText(number)
+        .then(() => {
+          if (form.isConnected)
+            status.textContent = 'Resi disalin. Tempel di situs ' + courier.name + '.';
+        })
+        .catch(() => {});
+    };
   }
   for (const [id, label] of options) {
     const button = document.createElement('button');
