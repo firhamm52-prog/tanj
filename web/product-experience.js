@@ -1,4 +1,4 @@
-import { productRating } from './product-rating.js?v=ratings-20261121';
+import { productLikes } from './product-likes.js?v=likes-20261121';
 import { shipmentTracking } from '../shared/shipment-tracking.js?v=hero-ios-20261118';
 const heart =
   '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M20.8 4.8a5.4 5.4 0 0 0-7.6 0L12 6l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.6a5.4 5.4 0 0 0 0-7.6Z"/></svg>';
@@ -35,57 +35,37 @@ export function mountProductExperience({ getProducts, openProduct, money, resolv
   const rating = document.createElement('div');
   rating.className = 'product-rating';
   rating.innerHTML =
-    '<span class="product-rating-stars" aria-hidden="true">&#9734;&#9734;&#9734;&#9734;&#9734;</span><span>Belum ada penilaian</span>';
+    '<span class="product-rating-stars" aria-hidden="true">&#9734;&#9734;&#9734;&#9734;&#9734;</span><span>0 suka</span>';
   heading.after(rating);
-  const review = document.createElement('details');
-  review.className = 'product-review';
-  review.innerHTML =
-    '<summary>Beri penilaian</summary><form><label for="product-review-score">Penilaian kamu</label><select id="product-review-score" required><option value="">Pilih bintang</option><option value="5">5 bintang</option><option value="4">4 bintang</option><option value="3">3 bintang</option><option value="2">2 bintang</option><option value="1">1 bintang</option></select><button type="submit">Kirim penilaian</button><p role="status"></p></form>';
-  rating.after(review);
-  let ratingVersion = 0;
-  function drawRating(data) {
-    const count = Number(data.count) || 0;
-    const average = Number(data.average) || 0;
-    rating.querySelector('.product-rating-stars').textContent = Array.from({ length: 5 }, (_, i) =>
-      i < Math.round(average) ? '\u2605' : '\u2606',
-    ).join('');
-    rating.lastElementChild.textContent = count
-      ? average.toLocaleString('id-ID') + ' (' + count + ' penilaian)'
-      : 'Belum ada penilaian';
-    review.querySelector('select').value = data.mine ? String(data.mine) : '';
+  let ratingVersion = 0,
+    likeCount = 0;
+  function drawLikes() {
+    rating.querySelector('.product-rating-stars').textContent = (
+      liked.has(current?.id) ? '\u2605' : '\u2606'
+    ).repeat(5);
+    rating.lastElementChild.textContent = likeCount.toLocaleString('id-ID') + ' suka';
   }
-  async function loadRating() {
+  async function loadLikes() {
     const version = ++ratingVersion;
-    drawRating({});
-    review.querySelector('[role=status]').textContent = '';
-    review.open = false;
+    likeCount = 0;
+    drawLikes();
     try {
-      const data = await productRating(current.id);
-      if (version === ratingVersion) drawRating(data);
-    } catch (error) {
-      if (version === ratingVersion)
-        review.querySelector('[role=status]').textContent = error.message;
+      const data = await productLikes(current.id);
+      if (version !== ratingVersion) return;
+      likeCount = Number(data.count) || 0;
+      if (data.mine) {
+        liked.add(current.id);
+        try {
+          localStorage.setItem(key, JSON.stringify([...liked]));
+        } catch {}
+      }
+      drawLikes();
+      sync();
+    } catch {
+      if (version === ratingVersion) rating.lastElementChild.textContent = 'Produk disukai';
     }
   }
-  review.querySelector('form').onsubmit = async (event) => {
-    event.preventDefault();
-    const version = ratingVersion,
-      id = current.id;
-    const button = review.querySelector('button'),
-      status = review.querySelector('[role=status]');
-    button.disabled = true;
-    try {
-      const data = await productRating(id, Number(review.querySelector('select').value));
-      if (version === ratingVersion) {
-        drawRating(data);
-        status.textContent = 'Terima kasih, penilaian tersimpan.';
-      }
-    } catch (error) {
-      if (version === ratingVersion) status.textContent = error.message;
-    } finally {
-      button.disabled = false;
-    }
-  };
+  const likeRequests = new Set();
 
   const message = document.createElement('p');
   message.className = 'product-like-message';
@@ -198,7 +178,8 @@ export function mountProductExperience({ getProducts, openProduct, money, resolv
       like.setAttribute('aria-label', selected ? 'Hapus dari produk disukai' : 'Sukai produk');
     }
   }
-  function toggle(id) {
+  async function toggle(id) {
+    if (likeRequests.has(id)) return;
     const next = new Set(liked);
     if (next.has(id)) next.delete(id);
     else {
@@ -215,6 +196,25 @@ export function mountProductExperience({ getProducts, openProduct, money, resolv
     }
     sync();
     if (dialog.open) renderList();
+    if (current?.id === id) drawLikes();
+    likeRequests.add(id);
+    if (current?.id === id) like.disabled = true;
+    const version = current?.id === id ? ++ratingVersion : ratingVersion;
+    try {
+      const data = await productLikes(id, liked.has(id));
+      if (current?.id === id && version === ratingVersion) {
+        likeCount = Number(data.count) || 0;
+        drawLikes();
+      }
+    } catch (error) {
+      if (current?.id === id && version === ratingVersion) {
+        message.hidden = false;
+        message.textContent = error.message;
+      }
+    } finally {
+      likeRequests.delete(id);
+      if (current?.id === id) like.disabled = false;
+    }
   }
   function renderList() {
     list.replaceChildren();
@@ -272,6 +272,7 @@ export function mountProductExperience({ getProducts, openProduct, money, resolv
     if (event.key === key || event.key === null) {
       liked = read();
       sync();
+      drawLikes();
       if (dialog.open) renderList();
     }
   });
@@ -286,7 +287,8 @@ export function mountProductExperience({ getProducts, openProduct, money, resolv
         message.hidden = true;
       }
       showTab(activeTab);
-      loadRating();
+      like.disabled = likeRequests.has(item.id);
+      loadLikes();
       sync();
     },
   };
