@@ -1,9 +1,14 @@
-import { collectionCopy } from '../shared/collection-copy.js?v=collections-20261118';
-import { freshSeed, DEMO_KEY, PUBLISHED_KEY, storefront } from '../shared/seed.js?v=collections-20261118';
+import { collectionCopy } from '../shared/collection-copy.js?v=cms-sync-20261121';
+import {
+  freshSeed,
+  DEMO_KEY,
+  PUBLISHED_KEY,
+  storefront,
+} from '../shared/seed.js?v=collections-20261118';
 import { validate } from '../shared/validation.js?v=hero-ios-20261118';
 import { supabaseConfig } from './supabase-config.js?v=hero-ios-20261118';
 export const usesCloudCMS = !!supabaseConfig.enabled;
-const cloudCMS = () => import('./cloud-cms.js?v=collections-20261118');
+const cloudCMS = () => import('./cloud-cms.js?v=cms-sync-20261121');
 export const isApi = window.TANJ_CONFIG?.mode === 'api';
 const apiBase = window.TANJ_CONFIG?.apiBase || '/api';
 function read(key) {

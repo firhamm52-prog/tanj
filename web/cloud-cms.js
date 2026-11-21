@@ -1,9 +1,9 @@
-import { collectionCopy } from '../shared/collection-copy.js?v=collections-20261118';
+import { collectionCopy } from '../shared/collection-copy.js?v=cms-sync-20261121';
 import { cloudClient } from './supabase-customer.js?v=hero-ios-20261118';
 import { freshSeed, storefront } from '../shared/seed.js?v=collections-20261118';
 import { supabaseConfig } from './supabase-config.js?v=hero-ios-20261118';
 let draft;
-async function call(name, args = {}) {
+async function call(name, args = {}, adaptLegacyCopy = true) {
   const client = await cloudClient();
   const { data, error } = await client.rpc(name, args);
   if (error)
@@ -12,7 +12,7 @@ async function call(name, args = {}) {
         ? 'CMS online belum siap. Jalankan migrasi 202610170007_shared_cms.sql di Supabase.'
         : error.message,
     );
-  return collectionCopy(data);
+  return adaptLegacyCopy ? collectionCopy(data) : data;
 }
 export async function loadCloudStorefront() {
   // Public catalog loading must not wait for a customer's auth refresh or lock.
@@ -77,8 +77,19 @@ export async function publishCloudContent() {
       })),
     ]),
   );
+  const expectedContent = {
+    collections: draft.collections.map(({ id, name, description = '' }) => ({
+      id,
+      name,
+      description,
+    })),
+    products: draft.products
+      .filter(({ status }) => status !== 'draft')
+      .map(({ id, model, product, gallery = [] }) => ({ id, model, product, gallery })),
+  };
   draft = await call('tanj_cms_publish', { expected_revision: draft.revision });
-  const published = await call('tanj_cms_storefront');
+  // Verify the database response before the legacy display adapter can mask stale CMS copy.
+  const published = await call('tanj_cms_storefront', {}, false);
   for (const kind of ['products', 'hijabs']) {
     for (const item of expectedPrices[kind]) {
       if (item.status === 'draft') continue;
@@ -87,6 +98,25 @@ export async function publishCloudContent() {
           'Draf tersimpan, tetapi harga di website belum sesuai. Muat ulang CMS dan coba Publikasikan lagi.',
         );
     }
+  }
+  for (const item of expectedContent.collections) {
+    const live = published.collections?.find((entry) => entry.id === item.id);
+    if (!live || live.name !== item.name || (live.description || '') !== item.description)
+      throw Error(
+        'Nama atau deskripsi koleksi belum tampil di website. Muat ulang CMS dan coba Publikasikan lagi.',
+      );
+  }
+  for (const item of expectedContent.products) {
+    const live = published.products?.find((entry) => entry.id === item.id);
+    if (
+      !live ||
+      live.model !== item.model ||
+      live.product !== item.product ||
+      JSON.stringify(live.gallery || []) !== JSON.stringify(item.gallery)
+    )
+      throw Error(
+        'Foto produk belum tampil di website. Muat ulang CMS lalu simpan dan publikasikan lagi.',
+      );
   }
   return draft;
 }

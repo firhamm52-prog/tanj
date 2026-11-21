@@ -4748,8 +4748,11 @@
       import { mountProductGallery } from './web/product-gallery.js?v=hero-ios-20261118';
       import { mountProductExperience } from './web/product-experience.js?v=likes-20261121';
       import { mountShoppingImprovements } from './web/shopping-improvements.js?v=hero-ios-20261118';
-      import { applySitePreferences, sitePreferences } from './web/site-preferences.js?v=hero-ios-20261118';
-      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=collections-20261118';
+      import {
+        applySitePreferences,
+        sitePreferences,
+      } from './web/site-preferences.js?v=hero-ios-20261118';
+      import { isApi, usesCloudCMS, loadStorefront } from './web/data.js?v=cms-sync-20261121';
       import {
         DEFAULT_PRODUCT_PRICE,
         PUBLISHED_KEY,
@@ -5165,7 +5168,12 @@
             const model = document.createElement('img');
             model.className = 'model-shot';
             model.loading = 'lazy';
-            model.src = cmsAssetSrc(item.model) || cmsAssetSrc('assets/campaign-beige.webp');
+            // The first CMS gallery photo is the product's current storefront photo.
+            // Keep the legacy model field as a fallback for products without a gallery.
+            model.src =
+              cmsAssetSrc(item.gallery?.[0]) ||
+              cmsAssetSrc(item.model) ||
+              cmsAssetSrc('assets/campaign-beige.webp');
             model.alt = 'Model mengenakan ' + collection.name + ' warna ' + item.colorName;
             const garment = document.createElement('img');
             garment.className = 'product-shot';

@@ -18,20 +18,11 @@ const updates = {
 };
 export function collectionCopy(state) {
   if (!state?.collections) return state;
-  const changed = new Map();
   const collections = state.collections.map((c) => {
     const update = updates[c.name];
     if (!update) return c;
-    changed.set(c.id, update);
     return { ...c, ...update };
   });
-  const products = state.products?.map((p) => {
-    const update = changed.get(p.collectionId);
-    if (!update) return p;
-    let name = p.name;
-    for (const [old, next] of Object.entries(updates))
-      if (name === old || name?.startsWith(old + ' ? ')) name = next.name + name.slice(old.length);
-    return { ...p, name, description: update.description };
-  });
-  return { ...state, collections, ...(products ? { products } : {}) };
+  // Keep product copy untouched. Product descriptions can be customized independently in CMS.
+  return { ...state, collections };
 }

@@ -6,7 +6,7 @@ import { resolve, extname } from 'node:path';
 import { freshSeed, storefront } from '../shared/seed.js';
 const data = storefront(freshSeed());
 data.products[0].gallery = [
-  'assets/campaign-beige.webp',
+  'https://gallery.test/card.png',
   'assets/look-2.webp',
   'https://gallery.test/detail.png',
 ];
@@ -57,6 +57,11 @@ try {
     data,
   );
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
+  assert.match(
+    await page.locator('.card[data-product-id="base-0-0"] .model-shot').getAttribute('src'),
+    /gallery\.test\/card\.png/,
+    'the first CMS gallery photo is the production card photo',
+  );
   await page.locator('.card[data-product-id="base-0-0"] .product-preview').click();
   await page.locator('#product-modal').waitFor({ state: 'visible' });
   await page.getByRole('tab', { name: 'Care Instructions', exact: true }).click();
@@ -75,7 +80,10 @@ try {
   );
   assert.equal(await page.getByRole('tab', { name: 'Sizing', exact: true }).count(), 0);
   await page.getByRole('tab', { name: 'Shipping', exact: true }).click();
-  assert.equal(await page.getByRole('tabpanel').textContent(), data.products[0].shippingInfo);
+  assert.equal(await page.getByLabel('Nomor resi', { exact: true }).count(), 1);
+  assert.equal(await page.getByRole('button', { name: 'Lacak' }).count(), 1);
+  assert.match(await page.locator('.product-rating').textContent(), /suka|disukai/);
+  assert.equal(await page.locator('.product-review').count(), 0);
   await page.getByRole('tab', { name: 'Description', exact: true }).click();
   async function assertThumbnailRail() {
     const bounds = await page.locator('.has-product-gallery').evaluate((root) => {
@@ -106,7 +114,10 @@ try {
     'quantity changes keep the selected photo',
   );
   await page.getByRole('button', { name: 'Foto berikutnya', exact: true }).click();
-  assert.match(await page.locator('#product-modal-image').getAttribute('src'), /campaign-beige/);
+  assert.match(
+    await page.locator('#product-modal-image').getAttribute('src'),
+    /gallery\.test\/card/,
+  );
   await page.getByRole('button', { name: 'Pilih warna Hitam', exact: true }).click();
   assert.equal(await page.locator('.product-gallery-thumbs button').count(), 2);
   assert.match(await page.locator('#product-modal-image').getAttribute('src'), /campaign-black/);
@@ -137,7 +148,7 @@ try {
     'mobile thumbnails stay on the left inside the photo area',
   );
   assert.equal(mobileGallery.direction, 'column');
-  assert.equal(mobileGallery.opacity,1,'mobile thumbnails are solid and clearly visible');
+  assert.equal(mobileGallery.opacity, 1, 'mobile thumbnails are solid and clearly visible');
   const main = page.locator('.product-gallery-main');
   await main.dispatchEvent('pointerdown', { clientX: 300, clientY: 120 });
   await main.dispatchEvent('pointerup', { clientX: 100, clientY: 125 });

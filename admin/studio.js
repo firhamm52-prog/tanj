@@ -6,11 +6,16 @@ import {
   defaultSiteSettings,
 } from '../shared/site-settings.js?v=hero-ios-20261118';
 import { mountManualAdmin } from './manual-payments.js?v=hero-ios-20261118';
-import { isAdmin, loginAdmin, logout, usesCloudAdmin } from '../web/admin-session.js?v=hero-ios-20261118';
+import {
+  isAdmin,
+  loginAdmin,
+  logout,
+  usesCloudAdmin,
+} from '../web/admin-session.js?v=hero-ios-20261118';
 import { DEFAULT_PRODUCT_PRICE } from '../shared/seed.js?v=collections-20261118';
 import { uploadCmsImage, uploadCmsVideo } from '../web/cms-upload.js?v=hero-ios-20261118';
 import { cropCmsImage } from '../web/cms-image-crop.js?v=hero-ios-20261118';
-import { mountProductGalleryEditor } from './product-gallery-editor.js?v=hero-ios-20261118';
+import { mountProductGalleryEditor } from './product-gallery-editor.js?v=cms-sync-20261121';
 let uploadingImage = false;
 import {
   isApi,
@@ -21,7 +26,7 @@ import {
   remove,
   publish,
   resetDemo,
-} from '../web/data.js?v=collections-20261118';
+} from '../web/data.js?v=cms-sync-20261121';
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) =>
   String(value ?? '').replace(
@@ -713,6 +718,11 @@ $('#edit-form').addEventListener('submit', async (event) => {
         throw Error(
           'Stok belum tersimpan. Jalankan pembaruan database 202610220016_cms_hijab_stock.sql, lalu muat ulang CMS.',
         );
+      if (
+        JSON.stringify(saved[kind]?.find((p) => p.id === id)?.gallery || []) !==
+        JSON.stringify(data.gallery || [])
+      )
+        throw Error('Galeri foto belum tersimpan. Muat ulang CMS, lalu unggah dan simpan lagi.');
     }
     if (publishNow) await publish();
     await refresh();

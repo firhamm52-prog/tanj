@@ -3,6 +3,7 @@ import { uploadCmsImage } from '../web/cms-upload.js?v=hero-ios-20261118';
 
 export function mountProductGalleryEditor(host, item, { onBusy, onDirty, requireAdmin }) {
   const form = host.closest('form');
+  let promoteNextProductUpload = !item.gallery?.length && !!form.elements.namedItem('model');
   let photos = [
     ...new Set(
       item.gallery?.length
@@ -12,7 +13,7 @@ export function mountProductGalleryEditor(host, item, { onBusy, onDirty, require
             .filter(Boolean),
     ),
   ];
-  host.innerHTML = `<h3>Galeri foto produk</h3><p>Foto pertama tampil saat produk dibuka. Geser urutan dengan tombol maju/mundur. Maksimal 10 foto.</p><input type="hidden" name="gallery"><div class="cms-gallery-list"></div><label>Tambah beberapa foto<input type="file" data-gallery-upload accept="image/jpeg,image/png,image/webp" multiple></label><p data-gallery-status role="status"></p>`;
+  host.innerHTML = `<h3>Galeri foto produk</h3><p>Foto pertama menjadi foto utama di kartu produk dan detail. Atur dengan tombol Jadikan utama atau maju/mundur. Maksimal 10 foto.</p><input type="hidden" name="gallery"><div class="cms-gallery-list"></div><label>Tambah beberapa foto<input type="file" data-gallery-upload accept="image/jpeg,image/png,image/webp" multiple></label><p data-gallery-status role="status"></p>`;
   const field = host.querySelector('[name=gallery]');
   const list = host.querySelector('.cms-gallery-list');
   const picker = host.querySelector('[data-gallery-upload]');
@@ -32,6 +33,12 @@ export function mountProductGalleryEditor(host, item, { onBusy, onDirty, require
       label.textContent = index === 0 ? '1 · Foto utama' : String(index + 1);
       row.append(image, label);
       for (const [text, title, disabled, action] of [
+        [
+          'Jadikan utama',
+          'Jadikan foto ' + (index + 1) + ' sebagai foto utama',
+          index === 0,
+          () => photos.unshift(...photos.splice(index, 1)),
+        ],
         [
           '←',
           'Majukan foto ' + (index + 1),
@@ -108,7 +115,10 @@ export function mountProductGalleryEditor(host, item, { onBusy, onDirty, require
         }
         status.textContent = `Mengunggah foto ${index + 1} dari ${files.length}…`;
         const url = await uploadCmsImage(cropped);
-        photos.push(url);
+        if (promoteNextProductUpload) {
+          photos.unshift(url);
+          promoteNextProductUpload = false;
+        } else photos.push(url);
         uploaded++;
         render();
         onDirty();
