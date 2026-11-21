@@ -34,7 +34,7 @@ export function mountProductExperience({ getProducts, openProduct, money, resolv
   const rating = document.createElement('div');
   rating.className = 'product-rating';
   rating.innerHTML =
-    '<span class="product-rating-stars" aria-hidden="true">?????</span><span>Belum ada penilaian</span>';
+    '<span class="product-rating-stars" aria-hidden="true">&#9734;&#9734;&#9734;&#9734;&#9734;</span><span>Belum ada penilaian</span>';
   heading.after(rating);
 
   const message = document.createElement('p');
@@ -80,7 +80,7 @@ export function mountProductExperience({ getProducts, openProduct, money, resolv
     else content.textContent = text()[id];
   }
   function renderShipping() {
-    content.innerHTML = `<p class="product-shipping-note">Kurir dan resi pesananmu tersedia di Pesanan saya setelah admin mengisi resi.</p><form class="product-tracking-form"><label for="product-tracking-courier">Kurir</label><select id="product-tracking-courier" name="courier" required><option value="">Pilih kurir</option><option value="jne">JNE</option><option value="j&t">J&T</option><option value="lion">Lion Parcel</option></select><label for="product-tracking-number">Nomor resi</label><input id="product-tracking-number" name="number" required maxlength="80" autocomplete="off" placeholder="Masukkan nomor resi"><button type="submit">Lacak ?</button><p class="product-tracking-status" role="status"></p></form><p class="product-tracking-hint">Resi disalin saat menekan Lacak. Tempel di situs kurir yang terbuka.</p>`;
+    content.innerHTML = `<p class="product-shipping-note">Kurir dan resi pesananmu tersedia di Pesanan saya setelah admin mengisi resi.</p><form class="product-tracking-form"><label for="product-tracking-courier">Kurir</label><select id="product-tracking-courier" name="courier" required><option value="">Pilih kurir</option><option value="jne">JNE</option><option value="j&t">J&T</option><option value="lion">Lion Parcel</option></select><label for="product-tracking-number">Nomor resi</label><input id="product-tracking-number" name="number" required maxlength="80" autocomplete="off" placeholder="Masukkan nomor resi"><button type="submit">Lacak &#8599;</button><p class="product-tracking-status" role="status"></p></form><p class="product-tracking-hint">Resi disalin saat menekan Lacak. Tempel di situs kurir yang terbuka.</p>`;
     const form = content.querySelector('form');
     form.onsubmit = (event) => {
       event.preventDefault();
